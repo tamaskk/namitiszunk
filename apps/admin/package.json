@@ -6,15 +6,23 @@
     "build": "next build",
     "start": "next start --port 3002",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@namitiszunk/core": "workspace:*",
+    "@namitiszunk/i18n": "workspace:*",
+    "@namitiszunk/ui": "workspace:*",
     "next": "16.4.4",
+    "next-intl": "4.14.9",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@namitiszunk/core": "workspace:*"
+    "react-hook-form": "7.91.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@namitiszunk/config": "workspace:*",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -22,7 +30,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.4",
     "tailwindcss": "^4",
-    "typescript": "~5.9.3",
-    "@namitiszunk/config": "workspace:*"
+    "typescript": "~5.9.3"
   }
 }

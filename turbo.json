@@ -31,6 +31,13 @@
     },
     "lint": {},
     "typecheck": {},
-    "test": {}
+    "test": {},
+    "test:e2e": {
+      "cache": false,
+      "passThroughEnv": ["CI", "PLAYWRIGHT_*"]
+    },
+    "@namitiszunk/ui#test": {
+      "inputs": ["$TURBO_DEFAULT$", "../config/tailwind/theme.css"]
+    }
   }
 }

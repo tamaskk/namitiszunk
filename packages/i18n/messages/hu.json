@@ -1,0 +1,68 @@
+{
+  "common": {
+    "appName": "Na, mit iszunk?",
+    "loading": "Betöltés…"
+  },
+  "landing": {
+    "tagline": "Rendelés és fizetés a telefonodon"
+  },
+  "order": {
+    "menuTitle": "Menü"
+  },
+  "admin": {
+    "title": "Klubadmin",
+    "devUi": {
+      "title": "UI-komponensek",
+      "buttons": "Gombok",
+      "pay": "Fizetés",
+      "cancel": "Mégse",
+      "filter": "Szűrés",
+      "reject": "Elutasítás",
+      "saving": "Mentés",
+      "ready": "Kész",
+      "fields": "Mezők",
+      "emailLabel": "E-mail-cím",
+      "emailHint": "Ide küldjük a nyugtát.",
+      "emailRequired": "Add meg az e-mail-címed.",
+      "categoryLabel": "Kategória",
+      "categoryPlaceholder": "Válassz kategóriát",
+      "beers": "Sörök",
+      "cocktails": "Koktélok",
+      "submit": "Küldés",
+      "statuses": "Állapotok",
+      "statusNew": "Új",
+      "statusInProgress": "Készül",
+      "statusReady": "Kész",
+      "statusPickedUp": "Átvéve",
+      "statusRejected": "Elutasítva",
+      "table": "Táblázat",
+      "item": "Tétel",
+      "quantity": "Db",
+      "price": "Ár",
+      "beer": "Csapolt sör 0,5 l",
+      "tabs": "Fülek",
+      "tabBody": "Rendelések: {tab}",
+      "overlays": "Ablakok",
+      "openDialog": "Párbeszédablak",
+      "openSheet": "Alsó panel",
+      "dialogTitle": "Elutasítod a rendelést?",
+      "dialogBody": "A vendég visszakapja a pénzét.",
+      "sheetTitle": "Kosár",
+      "close": "Bezárás",
+      "showToast": "Értesítés",
+      "toastMessage": "Rendelésed kész",
+      "emptyCart": "Itt jelennek meg a kosárba tett italok.",
+      "browseMenu": "Menü megnyitása",
+      "emptyState": "Üres állapot"
+    }
+  },
+  "hq": {
+    "title": "Központ"
+  },
+  "mobile": {
+    "title": "Na, mit iszunk?"
+  },
+  "emails": {
+    "receiptSubject": "Nyugta a rendelésedről"
+  }
+}

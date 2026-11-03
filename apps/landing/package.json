@@ -9,12 +9,16 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@namitiszunk/core": "workspace:*",
+    "@namitiszunk/i18n": "workspace:*",
+    "@namitiszunk/ui": "workspace:*",
     "next": "16.4.4",
+    "next-intl": "4.14.9",
     "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "@namitiszunk/core": "workspace:*"
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@namitiszunk/config": "workspace:*",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -22,7 +26,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.4",
     "tailwindcss": "^4",
-    "typescript": "~5.9.3",
-    "@namitiszunk/config": "workspace:*"
+    "typescript": "~5.9.3"
   }
 }
