@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 20
     env:
       CI: true
+      # CI has no secrets; the env schema itself is covered by packages/config tests.
+      SKIP_ENV_VALIDATION: "1"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -28,6 +30,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm exec turbo run lint typecheck test build
+      # Inside `verify` so branch protection needs no new required check.
+      - run: pnpm --filter @namitiszunk/admin exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
 
   secrets:
     runs-on: ubuntu-latest
