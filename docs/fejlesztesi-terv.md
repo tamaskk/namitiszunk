@@ -543,7 +543,7 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 | --- | --- | --- | --- | --- | --- | --- |
 | 12 | Monorepó váz | Gyökér (`turbo.json`, `pnpm-workspace.yaml`, `.nvmrc`), `apps/*`, `packages/*` | A repó üres | Minden további feladat erre épül | 🔴 | M |
 
-**Jelenlegi állapot.** A repó üres. Döntések („Fejlesztői környezet”): Turborepo + pnpm, Node 24 LTS (`.nvmrc`), csomagnév `@namitiszunk/*`, privát GitHub repó `tamaskk/namitiszunk`. Az első mérföldkő: váz, helyi futtatás és CI, üres Expo vázzal (Expo Router, NativeWind). Gépen: Node 22 van, a 24 még nincs telepítve; pnpm 10 megvan.
+**Jelenlegi állapot.** A repó üres. Döntések („Fejlesztői környezet”): Turborepo + pnpm, Node 24 LTS (`.nvmrc`), csomagnév `@namitiszunk/*`, privát GitHub repó `tamaskk/namitiszunk`. Az első mérföldkő: váz, helyi futtatás és CI, üres Expo vázzal (Expo Router, NativeWind). Gépen: Node 24 telepítve (nvm), pnpm 10 megvan.
 
 **Probléma.** Minden kód ebbe kerül. Ha a csomaghatárok és a build-sorrend az elején rossz, később minden appot érint a javítás.
 
@@ -559,8 +559,8 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 **Elfogadási feltételek.**
 
 - [ ] Friss klónból a `pnpm i && pnpm dev` elindítja mind az 5 webes appot a portján és az Expo szervert.
-- [ ] A `pnpm lint`, `pnpm typecheck`, `pnpm test` és `pnpm build` hiba nélkül lefut.
-- [ ] Egy `@namitiszunk/core` függvény az order appból és a mobilappból is importálható.
+- [x] A `pnpm lint`, `pnpm typecheck`, `pnpm test` és `pnpm build` hiba nélkül lefut.
+- [x] Egy `@namitiszunk/core` függvény az order appból és a mobilappból is importálható.
 
 **Tesztelés.** A CI (13.) tiszta gépen futtatja a fenti parancsokat. Kézzel: mind az 5 port megnyitása, a mobilapp az iOS Simulatorban.
 

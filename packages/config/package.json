@@ -1,0 +1,22 @@
+{
+  "name": "@namitiszunk/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./eslint": "./eslint/base.mjs",
+    "./next": "./next.mjs",
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.5",
+    "typescript-eslint": "^8.72.1"
+  }
+}

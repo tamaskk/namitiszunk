@@ -1,0 +1,4 @@
+{
+  "extends": "@namitiszunk/config/tsconfig/base.json",
+  "include": ["src"]
+}

@@ -61,7 +61,7 @@ Do these in order, every session:
 
 ## 06 Useful commands
 
-All commands are (planned) until the monorepo scaffold (task #12) exists. Run from the repo root.
+Run from the repo root. `pnpm test:e2e` is planned until the Playwright setup exists.
 
 ```
 pnpm install           install dependencies
