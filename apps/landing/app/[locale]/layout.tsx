@@ -1,3 +1,4 @@
+import { Inter } from "next/font/google";
 import { hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -5,6 +6,12 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 
 import "../globals.css";
+
+// latin-ext carries the Hungarian ő and ű.
+const inter = Inter({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-inter",
+});
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -20,7 +27,7 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={inter.variable}>
       <body>{children}</body>
     </html>
   );

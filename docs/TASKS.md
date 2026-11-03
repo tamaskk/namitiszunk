@@ -11,7 +11,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 ## Next
 - [ ] T-014 Environments, secrets and deploy (`packages/config/src/env.ts`, 5 Vercel projects)
 - [ ] T-015 (F6) Shared i18n package (next-intl, hu + en, formatHuf)
-- [ ] T-016 UI base and dark theme (`packages/ui`, tokens.json)
+- [x] T-016 UI base and dark theme (`packages/ui`, tokens.json)
 - [ ] T-020 Mongoose models and indexes
 - [ ] T-021 Order state machine
 - [ ] T-022 Pricing (subtotal, service fee, tip, discount, commission)

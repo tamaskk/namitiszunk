@@ -61,7 +61,7 @@ Do these in order, every session:
 
 ## 06 Useful commands
 
-Run from the repo root. `pnpm test:e2e` is planned until the Playwright setup exists.
+Run from the repo root. `pnpm test:e2e` runs Playwright (today: the admin UI showcase with axe-core; install the browser once with `pnpm --filter @namitiszunk/admin exec playwright install chromium`).
 
 ```
 pnpm install           install dependencies

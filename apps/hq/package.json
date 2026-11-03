@@ -11,6 +11,7 @@
   "dependencies": {
     "@namitiszunk/core": "workspace:*",
     "@namitiszunk/i18n": "workspace:*",
+    "@namitiszunk/ui": "workspace:*",
     "next": "16.4.4",
     "next-intl": "4.14.9",
     "react": "19.3.0",
