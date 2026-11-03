@@ -6,7 +6,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [ ] T-001 Stripe platform account and Connect setup (business, not code)
 - [ ] T-005 DNS to Vercel and email sending domain (business, not code)
 - [x] T-012 Monorepo scaffold: Turborepo + pnpm, 5 Next.js apps, empty Expo shell, packages
-- [ ] T-013 CI (GitHub Actions): lint, typecheck, test, build, gitleaks
+- [x] T-013 CI (GitHub Actions): lint, typecheck, test, build, gitleaks
 
 ## Next
 - [ ] T-014 Environments, secrets and deploy (`packages/config/src/env.ts`, 5 Vercel projects)
