@@ -1,6 +1,25 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "globalDependencies": [".env*"],
+  "globalEnv": [
+    "VERCEL_ENV",
+    "SKIP_ENV_VALIDATION",
+    "MONGODB_URI",
+    "BETTER_AUTH_SECRET",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "ABLY_API_KEY",
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN",
+    "TWILIO_MESSAGING_SERVICE_SID",
+    "RESEND_API_KEY",
+    "BLOB_READ_WRITE_TOKEN",
+    "INNGEST_EVENT_KEY",
+    "INNGEST_SIGNING_KEY",
+    "SENTRY_DSN",
+    "NEXT_PUBLIC_POSTHOG_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build", "typecheck"],

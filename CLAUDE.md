@@ -53,3 +53,4 @@ Maintainer notes (block comments are stripped from Claude's context):
 - Node 24 is the target (`.nvmrc` in T-012); this machine still has Node 22 — install with `nvm install 24` before scaffolding.
 - React versions are pinned per app, not at the root (Expo and Next.js may need different React versions).
 - If Metro cannot resolve pnpm symlinks, add `node-linker=hoisted` to `.npmrc`.
+- Env files live per app (`apps/<app>/.env.local`, names in `.env.example`); Next does not read a root `.env.local`. `SKIP_ENV_VALIDATION=1` skips the check outside production.

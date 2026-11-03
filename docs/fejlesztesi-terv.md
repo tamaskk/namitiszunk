@@ -617,7 +617,7 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 **Elfogadási feltételek.**
 
 - [ ] Mind az 5 app élesen fut a saját domainjén, PR-ra preview készül.
-- [ ] Hiányzó környezeti változónál a build megnevezi a változót és leáll.
+- [x] Hiányzó környezeti változónál a build megnevezi a változót és leáll.
 - [ ] Az éles környezet a Flex klaszterre, a preview és a helyi az M0-ra csatlakozik.
 - [ ] A repóban nincs titok (gitleaks zöld).
 
