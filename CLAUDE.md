@@ -28,7 +28,7 @@ Maintainer notes (block comments are stripped from Claude's context):
 | Deploying | `/deploy <preview or production> <app>`, only when I ask |
 | Independent review | subagents `code-reviewer`, `security-auditor`, `design-reviewer` |
 | Finding code, broad code search | `graphify query "<question>"` (or `/graphify query`), `graphify path "<A>" "<B>"`, `graphify explain "<concept>"`; overview: graphify-out/GRAPH_REPORT.md. Not Explore, not whole-file reads |
-| The graph is stale or missing | `graphify update .` (AST only, no API cost); first build: `/graphify .` after T-012 |
+| The graph is stale or missing | `graphify update .` (AST only, no API cost); if graphify-out/graph.json is missing: `/graphify .` |
 | Too much code, over-engineering | Ponytail is always on (full); `/ponytail-review` on a diff, `/ponytail-audit` on the codebase |
 | Token savings check | `headroom savings` (the proxy runs outside this session; never start, stop or reroute it) |
 | UI work | the `ui-component` skill loads for UI files |
@@ -50,6 +50,6 @@ Maintainer notes (block comments are stripped from Claude's context):
 - After modifying code, run `graphify update .`.
 
 ## Gotchas
-- Node 24 is the target (`.nvmrc` in T-012); this machine still has Node 22 — install with `nvm install 24` before scaffolding.
+- Node 24 is the target (`.nvmrc` in T-012). It is installed via nvm, but the default is still 22: run `nvm use 24` before scaffolding.
 - React versions are pinned per app, not at the root (Expo and Next.js may need different React versions).
 - If Metro cannot resolve pnpm symlinks, add `node-linker=hoisted` to `.npmrc`.

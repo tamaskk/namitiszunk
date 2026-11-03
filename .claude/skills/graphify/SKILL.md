@@ -216,7 +216,7 @@ Path('graphify-out/.graphify_semantic.json').write_text(json.dumps({'nodes':[],'
 "
 ```
 
-**MANDATORY: You MUST use the Agent tool here. Reading files yourself one-by-one is forbidden - it is 5-10x slower. If you do not use the Agent tool you are doing this wrong.**
+Use the Agent tool here to extract chunks in parallel; reading the files yourself one by one is 5-10x slower.
 
 Before dispatching subagents, print a timing estimate:
 - Load `total_words` and file counts from `graphify-out/.graphify_detect.json`

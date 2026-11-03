@@ -29,7 +29,7 @@ The caller gives you a range (e.g. `main...HEAD`) or files. If not, review `git 
 
 ## Output
 - Verdict: **No blockers** or **Blockers found**.
-- Findings, most important first, at most 15 rows: `Severity (Blocker / Major / Minor / Nit) | File:line | Issue | Why it matters | Suggested fix`.
+- Findings, most important first: `Severity (Blocker / Major / Minor / Nit) | File:line | Issue | Why it matters | Suggested fix`. Group repeated Minors into one row.
 - Skip nits unless asked. Say what you did not check.
 
 ## Memory
