@@ -12,7 +12,7 @@ exists, in the style already established. When in doubt, match what is there.
 
 ## 02 Before you start
 
-Do these in order, every session:
+Do these in order before product or code work:
 
 1. Read docs/PRD.md for what we are building and what is out of scope.
 2. Before any UI work, read docs/DESIGN_SYSTEM.md. Use its tokens.
