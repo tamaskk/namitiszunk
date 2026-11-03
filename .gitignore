@@ -1,0 +1,39 @@
+# Dependencies and build output
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Expo
+.expo/
+ios/
+android/
+
+# Tests
+playwright-report/
+test-results/
+
+# OS and editors
+.DS_Store
+*.log
+
+# Claude Code: personal files, not shared
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/agent-memory-local/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Graphify knowledge graph: rebuilt locally (code extraction costs zero tokens)
+graphify-out/
