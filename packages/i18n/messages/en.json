@@ -1,0 +1,24 @@
+{
+  "common": {
+    "appName": "Na, mit iszunk?",
+    "loading": "Loading…"
+  },
+  "landing": {
+    "tagline": "Order and pay on your phone"
+  },
+  "order": {
+    "menuTitle": "Menu"
+  },
+  "admin": {
+    "title": "Club admin"
+  },
+  "hq": {
+    "title": "Headquarters"
+  },
+  "mobile": {
+    "title": "Na, mit iszunk?"
+  },
+  "emails": {
+    "receiptSubject": "Receipt for your order"
+  }
+}

@@ -19,8 +19,13 @@ const nextConfig: NextConfig = {
 };
 
 // Fail fast with the missing variable names when serving or building, not on lint or typegen.
+// `next typegen` loads this file with the build phase, so it is told apart by its argv.
 export default function config(phase: string): NextConfig {
-  if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
+  const generatingTypes = process.argv.includes("typegen");
+  if (
+    !generatingTypes &&
+    (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD)
+  ) {
     validateBuildEnv("api", process.env);
   }
   return nextConfig;

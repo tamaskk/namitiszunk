@@ -638,15 +638,15 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 **Megoldás.**
 
 1. `packages/i18n/messages/hu.json` és `en.json`, névterekkel: `common`, `order`, `admin`, `hq`, `landing`, `mobile`, `emails`.
-2. Formázók: `formatHuf()` (`Intl.NumberFormat('hu-HU', { style: 'currency', currency: 'HUF', maximumFractionDigits: 0 })`), dátum és idő `Europe/Budapest` időzónával.
+2. Formázók: `formatHuf()` (`Intl.NumberFormat('hu-HU', { style: 'currency', currency: 'HUF', maximumFractionDigits: 0, useGrouping: 'always' })`), dátum és idő `Europe/Budapest` időzónával.
 3. Landing és order: next-intl `[locale]` útvonalakkal, a böngésző nyelve szerint, alapértelmezés `hu`. Admin és HQ: URL-előtag nélkül, a nyelv a felhasználó beállításából.
 4. Mobil: `use-intl` (a next-intl keretrendszer-független magja) ugyanazokkal a JSON-fájlokkal.
 5. Típusbiztos kulcsok: a `hu.json` alapján generált TypeScript-típus.
 
 **Elfogadási feltételek.**
 
-- [ ] Ha az `en.json`-ból hiányzik egy kulcs, ami a `hu.json`-ban megvan, a CI piros.
-- [ ] Nem létező kulcsra a typecheck hibát ad.
+- [x] Ha az `en.json`-ból hiányzik egy kulcs, ami a `hu.json`-ban megvan, a CI piros.
+- [x] Nem létező kulcsra a typecheck hibát ad.
 - [ ] A `formatHuf(1990)` eredménye magyarul „1 990 Ft”, a webes és a mobil appban ugyanígy.
 
 **Tesztelés.** Vitest a formázókra; kulcsellenőrző szkript a CI-ban (`packages/i18n/scripts/check-keys.ts`).

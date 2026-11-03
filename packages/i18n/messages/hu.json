@@ -1,0 +1,24 @@
+{
+  "common": {
+    "appName": "Na, mit iszunk?",
+    "loading": "Betöltés…"
+  },
+  "landing": {
+    "tagline": "Rendelés és fizetés a telefonodon"
+  },
+  "order": {
+    "menuTitle": "Menü"
+  },
+  "admin": {
+    "title": "Klubadmin"
+  },
+  "hq": {
+    "title": "Központ"
+  },
+  "mobile": {
+    "title": "Na, mit iszunk?"
+  },
+  "emails": {
+    "receiptSubject": "Nyugta a rendelésedről"
+  }
+}
