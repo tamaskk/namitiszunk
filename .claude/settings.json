@@ -2,52 +2,166 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
-      "Bash(pnpm lint)", "Bash(pnpm lint *)", "Bash(pnpm typecheck)", "Bash(pnpm typecheck *)",
-      "Bash(pnpm test)", "Bash(pnpm test *)", "Bash(pnpm test:e2e)", "Bash(pnpm test:e2e *)",
-      "Bash(pnpm format)", "Bash(pnpm format:check)", "Bash(pnpm build)", "Bash(pnpm build *)",
-      "Bash(pnpm --filter * lint)", "Bash(pnpm --filter * typecheck)", "Bash(pnpm --filter * test)", "Bash(pnpm --filter * test *)",
-      "Bash(git status)", "Bash(git status *)", "Bash(git diff)", "Bash(git diff *)",
-      "Bash(git log *)", "Bash(git show *)", "Bash(git branch --show-current)",
-      "Bash(gh issue view *)", "Bash(gh issue list *)", "Bash(gh pr view *)", "Bash(gh pr list *)",
-      "Bash(gh pr diff *)", "Bash(gh run list *)", "Bash(gh run view *)",
-      "Bash(graphify query *)", "Bash(graphify path *)", "Bash(graphify explain *)", "Bash(graphify update *)",
-      "Bash(graphify --version)", "Bash(headroom savings)", "Bash(headroom --version)"
-    ],
-    "ask": [
-      "Bash(git push *)", "Bash(gh pr create *)", "Bash(gh pr merge *)",
-      "Bash(pnpm add *)", "Bash(pnpm remove *)", "Bash(pnpm update *)", "Bash(pnpm install *)",
-      "Bash(npm install *)", "Bash(vercel *)",
-      "Edit(package.json)", "Edit(**/package.json)", "Edit(.claude/settings.json)", "Edit(.claude/hooks/**)", "Edit(.mcp.json)"
+      "Bash(pnpm lint)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm test)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm test:e2e)",
+      "Bash(pnpm test:e2e *)",
+      "Bash(pnpm format)",
+      "Bash(pnpm format:check)",
+      "Bash(pnpm build)",
+      "Bash(pnpm build *)",
+      "Bash(pnpm --filter * lint)",
+      "Bash(pnpm --filter * typecheck)",
+      "Bash(pnpm --filter * test)",
+      "Bash(pnpm --filter * test *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git branch --show-current)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)",
+      "Bash(graphify query *)",
+      "Bash(graphify path *)",
+      "Bash(graphify explain *)",
+      "Bash(graphify update *)",
+      "Bash(graphify --version)",
+      "Bash(headroom savings)",
+      "Bash(headroom --version)"
     ],
     "deny": [
-      "Read(.env)", "Read(.env.*)", "Read(**/.env)", "Read(**/.env.*)", "Read(!.env.example)", "Read(!**/.env.example)",
-      "Read(secrets/**)", "Read(*.pem)",
-      "Bash(sudo *)", "Bash(git push --force *)", "Bash(git push -f *)", "Bash(npm publish *)", "Bash(pnpm publish *)"
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(!.env.example)",
+      "Read(!**/.env.example)",
+      "Read(secrets/**)",
+      "Read(*.pem)",
+      "Bash(sudo *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(npm publish *)",
+      "Bash(pnpm publish *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm remove *)",
+      "Bash(pnpm update *)",
+      "Bash(pnpm install *)",
+      "Bash(npm install *)",
+      "Bash(vercel *)",
+      "Edit(package.json)",
+      "Edit(**/package.json)",
+      "Edit(.claude/settings.json)",
+      "Edit(.claude/hooks/**)",
+      "Edit(.mcp.json)"
     ]
-  },
-  "extraKnownMarketplaces": {
-    "ponytail": { "source": { "source": "github", "repo": "DietrichGebert/ponytail" } }
   },
   "hooks": {
     "SessionStart": [
-      { "hooks": [ { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-context.sh\"", "timeout": 10 } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-context.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
     ],
     "PreToolUse": [
-      { "matcher": "Bash",
-        "hooks": [ { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-bash.sh\"", "timeout": 15 } ] },
-      { "matcher": "Read|Grep|Bash",
-        "hooks": [ { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/graph-first.sh\"", "timeout": 10 } ] },
-      { "matcher": "Bash|Grep",
-        "hooks": [ { "type": "command", "command": "graphify hook-guard search", "timeout": 10 } ] },
-      { "matcher": "Read|Glob",
-        "hooks": [ { "type": "command", "command": "graphify hook-guard read --strict", "timeout": 10 } ] }
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-bash.sh\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/graph-first.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "graphify hook-guard search",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "graphify hook-guard read --strict",
+            "timeout": 10
+          }
+        ]
+      }
     ],
     "PostToolUse": [
-      { "matcher": "Edit|Write|MultiEdit",
-        "hooks": [ { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-file.sh\"", "timeout": 30 } ] }
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-file.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
     ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify-on-stop.sh\"", "timeout": 180 } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify-on-stop.sh\"",
+            "timeout": 180
+          }
+        ]
+      }
     ]
+  },
+  "enabledPlugins": {
+    "security-guidance@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "ponytail@ponytail": true
+  },
+  "extraKnownMarketplaces": {
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    }
   }
 }
