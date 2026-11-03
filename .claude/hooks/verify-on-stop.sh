@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# .claude/hooks/verify-on-stop.sh   (OPTIONAL)
+# Stop hook. When Claude finishes a turn with uncommitted TypeScript changes,
+# run `pnpm typecheck`; if it fails, block the stop and hand Claude the
+# errors so it fixes them in the same turn. Loop guard: if Claude is already
+# continuing because of a Stop hook (stop_hook_active), let it stop.
+set -u
+command -v node >/dev/null 2>&1 || exit 0
+root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+cd "$root" 2>/dev/null || exit 0
+
+IFS= read -r -d '' ACTIVE_JS <<'JS' || true
+let raw = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (d) => (raw += d));
+process.stdin.on("end", () => {
+  try { process.stdout.write(JSON.parse(raw).stop_hook_active ? "true" : "false"); }
+  catch { process.stdout.write("false"); }
+});
+JS
+
+IFS= read -r -d '' BLOCK_JS <<'JS' || true
+let out = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (d) => (out += d));
+process.stdin.on("end", () => {
+  process.stdout.write(JSON.stringify({
+    decision: "block",
+    reason: "pnpm typecheck failed after your changes. Fix these errors before finishing, or explain why they are expected:\n" + out.trim(),
+  }));
+});
+JS
+
+[ "$(node -e "$ACTIVE_JS")" = "true" ] && exit 0
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+git status --porcelain --untracked-files=all 2>/dev/null | grep -Eq '\.(ts|tsx|mts|cts)$' || exit 0
+grep -q '"typecheck"' package.json 2>/dev/null || exit 0
+
+if output="$(pnpm -s typecheck 2>&1)"; then
+  exit 0
+fi
+printf '%s\n' "$output" | head -n 60 | node -e "$BLOCK_JS"
+exit 0
