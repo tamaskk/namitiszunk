@@ -529,9 +529,9 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 
 **Elfogadási feltételek.**
 
-- [ ] Mind az 5 folyamat képernyői megvannak, a doksi minden rendelésállapotával.
-- [ ] A vendégút minden fő művelete a képernyő alján van.
-- [ ] A Pult nézet kártyáján egy pillantásra látszik a rövid szám, a tételek, az eltelt idő és a VIP jelölés.
+- [x] Mind az 5 folyamat képernyői megvannak, a doksi minden rendelésállapotával.
+- [x] A vendégút minden fő művelete a képernyő alján van.
+- [x] A Pult nézet kártyáján egy pillantásra látszik a rövid szám, a tételek, az eltelt idő és a VIP jelölés.
 
 **Tesztelés.** Végigjátszás 2–3 ismerőssel a PNG-ken, hangos gondolkodással; a Pult nézetet egy pultossal. Az észrevételek a drótvázba kerülnek, mielőtt a 40. és az 54. feladat indul.
 
