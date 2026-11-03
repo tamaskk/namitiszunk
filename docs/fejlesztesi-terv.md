@@ -586,9 +586,9 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 
 **Elfogadási feltételek.**
 
-- [ ] Bukott teszttel a PR nem olvasztható be.
-- [ ] Egy próbaként feltöltött `sk_test_` kulcs miatt a CI piros.
-- [ ] A CI a 12. feladat összes parancsát futtatja.
+- [x] Bukott teszttel a PR nem olvasztható be.
+- [x] Egy próbaként feltöltött `sk_test_` kulcs miatt a CI piros.
+- [x] A CI a 12. feladat összes parancsát futtatja.
 
 **Tesztelés.** Próba-PR szándékosan bukott teszttel, majd javítva; próba-PR egy kamu kulccsal.
 
