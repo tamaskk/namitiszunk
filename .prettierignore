@@ -10,3 +10,4 @@ graphify-out
 docs
 *.md
 .mcp.json
+packages/config/tailwind/theme.css

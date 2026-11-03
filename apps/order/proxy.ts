@@ -6,5 +6,5 @@ export default createMiddleware(routing);
 
 export const config = {
   // Skip API routes, Next and Vercel internals, and files such as favicon.ico.
-  matcher: "/((?!api|_next|_vercel|.*\\..*).*)",
+  matcher: "/((?!(?:api|_next|_vercel)(?:/|$)|.*\\..*).*)",
 };

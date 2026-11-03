@@ -673,9 +673,9 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 
 **Elfogadási feltételek.**
 
-- [ ] A 4 webes app csak a `@namitiszunk/ui` komponenseit használja; appokban nincs shadcn-másolat.
-- [ ] Az axe-core a bemutatóoldalon nem talál kontraszthibát.
-- [ ] A kiemelőszín egy helyen (`tokens.json`) cserélhető, és a csere a webes és a mobil appban is megjelenik.
+- [x] A 4 webes app csak a `@namitiszunk/ui` komponenseit használja; appokban nincs shadcn-másolat.
+- [x] Az axe-core a bemutatóoldalon nem talál kontraszthibát.
+- [x] A kiemelőszín egy helyen (`tokens.json`) cserélhető, és a csere a webes és a mobil appban is megjelenik.
 
 **Tesztelés.** Playwright + axe-core a bemutatóoldalon; kézi ellenőrzés telefonon, sötét helyiségben, minimális fényerőn.
 

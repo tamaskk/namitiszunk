@@ -3,8 +3,8 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/ui": "~58.0.26",
-    "@namitiszunk/core": "workspace:*",
     "@namitiszunk/i18n": "workspace:*",
+    "@namitiszunk/ui": "workspace:*",
     "expo": "~58.0.22",
     "expo-constants": "~58.0.14",
     "expo-device": "~58.0.5",

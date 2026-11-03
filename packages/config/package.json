@@ -8,7 +8,8 @@
     "./eslint": "./eslint/base.mjs",
     "./next": "./next.mjs",
     ".": "./src/index.ts",
-    "./env": "./src/env.ts"
+    "./env": "./src/env.ts",
+    "./tailwind/theme.css": "./tailwind/theme.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
