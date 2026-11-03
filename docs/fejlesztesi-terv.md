@@ -543,7 +543,7 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 | --- | --- | --- | --- | --- | --- | --- |
 | 12 | Monorepó váz | Gyökér (`turbo.json`, `pnpm-workspace.yaml`, `.nvmrc`), `apps/*`, `packages/*` | A repó üres | Minden további feladat erre épül | 🔴 | M |
 
-**Jelenlegi állapot.** A repó üres. Döntések („Fejlesztői környezet”): Turborepo + pnpm, Node 24 LTS (`.nvmrc`), csomagnév `@namitiszunk/*`, privát GitHub repó `tamaskk/namitiszunk`. Az első mérföldkő: váz, helyi futtatás és CI, üres Expo vázzal (Expo Router, NativeWind). Gépen: Node 22 van, a 24 még nincs telepítve; pnpm 10 megvan.
+**Jelenlegi állapot.** A repó üres. Döntések („Fejlesztői környezet”): Turborepo + pnpm, Node 24 LTS (`.nvmrc`), csomagnév `@namitiszunk/*`, privát GitHub repó `tamaskk/namitiszunk`. Az első mérföldkő: váz, helyi futtatás és CI, üres Expo vázzal (Expo Router, NativeWind). Gépen: Node 24 telepítve (nvm), pnpm 10 megvan.
 
 **Probléma.** Minden kód ebbe kerül. Ha a csomaghatárok és a build-sorrend az elején rossz, később minden appot érint a javítás.
 
@@ -559,8 +559,8 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 **Elfogadási feltételek.**
 
 - [ ] Friss klónból a `pnpm i && pnpm dev` elindítja mind az 5 webes appot a portján és az Expo szervert.
-- [ ] A `pnpm lint`, `pnpm typecheck`, `pnpm test` és `pnpm build` hiba nélkül lefut.
-- [ ] Egy `@namitiszunk/core` függvény az order appból és a mobilappból is importálható.
+- [x] A `pnpm lint`, `pnpm typecheck`, `pnpm test` és `pnpm build` hiba nélkül lefut.
+- [x] Egy `@namitiszunk/core` függvény az order appból és a mobilappból is importálható.
 
 **Tesztelés.** A CI (13.) tiszta gépen futtatja a fenti parancsokat. Kézzel: mind az 5 port megnyitása, a mobilapp az iOS Simulatorban.
 
@@ -586,9 +586,9 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 
 **Elfogadási feltételek.**
 
-- [ ] Bukott teszttel a PR nem olvasztható be.
-- [ ] Egy próbaként feltöltött `sk_test_` kulcs miatt a CI piros.
-- [ ] A CI a 12. feladat összes parancsát futtatja.
+- [x] Bukott teszttel a PR nem olvasztható be.
+- [x] Egy próbaként feltöltött `sk_test_` kulcs miatt a CI piros.
+- [x] A CI a 12. feladat összes parancsát futtatja.
 
 **Tesztelés.** Próba-PR szándékosan bukott teszttel, majd javítva; próba-PR egy kamu kulccsal.
 
@@ -617,7 +617,7 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 **Elfogadási feltételek.**
 
 - [ ] Mind az 5 app élesen fut a saját domainjén, PR-ra preview készül.
-- [ ] Hiányzó környezeti változónál a build megnevezi a változót és leáll.
+- [x] Hiányzó környezeti változónál a build megnevezi a változót és leáll.
 - [ ] Az éles környezet a Flex klaszterre, a preview és a helyi az M0-ra csatlakozik.
 - [ ] A repóban nincs titok (gitleaks zöld).
 
@@ -638,15 +638,15 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 **Megoldás.**
 
 1. `packages/i18n/messages/hu.json` és `en.json`, névterekkel: `common`, `order`, `admin`, `hq`, `landing`, `mobile`, `emails`.
-2. Formázók: `formatHuf()` (`Intl.NumberFormat('hu-HU', { style: 'currency', currency: 'HUF', maximumFractionDigits: 0 })`), dátum és idő `Europe/Budapest` időzónával.
+2. Formázók: `formatHuf()` (`Intl.NumberFormat('hu-HU', { style: 'currency', currency: 'HUF', maximumFractionDigits: 0, useGrouping: 'always' })`), dátum és idő `Europe/Budapest` időzónával.
 3. Landing és order: next-intl `[locale]` útvonalakkal, a böngésző nyelve szerint, alapértelmezés `hu`. Admin és HQ: URL-előtag nélkül, a nyelv a felhasználó beállításából.
 4. Mobil: `use-intl` (a next-intl keretrendszer-független magja) ugyanazokkal a JSON-fájlokkal.
 5. Típusbiztos kulcsok: a `hu.json` alapján generált TypeScript-típus.
 
 **Elfogadási feltételek.**
 
-- [ ] Ha az `en.json`-ból hiányzik egy kulcs, ami a `hu.json`-ban megvan, a CI piros.
-- [ ] Nem létező kulcsra a typecheck hibát ad.
+- [x] Ha az `en.json`-ból hiányzik egy kulcs, ami a `hu.json`-ban megvan, a CI piros.
+- [x] Nem létező kulcsra a typecheck hibát ad.
 - [ ] A `formatHuf(1990)` eredménye magyarul „1 990 Ft”, a webes és a mobil appban ugyanígy.
 
 **Tesztelés.** Vitest a formázókra; kulcsellenőrző szkript a CI-ban (`packages/i18n/scripts/check-keys.ts`).
@@ -673,9 +673,9 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 
 **Elfogadási feltételek.**
 
-- [ ] A 4 webes app csak a `@namitiszunk/ui` komponenseit használja; appokban nincs shadcn-másolat.
-- [ ] Az axe-core a bemutatóoldalon nem talál kontraszthibát.
-- [ ] A kiemelőszín egy helyen (`tokens.json`) cserélhető, és a csere a webes és a mobil appban is megjelenik.
+- [x] A 4 webes app csak a `@namitiszunk/ui` komponenseit használja; appokban nincs shadcn-másolat.
+- [x] Az axe-core a bemutatóoldalon nem talál kontraszthibát.
+- [x] A kiemelőszín egy helyen (`tokens.json`) cserélhető, és a csere a webes és a mobil appban is megjelenik.
 
 **Tesztelés.** Playwright + axe-core a bemutatóoldalon; kézi ellenőrzés telefonon, sötét helyiségben, minimális fényerőn.
 

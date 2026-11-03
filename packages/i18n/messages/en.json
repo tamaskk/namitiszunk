@@ -1,0 +1,68 @@
+{
+  "common": {
+    "appName": "Na, mit iszunk?",
+    "loading": "Loading…"
+  },
+  "landing": {
+    "tagline": "Order and pay on your phone"
+  },
+  "order": {
+    "menuTitle": "Menu"
+  },
+  "admin": {
+    "title": "Club admin",
+    "devUi": {
+      "title": "UI components",
+      "buttons": "Buttons",
+      "pay": "Pay",
+      "cancel": "Cancel",
+      "filter": "Filter",
+      "reject": "Reject",
+      "saving": "Saving",
+      "ready": "Ready",
+      "fields": "Fields",
+      "emailLabel": "Email address",
+      "emailHint": "We send the receipt here.",
+      "emailRequired": "Enter your email address.",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Choose a category",
+      "beers": "Beers",
+      "cocktails": "Cocktails",
+      "submit": "Submit",
+      "statuses": "Statuses",
+      "statusNew": "New",
+      "statusInProgress": "In progress",
+      "statusReady": "Ready",
+      "statusPickedUp": "Picked up",
+      "statusRejected": "Rejected",
+      "table": "Table",
+      "item": "Item",
+      "quantity": "Qty",
+      "price": "Price",
+      "beer": "Draught beer 0.5 l",
+      "tabs": "Tabs",
+      "tabBody": "Orders: {tab}",
+      "overlays": "Overlays",
+      "openDialog": "Dialog",
+      "openSheet": "Bottom sheet",
+      "dialogTitle": "Reject this order?",
+      "dialogBody": "The guest gets a refund.",
+      "sheetTitle": "Cart",
+      "close": "Close",
+      "showToast": "Notification",
+      "toastMessage": "Your order is ready",
+      "emptyCart": "Drinks you add to the cart appear here.",
+      "browseMenu": "Open the menu",
+      "emptyState": "Empty state"
+    }
+  },
+  "hq": {
+    "title": "Headquarters"
+  },
+  "mobile": {
+    "title": "Na, mit iszunk?"
+  },
+  "emails": {
+    "receiptSubject": "Receipt for your order"
+  }
+}
