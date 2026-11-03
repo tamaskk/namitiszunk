@@ -30,9 +30,28 @@ const server = {
 
 const sentryDsn = z.url({ message: "must be a URL" });
 
-function browserMonitoring(deployment: DeploymentEnv) {
+// Source maps reach Sentry only from production builds; preview and local builds skip the upload.
+function sentryBuild(deployment: DeploymentEnv) {
   return {
     SENTRY_DSN: monitoring(sentryDsn, deployment),
+    SENTRY_AUTH_TOKEN: monitoring(required, deployment),
+    SENTRY_ORG: monitoring(required, deployment),
+    SENTRY_PROJECT: monitoring(required, deployment),
+  };
+}
+
+function browserMonitoring(deployment: DeploymentEnv) {
+  return {
+    ...sentryBuild(deployment),
+    NEXT_PUBLIC_SENTRY_DSN: monitoring(sentryDsn, deployment),
+    // Browser events take their environment from it; Vercel sets it only with "Automatically expose System Environment Variables" on.
+    NEXT_PUBLIC_VERCEL_ENV:
+      deployment === "production"
+        ? z.literal("production", {
+            message:
+              "must be production: turn on the Vercel system environment variables",
+          })
+        : z.string().optional(),
     NEXT_PUBLIC_POSTHOG_KEY: monitoring(required, deployment),
   };
 }
@@ -49,8 +68,17 @@ const appSchemas = {
   hq: (d: DeploymentEnv) => z.object({ ...browserMonitoring(d), ...server }),
   api: (d: DeploymentEnv) =>
     z.object({
-      SENTRY_DSN: monitoring(sentryDsn, d),
+      ...sentryBuild(d),
       ...server,
+      // Unset means the Sentry test endpoint answers 404.
+      SENTRY_TEST_TOKEN: required
+        .min(32, { message: "must be at least 32 characters" })
+        .optional(),
+      // Lets a preview deployment fake an outage to test the uptime alert (T-017).
+      HEALTH_FORCE_FAIL:
+        d === "production"
+          ? z.undefined({ message: "must not be set in production" }).optional()
+          : z.literal("1").optional(),
       STRIPE_SECRET_KEY: stripeKey("sk", d),
       STRIPE_WEBHOOK_SECRET: required.refine((v) => v.startsWith("whsec_"), {
         message: "must start with whsec_",
