@@ -61,7 +61,7 @@ Do these in order before product or code work:
 
 ## 06 Useful commands
 
-All commands are (planned) until the monorepo scaffold (task #12) exists. Run from the repo root.
+Run from the repo root. `pnpm test:e2e` runs Playwright (today: the admin UI showcase with axe-core; install the browser once with `pnpm --filter @namitiszunk/admin exec playwright install chromium`).
 
 ```
 pnpm install           install dependencies

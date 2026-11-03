@@ -1,0 +1,13 @@
+node_modules
+pnpm-lock.yaml
+.next
+.turbo
+.expo
+graphify-out
+# Hand-written docs and harness files are not code; the formatter owns code only.
+.claude
+.serena
+docs
+*.md
+.mcp.json
+packages/config/tailwind/theme.css

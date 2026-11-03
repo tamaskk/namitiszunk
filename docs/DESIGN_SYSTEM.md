@@ -27,6 +27,7 @@ Use tokens in components. Never raw hex values. Dark is the only theme in v1.
 | --color-success | #22C55E | Confirmations, Picked up |
 | --color-warning | #F59E0B | Non-blocking warnings, paused ordering |
 | --color-danger | #F87171 | Errors, destructive actions, rejected orders |
+| --color-overlay | rgba(0, 0, 0, 0.7) | Dialog and sheet overlay |
 
 Rules:
 - One accent color. Status colors are for state, not decoration.
@@ -49,6 +50,7 @@ Rules:
 
 Rules:
 - Fonts are assumed (Inter, JetBrains Mono) — confirm on the wireframes.
+- In code each role is a token class: `text-display`, `text-h1`, `text-h2`, `text-h3`, `text-body`, `text-small`, `text-label`, `text-order` (size, line height and weight together; Label adds the tracking, uppercase stays a separate class). Form field labels use Small 500, not the Label role. JetBrains Mono loads with the first screen that shows code.
 - Prices, order numbers and pick-up codes use tabular numerals.
 - Body text never below 16px on guest screens; never more than two families on a page.
 
@@ -98,7 +100,7 @@ Buttons
 
 - Height at least 48px everywhere (bar view actions 64px), padding 0 16px, radius-md, Small 500 or Body 600.
 - States: hover (primary-hover), active (darken 12%), focus (2px primary ring with 2px offset), disabled (50% opacity, no pointer).
-- Loading: spinner replaces the label, width stays fixed. Payment buttons never allow a double submit.
+- Loading: spinner replaces the label, width stays fixed. Payment buttons never allow a double submit. In code: `<Button loading>`; the bar-view height is `size="bar"`.
 
 Inputs
 - Height 48px, radius-sm, surface background, border color-border, focus ring primary.
@@ -110,10 +112,10 @@ Cards
 - Surface background, radius-lg, padding space-6, 1px color-border.
 
 Dialogs and sheets
-- Dialog max width 480px; on phones, product details and the cart use a bottom Sheet.
-- Overlay `rgba(0, 0, 0, 0.7)`. Close on overlay click and on Escape; destructive dialogs require the explicit button.
+- Dialog max width 480px; on phones, product details and the cart use a bottom Sheet. Both scroll when taller than the screen; `SheetHeader` keeps the title clear of the close button.
+- Overlay `rgba(0, 0, 0, 0.7)`. Close on overlay click and on Escape; destructive dialogs require the explicit button (`<DialogContent destructive>`: no close icon, overlay click and Escape do nothing). Every other dialog and sheet gets a translated `closeLabel`.
 
-Other primitives in `packages/ui`: Select, Tabs, Table, Badge (order status), Toast (Sonner), Form, EmptyState.
+Other primitives in `packages/ui`: Select, Tabs, Table, Badge (order status), Toast (Sonner), Form, EmptyState. Table takes a translated `label` for its keyboard-focusable scroll region. Toasts sit top-center so they never cover the guest bottom bar. Active tabs carry a 1px primary ring.
 
 Order status badges: New = primary outline, In progress = warning, Ready = primary solid, Picked up = success, Rejected / Refunded = danger.
 
@@ -124,7 +126,7 @@ Empty states
 
 - Set: Lucide (assumed — confirm). One set only.
 - Sizes: 16px inline, 20px in buttons, 24px standalone, 32px in the bar view.
-- Stroke width 1.75.
+- Stroke width 1.75. The web theme sets it for every Lucide icon.
 - An icon is never the only label on an action. Add text or an `aria-label`.
 
 ## 08 Responsive breakpoints
@@ -151,5 +153,6 @@ Rules:
 
 - Tokens have one source: `packages/ui/tokens.json`. It generates the web CSS variables (`packages/config/tailwind`, Tailwind v4 `@theme`) and the mobile NativeWind config (Tailwind v3). Never a shared Tailwind config: the versions differ.
 - This file and `tokens.json` change in the same commit.
+- After editing `tokens.json`, run `pnpm --filter @namitiszunk/ui theme`; the ui `test` task fails while `packages/config/tailwind/theme.css` is stale. The web theme removes the default Tailwind palette, so only token colors exist.
 - Primitives live in `packages/ui/src/`; apps never copy shadcn components. A dev-only showcase lives at `apps/admin/app/dev/ui/`.
 - Anything not defined here: ask before inventing it.

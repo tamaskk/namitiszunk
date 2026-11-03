@@ -13,7 +13,7 @@ Maintainer notes (block comments are stripped from Claude's context):
 - Na, mit iszunk?: QR ordering and payment for nightclubs (namitiszunk.hu). Stage: building the web MVP for one pilot club.
 - Stack: Turborepo + pnpm · Next.js App Router (landing, order, admin, hq, api) · Expo (phase 3) · TypeScript strict · Tailwind v4 + shadcn · MongoDB/Mongoose · Better Auth · Stripe Connect · Ably · Inngest · Vercel.
 - The truth lives in docs/: PRD (what and why), DESIGN_SYSTEM (how it looks), ARCHITECTURE (where code goes), SECURITY, TASKS; full task specs in docs/fejlesztesi-terv.md (Hungarian). Read them as AGENTS.md §02 says; do not restate them here.
-- No application code yet: the monorepo is scaffolded in T-012. Until then, every command below is planned.
+- The monorepo scaffold exists (T-012): 5 Next.js apps, an Expo shell and 7 packages; feature code starts with the next tasks.
 
 ## Commands
 `pnpm dev` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` · `pnpm build` · `pnpm --filter @namitiszunk/<pkg> <script>`
@@ -53,3 +53,4 @@ Maintainer notes (block comments are stripped from Claude's context):
 - Node 24 is the target (`.nvmrc` in T-012). It is installed via nvm, but the default is still 22: run `nvm use 24` before scaffolding.
 - React versions are pinned per app, not at the root (Expo and Next.js may need different React versions).
 - If Metro cannot resolve pnpm symlinks, add `node-linker=hoisted` to `.npmrc`.
+- Env files live per app (`apps/<app>/.env.local`, names in `.env.example`); Next does not read a root `.env.local`. `SKIP_ENV_VALIDATION=1` skips the check outside production.
