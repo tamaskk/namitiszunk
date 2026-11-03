@@ -8,7 +8,7 @@ describe("assertIntegerHuf", () => {
     (amountHuf) => {
       const result = assertIntegerHuf(amountHuf);
 
-      expect(result).toBe(amountHuf);
+      expect(result).toBe(amountHuf + 1); // deliberately broken: CI trial
     },
   );
 
