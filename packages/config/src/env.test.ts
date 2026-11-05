@@ -23,6 +23,9 @@ const liveApiEnv = {
   VERCEL_ENV: "production",
   STRIPE_SECRET_KEY: "sk_live_abc123",
   SENTRY_DSN: "https://key@o1.ingest.sentry.io/1",
+  SENTRY_AUTH_TOKEN: "sntrys_abc",
+  SENTRY_ORG: "namitiszunk",
+  SENTRY_PROJECT: "namitiszunk",
 };
 
 describe("parseAppEnv", () => {
@@ -102,6 +105,11 @@ describe("parseAppEnv", () => {
       VERCEL_ENV: "production",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_abc",
       SENTRY_DSN: liveApiEnv.SENTRY_DSN,
+      SENTRY_AUTH_TOKEN: liveApiEnv.SENTRY_AUTH_TOKEN,
+      SENTRY_ORG: liveApiEnv.SENTRY_ORG,
+      SENTRY_PROJECT: liveApiEnv.SENTRY_PROJECT,
+      NEXT_PUBLIC_SENTRY_DSN: liveApiEnv.SENTRY_DSN,
+      NEXT_PUBLIC_VERCEL_ENV: "production",
       NEXT_PUBLIC_POSTHOG_KEY: "phc_abc",
     };
 
@@ -110,6 +118,46 @@ describe("parseAppEnv", () => {
     expect(act).toThrow(
       /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must start with pk_live_/,
     );
+  });
+  it("requires the source map upload token in production", () => {
+    const source = { ...liveApiEnv, SENTRY_AUTH_TOKEN: undefined };
+
+    const act = () => parseAppEnv("api", source);
+
+    expect(act).toThrow(/SENTRY_AUTH_TOKEN is missing/);
+  });
+
+  it("requires the browser environment variable in production", () => {
+    const source = {
+      ...liveApiEnv,
+      NEXT_PUBLIC_SENTRY_DSN: liveApiEnv.SENTRY_DSN,
+      NEXT_PUBLIC_POSTHOG_KEY: "phc_abc",
+    };
+
+    const act = () => parseAppEnv("admin", source);
+
+    expect(act).toThrow(/NEXT_PUBLIC_VERCEL_ENV is missing/);
+  });
+
+  it("refuses a faked outage in production", () => {
+    const source = { ...liveApiEnv, HEALTH_FORCE_FAIL: "1" };
+
+    const act = () => parseAppEnv("api", source);
+
+    expect(act).toThrow(/HEALTH_FORCE_FAIL must not be set in production/);
+  });
+
+  it("rejects a short Sentry test token and an unknown health override", () => {
+    const source = {
+      ...testApiEnv,
+      SENTRY_TEST_TOKEN: "short",
+      HEALTH_FORCE_FAIL: "yes",
+    };
+
+    const act = () => parseAppEnv("api", source);
+
+    expect(act).toThrow(/SENTRY_TEST_TOKEN must be at least 32 characters/);
+    expect(act).toThrow(/HEALTH_FORCE_FAIL/);
   });
 });
 

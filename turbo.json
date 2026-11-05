@@ -18,12 +18,21 @@
     "INNGEST_EVENT_KEY",
     "INNGEST_SIGNING_KEY",
     "SENTRY_DSN",
-    "NEXT_PUBLIC_POSTHOG_KEY"
+    "NEXT_PUBLIC_POSTHOG_KEY",
+    "NEXT_PUBLIC_SENTRY_DSN",
+    "SENTRY_AUTH_TOKEN",
+    "SENTRY_ORG",
+    "SENTRY_PROJECT",
+    "SENTRY_TEST_TOKEN",
+    "HEALTH_FORCE_FAIL",
+    "VERCEL_GIT_COMMIT_SHA",
+    "NEXT_PUBLIC_VERCEL_ENV"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build", "typecheck"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "passThroughEnv": ["CI"]
     },
     "dev": {
       "cache": false,

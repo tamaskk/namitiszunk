@@ -1,5 +1,9 @@
 import { validateBuildEnv } from "@namitiszunk/config/env";
-import { transpilePackages } from "@namitiszunk/config/next";
+import {
+  sentryBuildOptions,
+  transpilePackages,
+} from "@namitiszunk/config/next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import {
@@ -33,5 +37,8 @@ export default function config(phase: string): NextConfig {
   ) {
     validateBuildEnv("landing", process.env);
   }
-  return withNextIntl(nextConfig);
+  return withSentryConfig(
+    withNextIntl(nextConfig),
+    sentryBuildOptions(process.env),
+  );
 }

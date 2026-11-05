@@ -6,15 +6,19 @@
     "build": "next build",
     "start": "next start --port 3004",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@namitiszunk/core": "workspace:*",
+    "@sentry/nextjs": "11.10.0",
     "next": "16.4.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@namitiszunk/core": "workspace:*"
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@namitiszunk/config": "workspace:*",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -23,6 +27,6 @@
     "eslint-config-next": "16.4.4",
     "tailwindcss": "^4",
     "typescript": "~5.9.3",
-    "@namitiszunk/config": "workspace:*"
+    "vitest": "^5.1.0"
   }
 }

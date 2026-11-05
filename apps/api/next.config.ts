@@ -1,5 +1,9 @@
 import { validateBuildEnv } from "@namitiszunk/config/env";
-import { transpilePackages } from "@namitiszunk/config/next";
+import {
+  sentryBuildOptions,
+  transpilePackages,
+} from "@namitiszunk/config/next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 import {
   PHASE_DEVELOPMENT_SERVER,
@@ -28,5 +32,5 @@ export default function config(phase: string): NextConfig {
   ) {
     validateBuildEnv("api", process.env);
   }
-  return nextConfig;
+  return withSentryConfig(nextConfig, sentryBuildOptions(process.env));
 }

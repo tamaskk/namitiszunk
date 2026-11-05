@@ -37,3 +37,6 @@ CLAUDE.local.md
 
 # Graphify knowledge graph: rebuilt locally (code extraction costs zero tokens)
 graphify-out/
+
+# Serena MCP local state
+.serena/
