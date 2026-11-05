@@ -184,7 +184,7 @@ Environment variables (names only; values live in Vercel and `.env.local`), vali
 | RESEND_API_KEY | packages/emails | yes |
 | BLOB_READ_WRITE_TOKEN | apps/api uploads | yes |
 | INNGEST_* | apps/api inngest | yes |
-| SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN | all apps (server, browser); one Sentry project, events tagged `app` | no (DSN is public) |
+| SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN | all apps (server, browser); one Sentry project per app (`namitiszunk-<app>`), events also tagged `app` | no (DSN is public) |
 | SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT | next.config of every app (source map upload, production builds only) | token: yes |
 | SENTRY_TEST_TOKEN | apps/api `POST /debug/sentry` (unset = 404; replaced by the HQ Admin role in T-030) | yes |
 | HEALTH_FORCE_FAIL | apps/api `/health`, preview only: `1` answers 503 to test the uptime alert | no |

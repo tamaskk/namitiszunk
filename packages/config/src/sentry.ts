@@ -116,7 +116,7 @@ export function scrubSpan<S>(span: S): S {
 
 type SentryEnvironment = "production" | "preview" | "development";
 
-/** Shared Sentry.init options for every app; one Sentry project, told apart by the `app` tag. */
+/** Shared Sentry.init options for every app; each app reports to its own Sentry project and also tags events with `app`. */
 export function sentryOptions(
   app: AppName,
   { dsn, vercelEnv }: { dsn: string | undefined; vercelEnv?: string },
