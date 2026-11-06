@@ -1,6 +1,6 @@
 import { Schema, type InferSchemaType } from "mongoose";
 
-import { defineModel, objectId } from "./shared";
+import { defineModel, forbidWrites, objectId } from "./shared";
 
 export const leadStatuses = [
   "new",
@@ -25,6 +25,8 @@ const feeRuleSchema = new Schema(
   },
   { timestamps: true },
 );
+// Fee lookup: the newest rule for a venue (or the platform default, venueId unset).
+feeRuleSchema.index({ venueId: 1, validFrom: -1 });
 export const FeeRule = defineModel("FeeRule", feeRuleSchema);
 export type FeeRuleDoc = InferSchemaType<typeof feeRuleSchema>;
 
@@ -72,6 +74,10 @@ const auditLogSchema = new Schema(
   },
   { timestamps: { createdAt: true, updatedAt: false } },
 );
+// Append-only: never updated or deleted in v1 (docs/SECURITY.md).
+forbidWrites(auditLogSchema, "Audit log entries cannot be changed or deleted", {
+  updates: true,
+});
 auditLogSchema.index({ "target.type": 1, "target.id": 1, createdAt: 1 });
 export const AuditLog = defineModel("AuditLog", auditLogSchema);
 export type AuditLogDoc = InferSchemaType<typeof auditLogSchema>;

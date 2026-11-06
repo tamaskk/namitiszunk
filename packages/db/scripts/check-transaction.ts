@@ -1,6 +1,7 @@
 // Transaction check (T-020): proves the cluster runs multi-document transactions, commit and rollback.
-// Writes only to two throwaway collections and drops them afterwards:
-//   node --env-file=../../apps/api/.env.local scripts/check-transaction.ts
+// Writes only to two throwaway collections and drops them afterwards. The database name must be
+// passed back as an argument, so a pulled production env cannot be written to by accident:
+//   node --env-file=../../apps/api/.env.local scripts/check-transaction.ts <database name>
 import { MongoClient } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
@@ -10,6 +11,13 @@ const client = await MongoClient.connect(uri, {
   serverSelectionTimeoutMS: 8000,
 });
 const db = client.db();
+if (process.argv[2] !== db.databaseName) {
+  await client.close();
+  console.error(
+    `Refusing to write: pass the database name "${db.databaseName}" as the first argument.`,
+  );
+  process.exit(1);
+}
 const orders = db.collection("_txcheck_orders");
 const payments = db.collection("_txcheck_payments");
 const run = `${Date.now()}`;

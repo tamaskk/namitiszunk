@@ -1,6 +1,6 @@
 import { Schema, type ClientSession, type InferSchemaType } from "mongoose";
 
-import { defineModel, huf, objectId } from "./shared";
+import { capPercent, defineModel, forbidWrites, huf, objectId } from "./shared";
 
 export const vatRates = [5, 18, 27] as const;
 export const discountTypes = ["percent", "fixed"] as const;
@@ -15,6 +15,7 @@ const categorySchema = new Schema(
   },
   { timestamps: true },
 );
+categorySchema.index({ venueId: 1, sortOrder: 1 });
 export const Category = defineModel("Category", categorySchema);
 export type CategoryDoc = InferSchemaType<typeof categorySchema>;
 
@@ -57,20 +58,8 @@ const itemSchema = new Schema(
 );
 
 // Past orders point at menu items, so they are archived, never deleted (ARCHITECTURE §06).
-function refuseDelete(): never {
-  throw new Error("Menu items cannot be deleted; use archiveItem");
-}
-itemSchema.pre(
-  ["deleteOne", "deleteMany", "findOneAndDelete"],
-  { document: false, query: true },
-  refuseDelete,
-);
-itemSchema.pre("deleteOne", { document: true, query: false }, refuseDelete);
-itemSchema.pre("bulkWrite", function (ops) {
-  if (ops.some((op) => "deleteOne" in op || "deleteMany" in op)) {
-    refuseDelete();
-  }
-});
+forbidWrites(itemSchema, "Menu items cannot be deleted; use archiveItem");
+itemSchema.index({ venueId: 1, categoryId: 1, sortOrder: 1 });
 
 export const Item = defineModel("Item", itemSchema);
 export type ItemDoc = InferSchemaType<typeof itemSchema>;
@@ -109,5 +98,7 @@ const priceRuleSchema = new Schema(
   },
   { timestamps: true },
 );
+capPercent(priceRuleSchema, "discount.type", "discount.value");
+priceRuleSchema.index({ venueId: 1, "target.id": 1 });
 export const PriceRule = defineModel("PriceRule", priceRuleSchema);
 export type PriceRuleDoc = InferSchemaType<typeof priceRuleSchema>;

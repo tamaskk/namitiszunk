@@ -1,6 +1,6 @@
 import { Schema, type InferSchemaType } from "mongoose";
 
-import { defineModel, huf, objectId } from "./shared";
+import { capPercent, defineModel, huf, objectId } from "./shared";
 
 // Changed only through transitionOrder in packages/core (T-021), never by a direct update.
 export const orderStatuses = [
@@ -78,7 +78,7 @@ const orderSchema = new Schema(
     totalHuf: huf(),
     promoId: { type: objectId, ref: "Promo" },
     pickupCode: { type: String, required: true },
-    guestTokenHash: { type: String, required: true },
+    guestTokenHash: { type: String, required: true, select: false },
     // Removed after 30 days by the retention job (T-028).
     guestPhone: String,
     smsRequested: { type: Boolean, default: false },
@@ -98,8 +98,21 @@ orderSchema.index(
   { venueId: 1, businessDate: 1, shortNumber: 1 },
   { unique: true },
 );
-// Bar view: the active orders of one bar, oldest first.
-orderSchema.index({ venueId: 1, barId: 1, status: 1, createdAt: 1 });
+// Bar view: the active orders of one bar on the current business day, oldest first.
+orderSchema.index(
+  { venueId: 1, barId: 1, businessDate: 1, status: 1, createdAt: 1 },
+  { name: "bar_view" },
+);
+orderSchema.index({ guestTokenHash: 1 }, { unique: true });
+orderSchema.index(
+  { userId: 1, createdAt: -1 },
+  { partialFilterExpression: { userId: { $type: "objectId" } } },
+);
+// Retention job (T-028) finds phone numbers older than 30 days; a TTL would delete the order itself.
+orderSchema.index(
+  { createdAt: 1 },
+  { partialFilterExpression: { guestPhone: { $type: "string" } } },
+);
 export const Order = defineModel("Order", orderSchema);
 export type OrderDoc = InferSchemaType<typeof orderSchema>;
 
@@ -129,6 +142,7 @@ const paymentSchema = new Schema(
   { timestamps: true },
 );
 paymentSchema.index({ stripePaymentIntentId: 1 }, { unique: true });
+paymentSchema.index({ orderId: 1 });
 export const Payment = defineModel("Payment", paymentSchema);
 export type PaymentDoc = InferSchemaType<typeof paymentSchema>;
 
@@ -156,6 +170,14 @@ const refundSchema = new Schema(
   },
   { timestamps: true },
 );
+refundSchema.index(
+  { stripeRefundId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { stripeRefundId: { $type: "string" } },
+  },
+);
+refundSchema.index({ paymentId: 1 });
 export const Refund = defineModel("Refund", refundSchema);
 export type RefundDoc = InferSchemaType<typeof refundSchema>;
 
@@ -175,6 +197,8 @@ const promoSchema = new Schema(
   },
   { timestamps: true },
 );
+capPercent(promoSchema, "type", "value");
+promoSchema.index({ venueId: 1, code: 1 }, { unique: true });
 export const Promo = defineModel("Promo", promoSchema);
 export type PromoDoc = InferSchemaType<typeof promoSchema>;
 
@@ -193,5 +217,7 @@ const reviewSchema = new Schema(
   },
   { timestamps: true },
 );
+reviewSchema.index({ orderId: 1 }, { unique: true });
+reviewSchema.index({ venueId: 1, createdAt: -1 });
 export const Review = defineModel("Review", reviewSchema);
 export type ReviewDoc = InferSchemaType<typeof reviewSchema>;

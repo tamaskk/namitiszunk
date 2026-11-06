@@ -12,6 +12,7 @@ export const venueRoles = [
 export const platformRoles = ["admin", "support", "finance"] as const;
 
 // Better Auth (T-030) owns this collection and its auth fields; strict: false keeps them intact.
+// Because of strict: false, app code writes only whitelisted fields here, never raw input.
 const userSchema = new Schema(
   {
     email: { type: String, lowercase: true, trim: true },
@@ -23,6 +24,10 @@ const userSchema = new Schema(
   },
   { collection: "user", strict: false, timestamps: true },
 );
+userSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { email: { $type: "string" } } },
+);
 export const User = defineModel("User", userSchema);
 export type UserDoc = InferSchemaType<typeof userSchema>;
 
@@ -33,10 +38,20 @@ const venueMemberSchema = new Schema(
     userId: { type: objectId, ref: "User" },
     role: { type: String, enum: venueRoles, required: true },
     displayName: { type: String, required: true, trim: true },
-    pinHash: String,
+    // A 4-6 digit PIN hash is brute-forceable offline; load it only with .select("+pinHash").
+    pinHash: { type: String, select: false },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
+);
+venueMemberSchema.index(
+  { venueId: 1, userId: 1 },
+  { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },
+);
+// Name + PIN sign-in needs an unambiguous name among active members.
+venueMemberSchema.index(
+  { venueId: 1, displayName: 1 },
+  { unique: true, partialFilterExpression: { isActive: true } },
 );
 export const VenueMember = defineModel("VenueMember", venueMemberSchema);
 export type VenueMemberDoc = InferSchemaType<typeof venueMemberSchema>;
@@ -49,6 +64,7 @@ const platformMemberSchema = new Schema(
   },
   { timestamps: true },
 );
+platformMemberSchema.index({ userId: 1 }, { unique: true });
 export const PlatformMember = defineModel(
   "PlatformMember",
   platformMemberSchema,
@@ -63,5 +79,7 @@ const deviceTokenSchema = new Schema(
   },
   { timestamps: true },
 );
+deviceTokenSchema.index({ token: 1 }, { unique: true });
+deviceTokenSchema.index({ userId: 1 });
 export const DeviceToken = defineModel("DeviceToken", deviceTokenSchema);
 export type DeviceTokenDoc = InferSchemaType<typeof deviceTokenSchema>;

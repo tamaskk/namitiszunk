@@ -1,6 +1,6 @@
 import { Schema, type InferSchemaType } from "mongoose";
 
-import { defineModel, huf, objectId } from "./shared";
+import { capPercent, defineModel, huf, objectId } from "./shared";
 
 export const venueStatuses = ["draft", "active", "suspended"] as const;
 export const serviceFeeTypes = ["none", "percent", "fixed"] as const;
@@ -28,6 +28,7 @@ const orderRulesSchema = new Schema(
   },
   { _id: false },
 );
+capPercent(orderRulesSchema, "serviceFee.type", "serviceFee.value");
 
 const venueSchema = new Schema(
   {
@@ -39,13 +40,24 @@ const venueSchema = new Schema(
     currency: { type: String, enum: ["HUF"], default: "HUF" },
     businessDayStart: { ...timeOfDay, default: "06:00" },
     branding: { logoUrl: String, coverUrl: String },
-    stripeAccountId: String,
+    stripeAccountId: {
+      type: String,
+      match: [/^acct_\w+$/, "{PATH} must be a Stripe account id"],
+    },
     status: { type: String, enum: venueStatuses, default: "draft" },
     orderRules: { type: orderRulesSchema, default: () => ({}) },
   },
   { timestamps: true },
 );
 venueSchema.index({ slug: 1 }, { unique: true });
+// One connected account per venue, or one club's money lands with another.
+venueSchema.index(
+  { stripeAccountId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { stripeAccountId: { $type: "string" } },
+  },
+);
 export const Venue = defineModel("Venue", venueSchema);
 export type VenueDoc = InferSchemaType<typeof venueSchema>;
 

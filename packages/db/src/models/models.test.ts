@@ -2,7 +2,18 @@ import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose, { Types } from "mongoose";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { archiveItem, Category, Item, Order, Payment, QrCode, Venue } from ".";
+import {
+  archiveItem,
+  AuditLog,
+  Category,
+  Item,
+  Order,
+  Payment,
+  Promo,
+  QrCode,
+  Venue,
+  VenueMember,
+} from ".";
 
 // Transactions need a replica set; a standalone memory server would not run them.
 let replSet: MongoMemoryReplSet;
@@ -44,7 +55,7 @@ function orderFields(overrides: Record<string, unknown> = {}) {
     subtotalHuf: 4980,
     totalHuf: 4980,
     pickupCode: "K7Q",
-    guestTokenHash: "hash",
+    guestTokenHash: new Types.ObjectId().toHexString(),
     acceptedTermsVersion: "2026-11-01",
     ...overrides,
   };
@@ -126,13 +137,26 @@ describe("Order", () => {
     const plan = (await Order.find({
       venueId: fields.venueId,
       barId: fields.barId,
+      businessDate: fields.businessDate,
       status: { $in: ["new", "preparing", "ready"] },
     })
       .sort({ createdAt: 1 })
       .explain("queryPlanner")) as unknown as Record<string, unknown>;
 
-    expect(JSON.stringify(plan)).toContain("IXSCAN");
+    expect(JSON.stringify(plan)).toContain('"indexName":"bar_view"');
     expect(JSON.stringify(plan)).not.toContain("COLLSCAN");
+  });
+
+  it("leaves the guest token hash out of normal reads", async () => {
+    const order = await Order.create(orderFields());
+
+    const plain = await Order.findById(order._id).lean();
+    const explicit = await Order.findById(order._id)
+      .select("+guestTokenHash")
+      .lean();
+
+    expect(plain).not.toHaveProperty("guestTokenHash");
+    expect(explicit?.guestTokenHash).toBe(order.guestTokenHash);
   });
 });
 
@@ -161,6 +185,105 @@ describe("unique keys", () => {
 
     await expect(venue()).rejects.toThrow(/duplicate key/);
     await expect(code()).rejects.toThrow(/duplicate key/);
+  });
+
+  it("rejects a reused promo code in the same venue", async () => {
+    const promo = {
+      venueId: new Types.ObjectId(),
+      code: "nyar",
+      type: "fixed" as const,
+      value: 500,
+    };
+    await Promo.create(promo);
+
+    const act = Promo.create({ ...promo, code: "NYAR" });
+
+    await expect(act).rejects.toThrow(/duplicate key/);
+  });
+
+  it("rejects two active members with the same name in one venue", async () => {
+    const member = {
+      venueId: new Types.ObjectId(),
+      role: "bartender" as const,
+      displayName: "Anna",
+    };
+    await VenueMember.create({ ...member, isActive: false });
+    await VenueMember.create(member);
+
+    const act = VenueMember.create(member);
+
+    await expect(act).rejects.toThrow(/duplicate key/);
+  });
+});
+
+describe("secrets and limits", () => {
+  it("leaves the PIN hash out of normal reads", async () => {
+    const member = await VenueMember.create({
+      venueId: new Types.ObjectId(),
+      role: "bartender",
+      displayName: "Anna",
+      pinHash: "argon2-hash",
+    });
+
+    const plain = await VenueMember.findById(member._id).lean();
+    const explicit = await VenueMember.findById(member._id)
+      .select("+pinHash")
+      .lean();
+
+    expect(plain).not.toHaveProperty("pinHash");
+    expect(explicit?.pinHash).toBe("argon2-hash");
+  });
+
+  it("rejects a percent discount above 100%", async () => {
+    const promo = new Promo({
+      venueId: new Types.ObjectId(),
+      code: "X",
+      type: "percent",
+      value: 10001,
+    });
+    const fee = new Venue({
+      slug: "pilot",
+      name: "Pilot",
+      orderRules: { serviceFee: { type: "percent", value: 10001 } },
+    });
+
+    const promoError = await validationError(promo);
+    const feeError = await validationError(fee);
+
+    expect(promoError?.errors["value"]).toBeDefined();
+    expect(feeError?.errors["orderRules.serviceFee.value"]).toBeDefined();
+  });
+});
+
+describe("AuditLog", () => {
+  it("refuses every way of changing or deleting an entry", async () => {
+    const entry = await AuditLog.create({
+      actor: { type: "system" },
+      action: "order.refunded",
+      target: { type: "order", id: new Types.ObjectId() },
+    });
+    const byId = { _id: entry._id };
+
+    entry.set("action", "changed");
+    await expect(entry.save()).rejects.toThrow(/cannot be changed/);
+    await expect(AuditLog.updateOne(byId, { action: "x" })).rejects.toThrow(
+      /cannot be changed/,
+    );
+    await expect(
+      AuditLog.findByIdAndUpdate(entry._id, { action: "x" }),
+    ).rejects.toThrow(/cannot be changed/);
+    await expect(AuditLog.replaceOne(byId, { action: "x" })).rejects.toThrow(
+      /cannot be changed/,
+    );
+    await expect(AuditLog.deleteMany({})).rejects.toThrow(/cannot be changed/);
+    await expect(
+      AuditLog.bulkWrite([
+        { updateOne: { filter: byId, update: { action: "x" } } },
+      ]),
+    ).rejects.toThrow(/cannot be changed/);
+    expect((await AuditLog.findById(entry._id).lean())?.action).toBe(
+      "order.refunded",
+    );
   });
 });
 
