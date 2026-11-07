@@ -22,6 +22,7 @@ describe("buildOpenApiDocument", () => {
     expect(Object.keys(paths)).toEqual([
       "/v1/orders",
       "/v1/venues",
+      "/v1/realtime/token",
       "/v1/ping",
       "/v1/openapi.json",
     ]);

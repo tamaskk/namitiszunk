@@ -9,6 +9,7 @@ import {
   type Resource,
 } from "../auth/permissions";
 import { AppError, NotFoundError } from "../errors";
+import { publishStatusChange } from "../realtime";
 import {
   type ActorKind,
   actionFor,
@@ -31,18 +32,24 @@ export type StatusChanged = {
   orderId: Id;
   venueId: Id;
   barId: Id;
+  isVip: boolean;
   event: OrderEvent;
   from: OrderStatus;
   to: OrderStatus;
   actor: Actor;
+  /** Order.updatedAt in epoch ms after the change; the realtime message carries it so clients drop stale ones. */
+  version: number;
 };
 
 export type TransitionOptions = {
   /** Required when staff rejects an order. */
   reason?: string;
-  // shortcut: a plain hook instead of the SDKs, wire Ably publish (T-031) then Inngest `order/status.changed` (T-035) once merged.
+  // shortcut: a plain hook instead of the Inngest SDK, wire `order/status.changed` (T-035) once merged.
   /** Runs only after the commit; its errors reach the caller although the status already changed. */
   afterCommit?: (change: StatusChanged) => Promise<void> | void;
+  // shortcut: core has no Sentry SDK, so callers pass Sentry.captureException; route callers (T-034, T-054) must pass it.
+  /** Gets a failed Ably publish once; the status change stays committed. */
+  reportError?: (error: unknown) => void;
   now?: Date;
 };
 
@@ -161,8 +168,8 @@ export async function transitionWith(
       const updated = await Order.findOneAndUpdate(
         { _id: orderId, status: from },
         { $set: set },
-        { session },
-      );
+        { session, returnDocument: "after" },
+      ).lean();
       if (!updated)
         throw new InvalidTransition(from, event, actorKindOf(actor));
 
@@ -178,16 +185,24 @@ export async function transitionWith(
         orderId: order._id,
         venueId: order.venueId,
         barId: order.barId,
+        isVip: order.isVip ?? false,
         event,
         from,
         to,
         actor,
+        version: updated.updatedAt.getTime(),
       };
     });
   } finally {
     await session.endSession();
   }
   if (!change) throw new Error("transaction finished without a change");
+  // The database is the source of truth; clients refetch on reconnect, so a lost message only delays them.
+  try {
+    await publishStatusChange(change);
+  } catch (error) {
+    (options.reportError ?? console.error)(error);
+  }
   await options.afterCommit?.(change);
   return change;
 }

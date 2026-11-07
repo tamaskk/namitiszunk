@@ -11,7 +11,9 @@
     "./api": "./src/api/index.ts",
     "./errors": "./src/errors.ts",
     "./orders": "./src/orders/index.ts",
-    "./notify": "./src/notify/sms.ts"
+    "./notify": "./src/notify/sms.ts",
+    "./realtime": "./src/realtime/index.ts",
+    "./realtime/channels": "./src/realtime/channels.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -33,6 +35,7 @@
     "@namitiszunk/db": "workspace:*",
     "@namitiszunk/i18n": "workspace:*",
     "@namitiszunk/validators": "workspace:*",
+    "ably": "^2.30.0",
     "libphonenumber-js": "^1.13.15",
     "server-only": "^0.0.1",
     "twilio": "^6.3.0",

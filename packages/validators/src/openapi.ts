@@ -4,6 +4,7 @@ import * as auth from "./auth";
 import * as menu from "./menu";
 import * as orders from "./orders";
 import * as promos from "./promos";
+import * as realtime from "./realtime";
 import { errorResponseSchema } from "./shared";
 import * as staff from "./staff";
 import * as venues from "./venues";
@@ -31,6 +32,8 @@ const components = {
   EmailOtpVerifyInput: auth.emailOtpVerifyInputSchema,
   PinSignInInput: auth.pinSignInInputSchema,
   SessionUserResponse: auth.sessionUserResponseSchema,
+  RealtimeTokenInput: realtime.realtimeTokenInputSchema,
+  RealtimeTokenResponse: realtime.realtimeTokenResponseSchema,
   PingResponse: z.object({ pong: z.literal(true) }),
   OpenApiDocument: z.looseObject({ openapi: z.string() }),
 } satisfies Record<string, z.ZodType>;
@@ -67,6 +70,16 @@ const operations: Operation[] = [
     summary: "List public venues",
     tag: "venues",
     response: "VenueListResponse",
+    status: 200,
+  },
+  {
+    method: "post",
+    path: "/v1/realtime/token",
+    operationId: "createRealtimeToken",
+    summary: "Sign an Ably TokenRequest that may only subscribe to the caller's channels",
+    tag: "realtime",
+    request: "RealtimeTokenInput",
+    response: "RealtimeTokenResponse",
     status: 200,
   },
   {
