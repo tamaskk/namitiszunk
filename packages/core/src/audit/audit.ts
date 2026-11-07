@@ -26,28 +26,70 @@ export type AuditEntry = {
   after?: unknown;
 };
 
-// Phone numbers, emails and PIN hashes never reach the log (docs/fejlesztesi-terv.md #26).
-const PERSONAL_KEY = /phone|e-?mail|pin_?hash/i;
+// Contact data, PINs and credentials never reach the log (docs/fejlesztesi-terv.md #26, docs/SECURITY.md).
+// Matched per camelCase / snake_case word, so `guestPhone` is dropped but `microphone` is kept.
+const PERSONAL_WORDS = new Set([
+  "phone",
+  "tel",
+  "mobile",
+  "msisdn",
+  "email",
+  "mail",
+  "pin",
+  "password",
+  "passwd",
+  "token",
+  "secret",
+  "otp",
+]);
 
-function isPlainObject(value: object): boolean {
-  const proto: unknown = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
+function isPersonalKey(key: string): boolean {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .some((word) => PERSONAL_WORDS.has(word));
 }
 
-/** Deep copy without personal-data keys; ids, dates and other non-plain values pass through. */
-export function stripPersonalData(value: unknown): unknown {
-  if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map(stripPersonalData);
-  // A hydrated Mongoose document would otherwise slip through as a non-plain object.
-  if ("toObject" in value && typeof value.toObject === "function") {
-    return stripPersonalData((value.toObject as () => unknown)());
-  }
-  if (!isPlainObject(value)) return value;
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(([key]) => !PERSONAL_KEY.test(key))
-      .map(([key, inner]) => [key, stripPersonalData(inner)]),
+// Values BSON stores as leaves: dates, ObjectIds, Decimal128, binary.
+function isLeaf(value: object): boolean {
+  return (
+    value instanceof Date || value instanceof Uint8Array || "_bsontype" in value
   );
+}
+
+/**
+ * Deep copy without personal-data keys. Maps and class instances are copied as plain
+ * objects, because BSON would otherwise store their fields unfiltered.
+ */
+export function stripPersonalData(value: unknown): unknown {
+  return strip(value, new Set());
+}
+
+function strip(value: unknown, ancestors: Set<object>): unknown {
+  if (value === null || typeof value !== "object" || isLeaf(value)) {
+    return value;
+  }
+  // A cycle would overflow the stack and abort the caller's transaction.
+  if (ancestors.has(value)) return "[Circular]";
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) return value.map((v) => strip(v, ancestors));
+    if ("toObject" in value && typeof value.toObject === "function") {
+      return strip((value.toObject as () => unknown)(), ancestors);
+    }
+    const entries =
+      value instanceof Map
+        ? [...value.entries()].map(([k, v]) => [String(k), v] as const)
+        : Object.entries(value);
+    return Object.fromEntries(
+      entries
+        .filter(([key]) => !isPersonalKey(key))
+        .map(([key, inner]) => [key, strip(inner, ancestors)]),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 /**

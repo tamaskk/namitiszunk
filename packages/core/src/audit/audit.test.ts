@@ -55,6 +55,64 @@ describe("stripPersonalData", () => {
     `);
   });
 
+  it.each([
+    "tel",
+    "mobileNumber",
+    "pin",
+    "newPin",
+    "password",
+    "guestTokenHash",
+    "client_secret",
+    "otpCode",
+    "e-mail",
+  ])("removes the %s key", (key) => {
+    const input = { [key]: "x", total: 5 };
+
+    const result = stripPersonalData(input);
+
+    expect(result).toEqual({ total: 5 });
+  });
+
+  it("keeps keys that only contain a personal word inside another word", () => {
+    const input = { microphone: true, pinned: true, hotel: "Gellért" };
+
+    const result = stripPersonalData(input);
+
+    expect(result).toEqual(input);
+  });
+
+  it("strips Maps and class instances instead of passing them through", () => {
+    class Guest {
+      phone = "+36301234567";
+      name = "Anna";
+    }
+    const input = {
+      map: new Map<string, unknown>([
+        ["phone", "1"],
+        ["qty", 2],
+      ]),
+      guest: new Guest(),
+    };
+
+    const result = stripPersonalData(input);
+
+    expect(result).toEqual({ map: { qty: 2 }, guest: { name: "Anna" } });
+  });
+
+  it("replaces a circular reference instead of overflowing", () => {
+    const shared = { qty: 1 };
+    const input: Record<string, unknown> = { a: shared, b: shared };
+    input.self = input;
+
+    const result = stripPersonalData(input);
+
+    expect(result).toEqual({
+      a: { qty: 1 },
+      b: { qty: 1 },
+      self: "[Circular]",
+    });
+  });
+
   it("strips a hydrated Mongoose document too", () => {
     const doc = new AuditLog({ ...entry, before: undefined });
     const withPhone = { toObject: () => ({ phone: "1", total: 5 }) };
