@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@namitiszunk/db": "workspace:*",
+    "@namitiszunk/validators": "workspace:*",
     "server-only": "^0.0.1"
   }
 }

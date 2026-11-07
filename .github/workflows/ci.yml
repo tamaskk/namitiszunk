@@ -30,6 +30,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm exec turbo run lint typecheck test build
+      - run: pnpm --filter @namitiszunk/validators lint:openapi
       # Inside `verify` so branch protection needs no new required check.
       - run: pnpm --filter @namitiszunk/admin exec playwright install --with-deps chromium
       - run: pnpm test:e2e
