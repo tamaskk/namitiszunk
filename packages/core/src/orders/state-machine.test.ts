@@ -1,7 +1,7 @@
-import { orderStatuses, type OrderStatus } from "@namitiszunk/db";
+import { orderStatuses, type OrderStatus, venueRoles } from "@namitiszunk/db";
 import { describe, expect, it, vi } from "vitest";
 
-import { permissions } from "../auth/permissions";
+import { type Actor, can, permissions } from "../auth/permissions";
 import {
   actionFor,
   type ActorKind,
@@ -150,4 +150,45 @@ describe("actionFor", () => {
 
     for (const action of actions) expect(permissions).toHaveProperty([action]);
   });
+});
+
+describe("state machine and RBAC agree", () => {
+  const venueId = "venue-1";
+  const guestId = "guest-1";
+  // Every actor of a kind the matrix knows; the kind may act when one of them may.
+  const actorsOf: Record<ActorKind, Actor[]> = {
+    staff: venueRoles.map((role) => ({
+      kind: "staff",
+      venueId,
+      memberId: `member-${role}`,
+      role,
+    })),
+    system: [{ kind: "system", source: "inngest" }],
+    guest: [{ kind: "guest", guestId }],
+  };
+  const contexts = [true, false].flatMap((accepted) =>
+    [true, false].map((refundOnExpiry) => ({ accepted, refundOnExpiry })),
+  );
+
+  for (const event of orderEvents) {
+    for (const kind of kinds) {
+      it(`${kind} ${event}: the table and the matrix give the same answer`, () => {
+        const machineAllows = transitionTable.some(
+          (rule) =>
+            rule.event === event &&
+            contexts.some((c) => rule.when({ actorKind: kind, ...c })),
+        );
+
+        const rbacAllows = actorsOf[kind].some((actor) =>
+          can(actor, actionFor(event, {}), {
+            venueId,
+            guestId,
+            managerRefundLimitHuf: null,
+          }),
+        );
+
+        expect(rbacAllows).toBe(machineAllows);
+      });
+    }
+  }
 });

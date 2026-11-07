@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hufSchema, nameSchema, objectIdSchema } from "./shared";
+import { blobUrlSchema, hufSchema, nameSchema, objectIdSchema } from "./shared";
 
 // Same literals as packages/db; packages/core/src/validators-sync.test.ts keeps them equal.
 export const vatRates = [5, 18, 27] as const;
@@ -41,7 +41,7 @@ export const itemInputSchema = z.object({
   descriptionEn: optionalText,
   priceHuf: hufSchema,
   vatRate: z.literal(vatRates, { error: "validation.vatRate.invalid" }),
-  imageUrl: z.url({ error: "validation.url.invalid" }).optional(),
+  imageUrl: blobUrlSchema.optional(),
   alcoholPercent: z.number().min(0).max(100).optional(),
   allergens: z.array(z.string().max(50)).optional(),
   isAvailable: z.boolean().optional(),

@@ -18,7 +18,7 @@ export type VenueMembership = {
 export type Actor =
   /** A guest identified by their guest session (phone OTP or anonymous token). */
   | { kind: "guest"; guestId: string }
-  /** The Stripe webhook or an Inngest job; it may only pay, cancel (payment timeout) and expire orders. */
+  /** The Stripe webhook or an Inngest job; it may only pay, cancel (payment timeout), expire and auto-refund orders. */
   | { kind: "system"; source: "stripe" | "inngest" }
   /**
    * The active PIN holder on a club tablet. The tablet signs in with the venue account,
@@ -43,7 +43,7 @@ export type Resource = {
   guestId?: string;
   /** Refund amount in integer forints, for `order.refund`. */
   amountHuf?: number;
-  /** Venue setting; null or undefined means no limit (pilot default). */
+  /** Venue setting: null means no limit; undefined means not loaded, so a manager is denied. */
   managerRefundLimitHuf?: number | null;
   /** Role being granted, for `staff.invite`. */
   targetRole?: VenueRole;
@@ -113,6 +113,8 @@ export const permissions = {
     scope: "venue",
     write: true,
     roles: {
+      // The automatic refund of an expired order; the state machine allows it only with refundOnExpiry.
+      system: true,
       manager: "upToRefundLimit",
       owner: true,
       support: true,
@@ -191,7 +193,11 @@ function cellAllows(
     case true:
       return true;
     case "own":
-      return actor.kind === "guest" && resource.guestId === actor.guestId;
+      return (
+        actor.kind === "guest" &&
+        actor.guestId !== "" &&
+        resource.guestId === actor.guestId
+      );
     case "pinRolesOnly":
       return (
         resource.targetRole !== undefined &&
@@ -199,7 +205,9 @@ function cellAllows(
       );
     case "upToRefundLimit": {
       const limit = resource.managerRefundLimitHuf;
-      if (limit === null || limit === undefined) return true;
+      if (limit === null) return true;
+      // Fail closed: a limit the caller did not load cannot be checked.
+      if (limit === undefined) return false;
       const amount = resource.amountHuf;
       // Fail closed: an unknown or non-integer amount cannot be checked against the limit.
       return Number.isInteger(amount) && (amount as number) <= limit;

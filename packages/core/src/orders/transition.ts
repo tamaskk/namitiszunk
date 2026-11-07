@@ -3,7 +3,12 @@ import "server-only";
 import { Order, type OrderStatus, Venue } from "@namitiszunk/db";
 
 import { audit, type AuditActor } from "../audit/audit";
-import { type Actor, requirePermission } from "../auth/permissions";
+import {
+  type Actor,
+  requirePermission,
+  type Resource,
+} from "../auth/permissions";
+import { AppError, NotFoundError } from "../errors";
 import {
   type ActorKind,
   actionFor,
@@ -15,16 +20,12 @@ import {
 
 type Id = AuditActor["id"] & {};
 
-/** Throws when the actor may not perform `action` at the venue. The only role check. */
-export type Authorize = (
+/** Throws when the actor may not perform `action` on the resource. The only role check. */
+type Authorize = (
   actor: Actor,
   action: OrderAction,
-  venueId: string,
+  resource: Resource,
 ) => Promise<void> | void;
-
-// shortcut: the resource carries only the venue, so a guest's own-order reject and a manager refund under a set limit are denied; pass guestId / amountHuf once guest sessions (T-030) and refunds land.
-const authorizeByRole: Authorize = (actor, action, venueId) =>
-  requirePermission(actor, action, { venueId });
 
 export type StatusChanged = {
   orderId: Id;
@@ -37,8 +38,6 @@ export type StatusChanged = {
 };
 
 export type TransitionOptions = {
-  /** Defaults to the RBAC matrix (T-023); tests inject their own. */
-  authorize?: Authorize;
   /** Required when staff rejects an order. */
   reason?: string;
   // shortcut: a plain hook instead of the SDKs, wire Ably publish (T-031) then Inngest `order/status.changed` (T-035) once merged.
@@ -66,13 +65,46 @@ function auditActorOf(actor: Actor): AuditActor {
   }
 }
 
+/** Whether the actor may learn that the order exists; otherwise it gets 404, not 403. */
+function canSee(
+  actor: Actor,
+  order: { venueId: string; guestId: string },
+): boolean {
+  switch (actor.kind) {
+    case "system":
+      return true;
+    case "staff":
+      return actor.venueId === order.venueId;
+    case "user":
+      return (
+        actor.platformRole !== undefined ||
+        actor.memberships.some((m) => m.venueId === order.venueId)
+      );
+    case "guest":
+      return actor.guestId !== "" && actor.guestId === order.guestId;
+  }
+}
+
 /**
- * The only place an order's status changes. Two parallel calls for the same order give
- * one success; the other sees the new status and throws InvalidTransition.
- * A duplicate payment webhook therefore throws InvalidTransition with from !== "awaiting_payment":
- * callers treat that as already processed.
+ * The only place an order's status changes; the RBAC matrix (T-023) decides who may act.
+ * Two parallel calls for the same order give one success; the other sees the new status
+ * and throws InvalidTransition. A duplicate payment webhook therefore throws InvalidTransition
+ * with from !== "awaiting_payment": callers treat that as already processed.
+ *
+ * A guest actor's guestId is the hash of the order's guest token (Order.guestTokenHash).
  */
-export async function transition(
+export function transition(
+  orderId: Id,
+  event: OrderEvent,
+  actor: Actor,
+  options: TransitionOptions = {},
+): Promise<StatusChanged> {
+  return transitionWith(requirePermission, orderId, event, actor, options);
+}
+
+/** Test seam only: not re-exported from ./index, so no caller outside this package can skip RBAC. */
+export async function transitionWith(
+  authorize: Authorize,
   orderId: Id,
   event: OrderEvent,
   actor: Actor,
@@ -84,21 +116,22 @@ export async function transition(
   try {
     await session.withTransaction(async () => {
       const order = await Order.findById(orderId)
-        .select("venueId barId status isVip acceptedAt")
+        .select("venueId barId status isVip acceptedAt +guestTokenHash")
         .session(session)
         .lean();
-      if (!order) throw new Error(`order ${String(orderId)} not found`);
-      await (options.authorize ?? authorizeByRole)(
-        actor,
-        actionFor(event, order),
-        String(order.venueId),
-      );
+      const venueId = String(order?.venueId);
+      const guestId = order?.guestTokenHash ?? "";
+      if (!order || !canSee(actor, { venueId, guestId })) {
+        throw new NotFoundError();
+      }
+      // shortcut: the venue has no manager refund limit field yet, so it stays undefined and a manager refund through transition() is denied; T-034 passes amountHuf and the limit.
+      await authorize(actor, actionFor(event, order), { venueId, guestId });
 
       const venue = await Venue.findById(order.venueId)
         .select("orderRules")
         .session(session)
         .lean();
-      if (!venue) throw new Error(`venue ${String(order.venueId)} not found`);
+      if (!venue) throw new Error(`venue ${venueId} not found`);
       const from = order.status;
       const to = next(from, event, {
         actorKind: actorKindOf(actor),
@@ -119,7 +152,7 @@ export async function transition(
       if (event === "pick_up") set.pickedUpAt = now;
       if (event === "reject" && actorKindOf(actor) === "staff") {
         if (!options.reason?.trim()) {
-          throw new Error("a staff rejection needs a reason");
+          throw new AppError(400, "reason_required");
         }
         set.rejectionReason = options.reason.trim();
       }

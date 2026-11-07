@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  blobUrlSchema,
   hufSchema,
   nameSchema,
   objectIdSchema,
@@ -57,8 +58,8 @@ export const venueInputSchema = z.object({
   businessDayStart: timeOfDaySchema.optional(),
   branding: z
     .object({
-      logoUrl: z.url({ error: "validation.url.invalid" }).optional(),
-      coverUrl: z.url({ error: "validation.url.invalid" }).optional(),
+      logoUrl: blobUrlSchema.optional(),
+      coverUrl: blobUrlSchema.optional(),
     })
     .optional(),
 });

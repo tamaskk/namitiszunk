@@ -1,6 +1,7 @@
 import type { OrderStatus } from "@namitiszunk/db";
 
 import type { Action } from "../auth/permissions";
+import { ConflictError } from "../errors";
 
 export const orderEvents = [
   "payment_succeeded",
@@ -71,15 +72,16 @@ export const transitionTable: readonly Rule[] = [
   { from: "picked_up", event: "refund", to: "refunded", when: byStaff },
 ];
 
-export class InvalidTransition extends Error {
-  override name = "InvalidTransition";
-
+/** 409 at the API: the order is not (or no longer) in a status this event applies to. */
+export class InvalidTransition extends ConflictError {
   constructor(
     readonly from: OrderStatus,
     readonly event: OrderEvent,
     readonly actorKind: ActorKind,
   ) {
-    super(`${actorKind} cannot ${event} an order in status ${from}`);
+    super("invalid_transition");
+    this.message = `${actorKind} cannot ${event} an order in status ${from}`;
+    this.name = "InvalidTransition";
   }
 }
 

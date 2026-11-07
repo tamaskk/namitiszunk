@@ -14,7 +14,9 @@
     "idempotency_in_progress": "Ezt a kérést még feldolgozzuk.",
     "idempotency_key_reused": "Ezt a kéréskulcsot már egy másik kéréshez használták.",
     "rate_limited": "Túl sok kérés. Várj egy kicsit, és próbáld újra.",
-    "internal": "Valami hiba történt. Próbáld újra."
+    "internal": "Valami hiba történt. Próbáld újra.",
+    "invalid_transition": "Ez a rendelés most nem módosítható így. Frissíts, és próbáld újra.",
+    "reason_required": "Adj meg egy indokot."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon"

@@ -47,7 +47,7 @@ const matrix: Record<Action, readonly string[]> = {
   "order.viewTakeOutList": ["-",  "-",  "✓",       "✓",  "✓",  "-",  "-",  "-",  "-"],
   "product.setSoldOut":    ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "bar.pauseOrders":       ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
-  "order.refund":          ["-",  "-",  "limit",   "✓",  "-",  "✓",  "✓",  "-",  "-"],
+  "order.refund":          ["-",  "-",  "limit",   "✓",  "-",  "✓",  "✓",  "-",  "✓"],
   "menu.edit":             ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "venue.manageBars":      ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "report.viewDaily":      ["-",  "-",  "✓",       "✓",  "-",  "✓",  "✓",  "✓",  "-"],
@@ -92,6 +92,7 @@ const satisfyingResource: Resource = {
   venueId: venueA,
   guestId: "guest-1",
   amountHuf: 5000,
+  managerRefundLimitHuf: null,
   targetRole: "bartender",
 };
 
@@ -157,6 +158,7 @@ describe("venue isolation", () => {
       ],
     };
 
+    expect(can(actor, "order.start", { venueId: venueA })).toBe(true);
     expect(can(actor, "order.refund", { venueId: venueA })).toBe(true);
     expect(can(actor, "order.refund", { venueId: venueB })).toBe(false);
   });
@@ -169,6 +171,17 @@ describe("venue isolation", () => {
     const resource = { venueId: venueA, guestId: "guest-2" };
 
     expect(can(actorFor("guest"), "order.reject", resource)).toBe(false);
+  });
+
+  it("denies a guest's own-order check when either guest id is empty", () => {
+    const guest: Actor = { kind: "guest", guestId: "" };
+
+    const allowed = can(guest, "order.reject", {
+      venueId: venueA,
+      guestId: "",
+    });
+
+    expect(allowed).toBe(false);
   });
 });
 
@@ -198,9 +211,19 @@ describe("manager refund limit", () => {
   const manager = actorFor("manager");
 
   it("allows any amount when the venue sets no limit", () => {
-    const resource = { venueId: venueA, amountHuf: 1_000_000 };
+    const resource = {
+      venueId: venueA,
+      amountHuf: 1_000_000,
+      managerRefundLimitHuf: null,
+    };
 
     expect(can(manager, "order.refund", resource)).toBe(true);
+  });
+
+  it("denies a manager when the venue's limit was not loaded", () => {
+    const resource = { venueId: venueA, amountHuf: 1000 };
+
+    expect(can(manager, "order.refund", resource)).toBe(false);
   });
 
   it("allows up to the limit and forbids above it", () => {

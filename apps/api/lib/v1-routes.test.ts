@@ -36,4 +36,17 @@ describe("every /v1 route goes through the handler wrapper", () => {
     expect(wrapped).toEqual(exported);
     expect(reExported).toBe(false);
   });
+
+  // Fail closed: each handler() call names its auth and permission, "public" / "none" included.
+  it.each(routes)("%s declares auth and permission per method", (file) => {
+    const source = readFileSync(v1 + file, "utf8");
+
+    const calls = source.split(/=\s*handler\(/).slice(1);
+
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call).toMatch(/\bauth\s*:/);
+      expect(call).toMatch(/\bpermission\s*:/);
+    }
+  });
 });

@@ -12,8 +12,9 @@ import {
 } from "vitest";
 
 import { type Actor, Forbidden } from "../auth/permissions";
+import { NotFoundError } from "../errors";
 import { InvalidTransition } from "./state-machine";
-import { transition } from "./transition";
+import { transition, transitionWith } from "./transition";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
@@ -29,6 +30,11 @@ const bartender: Actor = {
   role: "bartender",
 };
 const allow = () => {};
+const guestTokenHash = "a".repeat(64);
+const resource = {
+  venueId: venueId.toHexString(),
+  guestId: guestTokenHash,
+};
 
 let replSet: MongoMemoryReplSet;
 let mongoose: Awaited<ReturnType<typeof connectDb>>;
@@ -50,9 +56,12 @@ beforeEach(async () => {
   );
 });
 
-async function createOrder(overrides: Record<string, unknown> = {}) {
+async function createOrder(
+  overrides: Record<string, unknown> = {},
+  orderRules: Record<string, unknown> = {},
+) {
   const [venue] = await Venue.create([
-    { _id: venueId, slug: "pilot", name: "Pilot" },
+    { _id: venueId, slug: "pilot", name: "Pilot", orderRules },
   ]);
   // Fixtures may set a status directly; app code may not (no-status-writes.test.ts).
   const [order] = await Order.create([
@@ -73,7 +82,7 @@ async function createOrder(overrides: Record<string, unknown> = {}) {
       subtotalHuf: 2490,
       totalHuf: 2490,
       pickupCode: "K7Q",
-      guestTokenHash: new Types.ObjectId().toHexString(),
+      guestTokenHash,
       acceptedTermsVersion: "2026-11-01",
       ...overrides,
     },
@@ -86,11 +95,13 @@ describe("transition", () => {
     const order = await createOrder();
     const afterCommit = vi.fn();
 
-    const change = await transition(order._id, "payment_succeeded", system, {
-      authorize: allow,
-      afterCommit,
-      now,
-    });
+    const change = await transitionWith(
+      allow,
+      order._id,
+      "payment_succeeded",
+      system,
+      { afterCommit, now },
+    );
 
     const saved = await Order.findById(order._id).lean();
     const logs = await AuditLog.find().lean();
@@ -112,13 +123,15 @@ describe("transition", () => {
 
   it("gives one New order when the same webhook arrives twice", async () => {
     const order = await createOrder();
-    await transition(order._id, "payment_succeeded", system, {
-      authorize: allow,
-    });
+    await transitionWith(allow, order._id, "payment_succeeded", system, {});
 
-    const second = transition(order._id, "payment_succeeded", system, {
-      authorize: allow,
-    });
+    const second = transitionWith(
+      allow,
+      order._id,
+      "payment_succeeded",
+      system,
+      {},
+    );
 
     await expect(second).rejects.toMatchObject({
       name: "InvalidTransition",
@@ -131,7 +144,7 @@ describe("transition", () => {
   it("lets exactly one of two parallel Ready to Picked up requests succeed", async () => {
     const order = await createOrder({ status: "ready" });
     const pickUp = () =>
-      transition(order._id, "pick_up", bartender, { authorize: allow, now });
+      transitionWith(allow, order._id, "pick_up", bartender, { now });
 
     const results = await Promise.allSettled([pickUp(), pickUp()]);
 
@@ -147,8 +160,7 @@ describe("transition", () => {
     const order = await createOrder({ status: "ready" });
     const afterCommit = vi.fn();
 
-    const act = transition(order._id, "start_preparing", bartender, {
-      authorize: allow,
+    const act = transitionWith(allow, order._id, "start_preparing", bartender, {
       afterCommit,
     });
 
@@ -166,16 +178,15 @@ describe("transition", () => {
       throw new Error("forbidden");
     });
 
-    const act = transition(order._id, "start_preparing", bartender, {
+    const act = transitionWith(
       authorize,
-    });
+      order._id,
+      "start_preparing",
+      bartender,
+    );
 
     await expect(act).rejects.toThrow("forbidden");
-    expect(authorize).toHaveBeenCalledWith(
-      bartender,
-      "order.start",
-      venueId.toHexString(),
-    );
+    expect(authorize).toHaveBeenCalledWith(bartender, "order.start", resource);
     expect((await Order.findById(order._id).lean())?.status).toBe("new");
     expect(await AuditLog.countDocuments()).toBe(0);
   });
@@ -184,12 +195,12 @@ describe("transition", () => {
     const order = await createOrder({ status: "ready" });
     const authorize = vi.fn();
 
-    await transition(order._id, "pick_up", bartender, { authorize });
+    await transitionWith(authorize, order._id, "pick_up", bartender);
 
     expect(authorize).toHaveBeenCalledExactlyOnceWith(
       bartender,
       "order.pickUp",
-      venueId.toHexString(),
+      resource,
     );
   });
 
@@ -197,24 +208,21 @@ describe("transition", () => {
     const order = await createOrder({ status: "ready", isVip: true });
     const authorize = vi.fn();
 
-    await transition(order._id, "pick_up", bartender, { authorize });
+    await transitionWith(authorize, order._id, "pick_up", bartender);
 
     expect(authorize).toHaveBeenCalledExactlyOnceWith(
       bartender,
       "order.handOverVip",
-      venueId.toHexString(),
+      resource,
     );
   });
 
   it("requires a reason when staff rejects and stores it", async () => {
     const order = await createOrder({ status: "new" });
 
-    const missing = transition(order._id, "reject", bartender, {
-      authorize: allow,
-    });
+    const missing = transitionWith(allow, order._id, "reject", bartender, {});
     await expect(missing).rejects.toThrow(/reason/);
-    await transition(order._id, "reject", bartender, {
-      authorize: allow,
+    await transitionWith(allow, order._id, "reject", bartender, {
       reason: " Out of gin ",
     });
 
@@ -228,8 +236,7 @@ describe("transition", () => {
   it("accepts a manual-acceptance order when the bar starts it", async () => {
     const order = await createOrder({ status: "new" });
 
-    await transition(order._id, "start_preparing", bartender, {
-      authorize: allow,
+    await transitionWith(allow, order._id, "start_preparing", bartender, {
       now,
     });
 
@@ -242,19 +249,81 @@ describe("transition", () => {
     });
   });
 
-  it("checks the RBAC matrix when no authorize is injected", async () => {
+  it("checks the RBAC matrix: a role without the permission gets Forbidden", async () => {
+    const order = await createOrder({ status: "new" });
+    const vipHost: Actor = { ...bartender, role: "vip_host" } as Actor;
+
+    const denied = transition(order._id, "start_preparing", vipHost);
+    await expect(denied).rejects.toBeInstanceOf(Forbidden);
+    const change = await transition(order._id, "start_preparing", bartender);
+
+    expect(change).toMatchObject({ from: "new", to: "preparing" });
+  });
+
+  it("answers 404 for a missing order and for an order at another venue", async () => {
     const order = await createOrder({ status: "new" });
     const otherVenue: Actor = {
       kind: "staff",
       venueId: new Types.ObjectId().toHexString(),
       memberId: memberId.toHexString(),
-      role: "bartender",
+      role: "owner",
     };
 
-    const denied = transition(order._id, "start_preparing", otherVenue);
-    await expect(denied).rejects.toBeInstanceOf(Forbidden);
-    const change = await transition(order._id, "start_preparing", bartender);
+    const missing = transition(
+      new Types.ObjectId(),
+      "start_preparing",
+      bartender,
+    );
+    const elsewhere = transition(order._id, "start_preparing", otherVenue);
 
-    expect(change).toMatchObject({ from: "new", to: "preparing" });
+    await expect(missing).rejects.toBeInstanceOf(NotFoundError);
+    await expect(elsewhere).rejects.toBeInstanceOf(NotFoundError);
+    expect((await Order.findById(order._id).lean())?.status).toBe("new");
+  });
+
+  it("lets a guest cancel their own order before acceptance, not another's", async () => {
+    const order = await createOrder({ status: "new" });
+    const owner: Actor = { kind: "guest", guestId: guestTokenHash };
+    const stranger: Actor = { kind: "guest", guestId: "b".repeat(64) };
+
+    const denied = transition(order._id, "reject", stranger);
+    await expect(denied).rejects.toBeInstanceOf(NotFoundError);
+    const change = await transition(order._id, "reject", owner);
+
+    expect(change).toMatchObject({ from: "new", to: "rejected" });
+  });
+
+  it("refunds an expired order automatically when the venue enabled it", async () => {
+    const order = await createOrder(
+      { status: "expired" },
+      { refundOnExpiry: true },
+    );
+    const inngest: Actor = { kind: "system", source: "inngest" };
+
+    const change = await transition(order._id, "refund", inngest);
+
+    expect(change).toMatchObject({ from: "expired", to: "refunded" });
+  });
+
+  it("asks for a reason with a 400 when staff rejects without one", async () => {
+    const order = await createOrder({ status: "new" });
+
+    const act = transition(order._id, "reject", bartender);
+
+    await expect(act).rejects.toMatchObject({
+      status: 400,
+      code: "reason_required",
+    });
+  });
+
+  it("maps an invalid transition to 409", async () => {
+    const order = await createOrder({ status: "ready" });
+
+    const act = transition(order._id, "start_preparing", bartender);
+
+    await expect(act).rejects.toMatchObject({
+      status: 409,
+      code: "invalid_transition",
+    });
   });
 });

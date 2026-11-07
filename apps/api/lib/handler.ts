@@ -21,24 +21,40 @@ type Actor = { id: string };
 
 type Input<S> = S extends z.ZodType ? z.infer<S> : undefined;
 
-type Options<A extends Actor | null, S extends z.ZodType | undefined> = {
-  /** Returns the caller, or null for 401. Leave it out for a public endpoint. */
-  auth?: (request: Request) => Promise<A | null>;
-  /** Throws (`requirePermission` from @namitiszunk/core/auth throws Forbidden) for 403. */
-  permission?: (ctx: { actor: A; input: Input<S> }) => void | Promise<void>;
-  /** Validates the JSON body, or the query string for GET, HEAD and DELETE. */
-  input?: S;
-  rateLimit?: RateLimitRule;
-  /** POST only: a request with an Idempotency-Key header gets the stored response on repeat. */
-  idempotent?: boolean;
-};
-
 type Context<A, I> = {
+  /** A clone, so the handler may still read the body itself. */
   request: Request;
   actor: A;
   input: I;
+  /** The raw body ("" for GET, HEAD and DELETE). */
+  bodyText: string;
   params: Record<string, string | string[] | undefined>;
   requestId: string;
+};
+
+/**
+ * What an idempotent endpoint keeps for a replay. The stored body must hold no secret:
+ * order creation (T-033) stores only the order id and re-issues guestToken and clientSecret
+ * in `fromReplay`.
+ */
+type Replay<A, I> = {
+  /** Non-secret data to store, from the JSON body `fn` answered with. */
+  toReplay: (body: unknown) => unknown;
+  /** Rebuilds the response body from the stored data on a repeat request. */
+  fromReplay: (stored: unknown, ctx: Context<A, I>) => Promise<unknown>;
+};
+
+type Options<A extends Actor | null, S extends z.ZodType | undefined> = {
+  /** Required, so no route is public by accident: "public", or the caller (null gives 401). */
+  auth: "public" | ((request: Request) => Promise<A | null>);
+  /** Required: "none", or throws (`requirePermission` from @namitiszunk/core/auth throws Forbidden) for 403. */
+  permission:
+    "none" | ((ctx: { actor: A; input: Input<S> }) => void | Promise<void>);
+  /** Validates the JSON body, or the query string for GET, HEAD and DELETE. */
+  input?: S;
+  rateLimit?: RateLimitRule;
+  /** POST only: a request with an Idempotency-Key header gets the replay on repeat. */
+  idempotent?: Replay<A, Input<S>>;
 };
 
 type RouteContext = {
@@ -46,6 +62,9 @@ type RouteContext = {
 };
 
 const QUERY_METHODS = new Set(["GET", "HEAD", "DELETE"]);
+
+// An anonymous caller's scope for idempotency: a client-generated random token (128+ bits, base64url).
+const SESSION_ID = /^[A-Za-z0-9_-]{22,128}$/;
 
 const sha256 = (value: string) =>
   createHash("sha256").update(value).digest("hex");
@@ -80,9 +99,12 @@ export function handler<
       extra?: Parameters<typeof errorResponse>[3],
     ) => errorResponse(status, code, requestId, extra);
     let claimedKey: string | undefined;
+    // Once `fn` returned, its side effect happened: the key must never be released.
+    let returned = false;
 
     try {
       const url = new URL(request.url);
+      const fnRequest = request.clone();
       const idempotencyHeader =
         options.idempotent && request.method === "POST"
           ? request.headers.get("idempotency-key")
@@ -107,9 +129,13 @@ export function handler<
         }
       }
 
-      // Without `auth` the endpoint is public and A is null.
-      const actor = (options.auth ? await options.auth(request) : null) as A;
-      if (options.auth && actor === null) return fail(401, "unauthorized");
+      // A public endpoint has no caller: A is null.
+      const actor = (
+        options.auth === "public" ? null : await options.auth(request)
+      ) as A;
+      if (options.auth !== "public" && actor === null) {
+        return fail(401, "unauthorized");
+      }
 
       const bodyText = QUERY_METHODS.has(request.method)
         ? ""
@@ -135,24 +161,47 @@ export function handler<
         input = parsed.data as Input<S>;
       }
 
-      await options.permission?.({ actor, input });
+      if (options.permission !== "none") {
+        await options.permission({ actor, input });
+      }
 
-      if (idempotencyHeader !== null) {
+      const ctx: Context<A, Input<S>> = {
+        request: fnRequest,
+        actor,
+        input,
+        bodyText,
+        params: await route.params,
+        requestId,
+      };
+
+      if (options.idempotent && idempotencyHeader !== null) {
         if (idempotencyHeader.length < 1 || idempotencyHeader.length > 255) {
           return fail(400, "validation_failed", {
             fields: { "Idempotency-Key": "invalid" },
           });
         }
         // Scoped per endpoint and caller, so nobody can replay another caller's response.
-        const key = sha256(
-          `${url.pathname}|${actor?.id ?? ""}|${idempotencyHeader}`,
-        );
+        const sessionId = request.headers.get("x-session-id");
+        const scope = actor
+          ? `actor:${actor.id}`
+          : sessionId && SESSION_ID.test(sessionId)
+            ? `session:${sessionId}`
+            : null;
+        if (scope === null) {
+          return fail(400, "validation_failed", {
+            fields: { "X-Session-Id": "required" },
+          });
+        }
+        const key = sha256(`${url.pathname}|${scope}|${idempotencyHeader}`);
         const claim = await claimIdempotencyKey(key, sha256(bodyText));
         if (claim.kind === "replay") {
-          return new Response(claim.response.body, {
+          const body = await options.idempotent.fromReplay(
+            JSON.parse(claim.response.body),
+            ctx,
+          );
+          return Response.json(body, {
             status: claim.response.status,
             headers: {
-              "content-type": claim.response.contentType,
               "idempotent-replayed": "true",
               "x-request-id": requestId,
             },
@@ -167,29 +216,29 @@ export function handler<
         claimedKey = key;
       }
 
-      const result = await fn({
-        request,
-        actor,
-        input,
-        params: await route.params,
-        requestId,
-      });
+      const result = await fn(ctx);
+      returned = true;
       const response =
         result instanceof Response ? result : Response.json({ data: result });
 
-      if (claimedKey) {
-        await storeIdempotentResponse(claimedKey, {
-          status: response.status,
-          contentType:
-            response.headers.get("content-type") ?? "application/json",
-          body: await response.clone().text(),
-        });
-        claimedKey = undefined;
+      if (options.idempotent && claimedKey) {
+        try {
+          await storeIdempotentResponse(claimedKey, {
+            status: response.status,
+            contentType: "application/json",
+            body: JSON.stringify(
+              options.idempotent.toReplay(await response.clone().json()),
+            ),
+          });
+        } catch (storeError) {
+          // The side effect happened: answer it; a repeat gets 409 until the key expires, never a second run.
+          Sentry.captureException(storeError, { tags: { requestId } });
+        }
       }
       response.headers.set("x-request-id", requestId);
       return response;
     } catch (error) {
-      if (claimedKey) {
+      if (claimedKey && !returned) {
         await releaseIdempotencyKey(claimedKey).catch((releaseError: unknown) =>
           Sentry.captureException(releaseError, { tags: { requestId } }),
         );

@@ -14,7 +14,9 @@
     "idempotency_in_progress": "This request is still being processed.",
     "idempotency_key_reused": "This request key was already used for another request.",
     "rate_limited": "Too many requests. Wait a moment and try again.",
-    "internal": "Something went wrong. Try again."
+    "internal": "Something went wrong. Try again.",
+    "invalid_transition": "This order cannot change like that now. Refresh and try again.",
+    "reason_required": "Give a reason."
   },
   "landing": {
     "tagline": "Order and pay on your phone"

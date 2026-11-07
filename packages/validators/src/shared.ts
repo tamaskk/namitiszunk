@@ -7,6 +7,13 @@ export const objectIdSchema = z
   .string()
   .regex(/^[0-9a-f]{24}$/, { error: "validation.objectId.invalid" });
 
+/** An uploaded image: https on the Vercel Blob public host only, so no javascript:, data:, file: or internal address. */
+export const blobUrlSchema = z.url({
+  protocol: /^https$/,
+  hostname: /^[a-z0-9-]+\.public\.blob\.vercel-storage\.com$/,
+  error: "validation.url.invalid",
+});
+
 /** Integer forints, never floats (ARCHITECTURE §06). */
 export const hufSchema = z
   .int({ error: "validation.huf.integer" })

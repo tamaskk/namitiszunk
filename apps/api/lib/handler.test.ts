@@ -140,13 +140,15 @@ describe("handler order", () => {
   });
 });
 
+const open = { auth: "public", permission: "none" } as const;
+
 describe("errors", () => {
   it.each([
     [new Forbidden("order.start"), 403, "forbidden"],
     [new NotFoundError(), 404, "not_found"],
     [new ConflictError(), 409, "conflict"],
   ])("maps %o to its status", async (error, status, code) => {
-    const endpoint = handler({}, async () => {
+    const endpoint = handler(open, async () => {
       throw error;
     });
 
@@ -158,7 +160,7 @@ describe("errors", () => {
   });
 
   it("answers 500 without details and reports the error to Sentry once", async () => {
-    const endpoint = handler({}, async () => {
+    const endpoint = handler(open, async () => {
       throw new Error("database password is hunter2");
     });
 
@@ -174,8 +176,11 @@ describe("errors", () => {
   });
 
   it("sets x-request-id on success and error responses", async () => {
-    const ok = handler({}, async () => "ok");
-    const denied = handler({ auth: async () => null }, async () => "ok");
+    const ok = handler(open, async () => "ok");
+    const denied = handler(
+      { auth: async () => null, permission: "none" },
+      async () => "ok",
+    );
 
     const responses = await Promise.all([
       ok(new Request(url), route),
@@ -189,12 +194,35 @@ describe("errors", () => {
   });
 });
 
+describe("request body", () => {
+  it("gives the handler the raw body, the parsed input and a readable request", async () => {
+    const endpoint = handler(
+      { ...open, input: z.object({ qty: z.number() }) },
+      async ({ request, bodyText, input }) => ({
+        fromRequest: await request.json(),
+        bodyText,
+        input,
+      }),
+    );
+
+    const res = await endpoint(post({ qty: 3 }), route);
+
+    expect(await res.json()).toEqual({
+      data: {
+        fromRequest: { qty: 3 },
+        bodyText: '{"qty":3}',
+        input: { qty: 3 },
+      },
+    });
+  });
+});
+
 describe("rate limit", () => {
   it("answers 429 with Retry-After until the window ends, per client IP", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-07T22:00:15Z"));
     const endpoint = handler(
-      { rateLimit: { limit: 2, windowSeconds: 60 } },
+      { ...open, rateLimit: { limit: 2, windowSeconds: 60 } },
       async () => "ok",
     );
     const from = (ip: string) =>
@@ -219,21 +247,44 @@ describe("rate limit", () => {
 
 describe("idempotency", () => {
   let created = 0;
+  let failStore = false;
+  const secrets = new Map<number, string>();
+  // Like order creation: the replay keeps the order id only and re-issues the secret.
   const createOrder = handler(
-    { idempotent: true, input: z.object({ qty: z.number() }) },
+    {
+      ...open,
+      input: z.object({ qty: z.number() }),
+      idempotent: {
+        toReplay: (body) => {
+          if (failStore) throw new Error("store failed");
+          return { order: (body as { data: { order: number } }).data.order };
+        },
+        fromReplay: async (stored) => {
+          const { order } = stored as { order: number };
+          return { data: { order, secret: secrets.get(order) } };
+        },
+      },
+    },
     async ({ input }) => {
       created += 1;
       if (input.qty < 0) throw new Error("boom");
-      return Response.json({ data: { order: created } }, { status: 201 });
+      secrets.set(created, `secret-${created}`);
+      return Response.json(
+        { data: { order: created, secret: `secret-${created}` } },
+        { status: 201 },
+      );
     },
   );
+  const session = (id: string) => ({ "x-session-id": id.padEnd(22, "x") });
+  const caller = session("callerA");
 
   beforeEach(() => {
     created = 0;
+    failStore = false;
   });
 
   it("creates one order for the same Idempotency-Key sent twice", async () => {
-    const key = { "idempotency-key": "7d0c9a5e-key" };
+    const key = { "idempotency-key": "7d0c9a5e-key", ...caller };
 
     const first = await createOrder(post({ qty: 1 }, key), route);
     const second = await createOrder(post({ qty: 1 }, key), route);
@@ -245,8 +296,19 @@ describe("idempotency", () => {
     expect(second.headers.get("idempotent-replayed")).toBe("true");
   });
 
+  it("stores no secret for the replay", async () => {
+    const key = { "idempotency-key": "no-secret", ...caller };
+
+    await createOrder(post({ qty: 1 }, key), route);
+
+    const stored = await db.connection
+      .collection("idempotencyKeys")
+      .findOne({});
+    expect(stored?.response?.body).toBe('{"order":1}');
+  });
+
   it("lets only one of two concurrent requests with the same key run", async () => {
-    const key = { "idempotency-key": "concurrent" };
+    const key = { "idempotency-key": "concurrent", ...caller };
 
     const responses = await Promise.all([
       createOrder(post({ qty: 1 }, key), route),
@@ -259,7 +321,7 @@ describe("idempotency", () => {
   });
 
   it("rejects the same key with another body", async () => {
-    const key = { "idempotency-key": "reused" };
+    const key = { "idempotency-key": "reused", ...caller };
     await createOrder(post({ qty: 1 }, key), route);
 
     const res = await createOrder(post({ qty: 2 }, key), route);
@@ -269,8 +331,50 @@ describe("idempotency", () => {
     expect(created).toBe(1);
   });
 
+  it("never replays another caller's response", async () => {
+    const key = { "idempotency-key": "shared-key" };
+    await createOrder(post({ qty: 1 }, { ...key, ...caller }), route);
+
+    const other = await createOrder(
+      post({ qty: 1 }, { ...key, ...session("callerB") }),
+      route,
+    );
+
+    expect(other.headers.get("idempotent-replayed")).toBeNull();
+    expect(await other.json()).toEqual({
+      data: { order: 2, secret: "secret-2" },
+    });
+    expect(created).toBe(2);
+  });
+
+  it("refuses a key on a public endpoint without a session id", async () => {
+    const res = await createOrder(
+      post({ qty: 1 }, { "idempotency-key": "anonymous" }),
+      route,
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.fields).toEqual({
+      "X-Session-Id": "required",
+    });
+    expect(created).toBe(0);
+  });
+
+  it("answers but never runs again when storing the response fails", async () => {
+    const key = { "idempotency-key": "store-fails", ...caller };
+    failStore = true;
+
+    const first = await createOrder(post({ qty: 1 }, key), route);
+    const retry = await createOrder(post({ qty: 1 }, key), route);
+
+    expect(first.status).toBe(201);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(retry.status).toBe(409);
+    expect(created).toBe(1);
+  });
+
   it("frees the key after a failure so a retry runs again", async () => {
-    const key = { "idempotency-key": "retry" };
+    const key = { "idempotency-key": "retry", ...caller };
     await createOrder(post({ qty: -1 }, key), route);
 
     const res = await createOrder(post({ qty: -1 }, key), route);
