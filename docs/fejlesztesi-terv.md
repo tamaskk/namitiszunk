@@ -796,10 +796,10 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 
 **Elfogadási feltételek.**
 
-- [ ] Minden doksi-entitás és a fenti mezők modellként léteznek, TypeScript-típussal.
-- [ ] Két azonos `{venueId, businessDate, shortNumber}` rendelés mentése hibát ad.
-- [ ] A menüelemnek nincs törlő művelete, csak archiváló.
-- [ ] Egy többdokumentumos tranzakció a tesztben és az M0-n is lefut.
+- [x] Minden doksi-entitás és a fenti mezők modellként léteznek, TypeScript-típussal.
+- [x] Két azonos `{venueId, businessDate, shortNumber}` rendelés mentése hibát ad.
+- [x] A menüelemnek nincs törlő művelete, csak archiváló.
+- [x] Egy többdokumentumos tranzakció a tesztben és az M0-n is lefut.
 
 **Tesztelés.** Vitest `MongoMemoryReplSet`-tel (a tranzakciókhoz replika készlet kell): egyedi indexek, validációk, tranzakció visszaállítása hibánál. A Pult nézet lekérdezésére `explain()`: indexet használ.
 
