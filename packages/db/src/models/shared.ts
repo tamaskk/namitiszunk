@@ -26,10 +26,11 @@ export const objectId = Schema.Types.ObjectId;
 export function defineModel<TSchema extends Schema>(
   name: string,
   schema: TSchema,
+  collection?: string,
 ): Model<InferSchemaType<TSchema>> {
   return (
     (models[name] as Model<InferSchemaType<TSchema>> | undefined) ??
-    model<InferSchemaType<TSchema>>(name, schema)
+    model<InferSchemaType<TSchema>>(name, schema, collection)
   );
 }
 

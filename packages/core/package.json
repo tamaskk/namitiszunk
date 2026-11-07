@@ -7,7 +7,9 @@
     ".": "./src/index.ts",
     "./audit": "./src/audit/audit.ts",
     "./auth": "./src/auth/permissions.ts",
-    "./short-number": "./src/orders/short-number.ts"
+    "./short-number": "./src/orders/short-number.ts",
+    "./api": "./src/api/index.ts",
+    "./errors": "./src/errors.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
