@@ -45,7 +45,39 @@
     "tagline": "Rendelés és fizetés a telefonodon"
   },
   "order": {
-    "menuTitle": "Menü"
+    "menuTitle": "Menü",
+    "menu": {
+      "statusOpen": "Nyitva",
+      "statusPaused": "Szünetel még {minutes} percig",
+      "statusClosed": "Zárva",
+      "pausedNote": "A rendelés most szünetel. Pár perc múlva próbáld újra.",
+      "closedNote": "Most zárva vagyunk. A menüt megnézheted, rendelni nem lehet.",
+      "wait": "Becsült várakozás: kb. {minutes} perc",
+      "bar": "Pult: {name}",
+      "logoAlt": "{name} logó",
+      "searchLabel": "Keresés a menüben",
+      "searchPlaceholder": "Például gin",
+      "noResults": "Nincs találat erre: {query}",
+      "categories": "Kategóriák",
+      "soldOut": "Elfogyott",
+      "add": "Kosárba",
+      "addLabel": "{name} a kosárba",
+      "empty": "Ezen a menün még nincs tétel.",
+      "otherLanguage": "English",
+      "otherLanguageLabel": "Switch to English",
+      "loadError": "Nem sikerült betölteni a menüt.",
+      "retry": "Újrapróbálom",
+      "notFound": "Ezt a helyet nem találjuk. Olvasd be újra a QR-kódot.",
+      "ageGate": {
+        "title": "Elmúltál 18 éves?",
+        "body": "A menüben szeszes italok is vannak.",
+        "yes": "Igen, elmúltam 18",
+        "no": "Nem",
+        "underageTitle": "Nem rendelhetsz",
+        "underageBody": "A rendelés 18 év felett érhető el.",
+        "back": "Vissza"
+      }
+    }
   },
   "admin": {
     "title": "Klubadmin",

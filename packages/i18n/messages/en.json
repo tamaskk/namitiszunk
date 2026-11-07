@@ -45,7 +45,39 @@
     "tagline": "Order and pay on your phone"
   },
   "order": {
-    "menuTitle": "Menu"
+    "menuTitle": "Menu",
+    "menu": {
+      "statusOpen": "Open",
+      "statusPaused": "Paused for {minutes} more min",
+      "statusClosed": "Closed",
+      "pausedNote": "Ordering is paused. Try again in a few minutes.",
+      "closedNote": "We are closed. You can browse the menu, but not order.",
+      "wait": "Estimated wait: about {minutes} min",
+      "bar": "Bar: {name}",
+      "logoAlt": "{name} logo",
+      "searchLabel": "Search the menu",
+      "searchPlaceholder": "For example gin",
+      "noResults": "No results for {query}",
+      "categories": "Categories",
+      "soldOut": "Sold out",
+      "add": "Add",
+      "addLabel": "Add {name}",
+      "empty": "This menu has no items yet.",
+      "otherLanguage": "Magyar",
+      "otherLanguageLabel": "Váltás magyarra",
+      "loadError": "The menu could not be loaded.",
+      "retry": "Try again",
+      "notFound": "We cannot find this venue. Scan the QR code again.",
+      "ageGate": {
+        "title": "Are you 18 or older?",
+        "body": "The menu includes alcoholic drinks.",
+        "yes": "Yes, I am 18 or older",
+        "no": "No",
+        "underageTitle": "You cannot order",
+        "underageBody": "Ordering is for guests aged 18 and over.",
+        "back": "Back"
+      }
+    }
   },
   "admin": {
     "title": "Club admin",

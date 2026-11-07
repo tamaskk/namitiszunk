@@ -1,0 +1,35 @@
+// Playwright's web server: seeds the Demo Klub into an in-memory replica set (pnpm db:seed:e2e),
+// then serves the order app against it. Ctrl+C or Playwright's shutdown stops both.
+import { spawn, type ChildProcess } from "node:child_process";
+import { createInterface } from "node:readline";
+
+const port = process.argv[2] ?? "3101";
+const children: ChildProcess[] = [];
+const stop = () => {
+  for (const child of children) child.kill("SIGTERM");
+  process.exit(0);
+};
+process.on("SIGINT", stop);
+process.on("SIGTERM", stop);
+
+const seed = spawn("pnpm", ["--filter", "@namitiszunk/db", "seed:e2e"], {
+  stdio: ["ignore", "pipe", "inherit"],
+  env: { ...process.env, MONGODB_URI: "" },
+});
+children.push(seed);
+seed.on("exit", (code) => {
+  console.error(`seed:e2e exited with ${code}`);
+  stop();
+});
+
+for await (const line of createInterface({ input: seed.stdout! })) {
+  console.log(line);
+  const uri = /in-memory MONGODB_URI=(\S+)/.exec(line)?.[1];
+  if (!uri) continue;
+  const next = spawn("pnpm", ["exec", "next", "dev", "--port", port], {
+    stdio: "inherit",
+    env: { ...process.env, MONGODB_URI: uri, SKIP_ENV_VALIDATION: "1" },
+  });
+  children.push(next);
+  next.on("exit", stop);
+}
