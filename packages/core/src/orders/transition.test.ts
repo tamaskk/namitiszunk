@@ -205,7 +205,11 @@ describe("transition", () => {
     };
     expect(change.version).toBe(message.version);
     expect(publish).toHaveBeenCalledTimes(2);
-    expect(publish).toHaveBeenCalledWith(`order:${order._id}`, "status", message);
+    expect(publish).toHaveBeenCalledWith(
+      `order:${order._id}`,
+      "status",
+      message,
+    );
     expect(publish).toHaveBeenCalledWith(
       `venue:${venueId}:bar:${order.barId}`,
       "status",
