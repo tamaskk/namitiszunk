@@ -10,7 +10,8 @@
     "./short-number": "./src/orders/short-number.ts",
     "./api": "./src/api/index.ts",
     "./errors": "./src/errors.ts",
-    "./orders": "./src/orders/index.ts"
+    "./orders": "./src/orders/index.ts",
+    "./notify": "./src/notify/sms.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -30,7 +31,11 @@
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
     "@namitiszunk/db": "workspace:*",
+    "@namitiszunk/i18n": "workspace:*",
     "@namitiszunk/validators": "workspace:*",
-    "server-only": "^0.0.1"
+    "libphonenumber-js": "^1.13.15",
+    "server-only": "^0.0.1",
+    "twilio": "^6.3.0",
+    "use-intl": "4.14.9"
   }
 }

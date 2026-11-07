@@ -77,5 +77,9 @@
   },
   "emails": {
     "receiptSubject": "Nyugta a rendelésedről"
+  },
+  "sms": {
+    "ready": "Na mit iszunk: #{shortNumber} kesz! Vedd fel {article} {barName} pultnal. {link}",
+    "reminder": "Meg var rad az italod {article} {barName} pultnal."
   }
 }
