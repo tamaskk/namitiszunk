@@ -24,6 +24,7 @@ describe("buildOpenApiDocument", () => {
       "/v1/venues",
       "/v1/stripe/connect/account",
       "/v1/stripe/connect/link",
+      "/v1/realtime/token",
       "/v1/ping",
       "/v1/openapi.json",
       "/v1/uploads",

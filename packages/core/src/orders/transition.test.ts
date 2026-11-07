@@ -18,6 +18,18 @@ import { transition, transitionWith } from "./transition";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
+// Ably is the boundary: record publishes instead of calling the REST API.
+const publish = vi.hoisted(() => vi.fn());
+vi.mock("ably", () => ({
+  Rest: class {
+    channels = {
+      get: (channel: string) => ({
+        publish: (name: string, data: unknown) => publish(channel, name, data),
+      }),
+    };
+  },
+}));
+process.env.ABLY_API_KEY = "test.key:secret";
 
 const now = new Date("2026-11-07T22:00:00Z");
 const venueId = new Types.ObjectId();
@@ -51,6 +63,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  publish.mockReset();
   await Promise.all(
     Object.values(mongoose.connection.collections).map((c) => c.deleteMany()),
   );
@@ -170,6 +183,67 @@ describe("transition", () => {
     expect(saved?.updatedAt).toEqual(order.updatedAt);
     expect(await AuditLog.countDocuments()).toBe(0);
     expect(afterCommit).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it("publishes the new status once to the order and bar channels after the commit", async () => {
+    const order = await createOrder();
+
+    const change = await transitionWith(
+      allow,
+      order._id,
+      "payment_succeeded",
+      system,
+      { now },
+    );
+
+    const saved = await Order.findById(order._id).lean();
+    const message = {
+      orderId: String(order._id),
+      status: "new",
+      version: saved!.updatedAt.getTime(),
+    };
+    expect(change.version).toBe(message.version);
+    expect(publish).toHaveBeenCalledTimes(2);
+    expect(publish).toHaveBeenCalledWith(`order:${order._id}`, "status", message);
+    expect(publish).toHaveBeenCalledWith(
+      `venue:${venueId}:bar:${order.barId}`,
+      "status",
+      message,
+    );
+  });
+
+  it("also publishes a VIP order to the venue VIP channel", async () => {
+    const order = await createOrder({ isVip: true });
+
+    await transitionWith(allow, order._id, "payment_succeeded", system, {});
+
+    expect(publish).toHaveBeenCalledTimes(3);
+    expect(publish).toHaveBeenCalledWith(
+      `venue:${venueId}:vip`,
+      "status",
+      expect.objectContaining({ status: "new" }),
+    );
+  });
+
+  it("keeps the status change and reports once when the Ably publish fails", async () => {
+    const order = await createOrder();
+    const failure = new Error("ably down");
+    publish.mockRejectedValue(failure);
+    const reportError = vi.fn();
+
+    const change = await transitionWith(
+      allow,
+      order._id,
+      "payment_succeeded",
+      system,
+      { reportError },
+    );
+
+    expect(change.to).toBe("new");
+    expect((await Order.findById(order._id).lean())?.status).toBe("new");
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError).toHaveBeenCalledWith(failure);
   });
 
   it("stops when authorize denies the actor", async () => {
