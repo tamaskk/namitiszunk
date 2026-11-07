@@ -174,7 +174,12 @@ function buildPaths() {
       tags: [op.tag],
       ...(op.path.includes("{id}") && {
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
         ],
       }),
       // shortcut: all listed endpoints are public; T-029/T-030 add security schemes for staff routes.
