@@ -11,7 +11,8 @@
     "./api": "./src/api/index.ts",
     "./errors": "./src/errors.ts",
     "./orders": "./src/orders/index.ts",
-    "./notify": "./src/notify/sms.ts"
+    "./notify": "./src/notify/sms.ts",
+    "./retention": "./src/retention/retention.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
