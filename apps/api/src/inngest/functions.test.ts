@@ -1,5 +1,6 @@
 import { InngestTestEngine } from "@inngest/test";
 import * as jobs from "@namitiszunk/core/jobs";
+import { runRetention } from "@namitiszunk/core/retention";
 import * as Sentry from "@sentry/nextjs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +12,7 @@ import {
   paymentTimeout,
   pickupReminder,
   rejectRefund,
+  retentionDaily,
   stripeReconcile,
 } from "./functions";
 
@@ -21,6 +23,14 @@ vi.mock("@sentry/nextjs", () => ({
 }));
 vi.mock("./db", () => ({ connectJobsDb: vi.fn(async () => {}) }));
 vi.mock("@namitiszunk/emails", () => ({ sendEmail: vi.fn() }));
+vi.mock("@namitiszunk/core/retention", () => ({
+  runRetention: vi.fn(async () => ({
+    ordersContactCleared: 1,
+    ordersDeleted: 2,
+    paymentsDeleted: 2,
+    refundsDeleted: 0,
+  })),
+}));
 vi.mock("@namitiszunk/core/jobs", () => ({
   cancelUnpaidOrder: vi.fn(async () => "cancelled"),
   expireOrder: vi.fn(async () => ({ expired: true, refund: false })),
@@ -307,5 +317,24 @@ describe("stripe/reconcile", () => {
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
     deps.listStripeCharges = null;
+  });
+});
+
+describe("retentionDaily", () => {
+  it("runs the retention service for real, not as a dry run", async () => {
+    const t = new InngestTestEngine({ function: retentionDaily });
+
+    const { result } = await t.execute();
+
+    expect(runRetention).toHaveBeenCalledWith({
+      now: expect.any(Date),
+      dryRun: false,
+    });
+    expect(result).toEqual({
+      ordersContactCleared: 1,
+      ordersDeleted: 2,
+      paymentsDeleted: 2,
+      refundsDeleted: 0,
+    });
   });
 });

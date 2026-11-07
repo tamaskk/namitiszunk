@@ -1,7 +1,8 @@
 // Demo Klub seed (T-027). Every document has a fixed ObjectId derived from a stable key, so
 // re-running replaces instead of duplicating, and the e2e seed produces the same ids every run.
-import { createHash, randomBytes, scryptSync } from "node:crypto";
+import { createHash } from "node:crypto";
 
+import { hash } from "@node-rs/argon2";
 import mongoose, { Types, type Model } from "mongoose";
 
 import {
@@ -72,10 +73,9 @@ export const demoPins = {
   vipHost: "4005",
 } as const;
 
-// shortcut: scrypt with a random salt until Better Auth's PIN flow (T-030) owns hashing; reuse its helper then.
-function hashPin(pin: string): string {
-  const salt = randomBytes(16);
-  return `scrypt$${salt.toString("hex")}$${scryptSync(pin, salt, 32).toString("hex")}`;
+// Same argon2id hash as @namitiszunk/auth hashPin (db cannot import auth: auth depends on db).
+function hashPin(pin: string): Promise<string> {
+  return hash(pin);
 }
 
 // shortcut: fixed 06:00 Europe/Budapest business-day start; switch to the T-024 helper once it exists.
@@ -577,14 +577,16 @@ export async function seedDemo(now = new Date()): Promise<void> {
   ] as const;
   await upsert(
     VenueMember,
-    staff.map((member) => ({
-      _id: seedId(`member:${member.key}`),
-      venueId,
-      userId: "user" in member ? seedId(`user:${member.user}`) : undefined,
-      role: member.role,
-      displayName: member.displayName,
-      pinHash: hashPin(demoPins[member.key]),
-    })),
+    await Promise.all(
+      staff.map(async (member) => ({
+        _id: seedId(`member:${member.key}`),
+        venueId,
+        userId: "user" in member ? seedId(`user:${member.user}`) : undefined,
+        role: member.role,
+        displayName: member.displayName,
+        pinHash: await hashPin(demoPins[member.key]),
+      })),
+    ),
   );
 
   await upsert(Promo, [

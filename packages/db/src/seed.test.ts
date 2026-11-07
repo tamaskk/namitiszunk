@@ -1,9 +1,17 @@
+import { verify } from "@node-rs/argon2";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { Item, Order, orderStatuses, Promo, Venue } from "./models";
-import { assertSeedableUri, seedDemo, seedId } from "./seed";
+import {
+  Item,
+  Order,
+  orderStatuses,
+  Promo,
+  Venue,
+  VenueMember,
+} from "./models";
+import { assertSeedableUri, demoPins, seedDemo, seedId } from "./seed";
 
 let replSet: MongoMemoryReplSet;
 // Fixed clock: the business date must not roll over between two runs.
@@ -71,6 +79,17 @@ describe("seedDemo", () => {
     expect(
       await Venue.exists({ _id: seedId("venue:demo"), slug: "demo" }),
     ).toBeTruthy();
+  });
+
+  it("hashes demo PINs with argon2id so the staff PIN sign-in accepts them", async () => {
+    await seedDemo(now);
+
+    const bartender = await VenueMember.findById(seedId("member:bartender1"))
+      .select("+pinHash")
+      .lean();
+
+    expect(bartender?.pinHash).toMatch(/^\$argon2id\$/);
+    expect(await verify(bartender!.pinHash!, demoPins.bartender1)).toBe(true);
   });
 
   it("seeds an order in every status with consistent integer totals", async () => {
