@@ -11,14 +11,15 @@ import {
   storeIdempotentResponse,
   type RateLimitRule,
 } from "@namitiszunk/core/api";
+import type { RequestActor } from "@namitiszunk/auth";
 import { AppError } from "@namitiszunk/core/errors";
 import * as Sentry from "@sentry/nextjs";
 import type { z } from "zod";
 
 import { errorResponse } from "./error-response";
 
-// shortcut: the smallest actor the wrapper needs (an id to scope idempotency keys); use T-030's type once merged.
-type Actor = { id: string };
+// The T-030 actor; its `id` scopes rate limits and idempotency keys.
+type Actor = RequestActor;
 
 type Input<S> = S extends z.ZodType ? z.infer<S> : undefined;
 

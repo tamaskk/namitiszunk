@@ -8,6 +8,8 @@ import {
   openApiDocumentSchema,
   orderResponseSchema,
   pingResponseSchema,
+  realtimeTokenInputSchema,
+  realtimeTokenResponseSchema,
 } from "@namitiszunk/validators";
 import { z } from "zod";
 
@@ -96,6 +98,8 @@ export function createApiClient(options: ApiClientOptions) {
       res = await (options.fetch ?? globalThis.fetch)(`${baseUrl}${path}`, {
         method,
         headers: allHeaders,
+        // The web apps' session cookie (parent domain in production) reaches the API only with credentials.
+        credentials: "include",
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     } catch {
@@ -168,7 +172,17 @@ export function createApiClient(options: ApiClientOptions) {
       get: async (venueId: string) =>
         request("GET", `/v1/venues/${id(venueId)}/menu`, menuResponseSchema),
     },
-    // shortcut: realtime.token is missing because packages/validators has no token schema yet; add it with T-031's schema once merged.
+    realtime: {
+      /** POST /v1/realtime/token, for the Ably client's authCallback. A guest passes its order's guest token. */
+      token: async (
+        input: z.input<typeof realtimeTokenInputSchema> = {},
+        guestToken?: string,
+      ) =>
+        request("POST", "/v1/realtime/token", realtimeTokenResponseSchema, {
+          body: parseInput(realtimeTokenInputSchema, input),
+          headers: guestToken ? { "x-guest-token": guestToken } : {},
+        }),
+    },
   };
 }
 

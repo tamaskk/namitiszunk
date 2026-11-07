@@ -213,6 +213,33 @@ describe("orders.create", () => {
   });
 });
 
+describe("realtime.token", () => {
+  it("posts the venue and sends a guest token header when given", async () => {
+    const tokenRequest = {
+      keyName: "app.key",
+      capability: "{}",
+      timestamp: 1,
+      nonce: "n",
+      mac: "m",
+    };
+    let sent: { body: unknown; guest: string | null } | undefined;
+    server.use(
+      http.post(`${base}/v1/realtime/token`, async ({ request }) => {
+        sent = {
+          body: await request.json(),
+          guest: request.headers.get("x-guest-token"),
+        };
+        return HttpResponse.json({ data: tokenRequest });
+      }),
+    );
+
+    const result = await client.realtime.token({}, "g".repeat(22));
+
+    expect(result).toEqual(tokenRequest);
+    expect(sent).toEqual({ body: {}, guest: "g".repeat(22) });
+  });
+});
+
 describe("types follow the shared schemas", () => {
   it("binds inputs and outputs to @namitiszunk/validators", () => {
     expectTypeOf(client.orders.create)

@@ -5,7 +5,12 @@ import { Types } from "mongoose";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { userActorFromHeaders } from "./actors";
-import { createAuth, type Auth, type AuthApp } from "./better-auth";
+import {
+  cookieDomainFor,
+  createAuth,
+  type Auth,
+  type AuthApp,
+} from "./better-auth";
 import { testSecret, useTestDb } from "./test-db";
 
 vi.mock("server-only", () => ({}));
@@ -341,5 +346,38 @@ describe("HQ two-factor flow", () => {
     const actor = await userActorFromHeaders(auths.hq, "hq", headers);
 
     expect(actor).toMatchObject({ userId: first.userId });
+  });
+});
+
+describe("API sessions (wave 2)", () => {
+  it("accepts an order-app Bearer token without cookies, and only in the order app", async () => {
+    const { userId, token } = await signedInUser("order");
+    const headers = new Headers({ authorization: `Bearer ${token}` });
+
+    const order = await userActorFromHeaders(auths.order, "order", headers);
+    const admin = await userActorFromHeaders(auths.admin, "admin", headers);
+
+    expect(order).toMatchObject({ kind: "user", userId });
+    expect(admin).toBeNull();
+  });
+
+  it("shares cookies with the parent domain in production only", () => {
+    const domains = [
+      "https://rendel.namitiszunk.hu",
+      "https://namitiszunk.hu",
+      "http://localhost:3001",
+      "https://namitiszunk-order-x.vercel.app",
+      "https://namitiszunk.hu.evil.example",
+      undefined,
+    ].map(cookieDomainFor);
+
+    expect(domains).toEqual([
+      ".namitiszunk.hu",
+      ".namitiszunk.hu",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 });

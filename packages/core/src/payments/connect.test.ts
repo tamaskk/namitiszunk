@@ -27,6 +27,7 @@ const api = vi.hoisted(() => ({
   },
   accountLinks: { create: vi.fn() },
   paymentMethodDomains: { list: vi.fn(), create: vi.fn() },
+  charges: { list: vi.fn() },
 }));
 vi.mock("./stripe-client", () => ({ stripe: () => api }));
 
@@ -39,6 +40,7 @@ const {
   processConnectWebhook,
   setPayoutSchedule,
 } = await import("./connect");
+const { listSucceededCharges } = await import("./charges");
 
 const secret = "whsec_test_secret";
 const venueId = new Types.ObjectId();
@@ -412,5 +414,37 @@ describe("assertVenueCanCharge", () => {
   ])("refuses %o with 409 payments_not_enabled", (venue) => {
     expect(() => assertVenueCanCharge(venue)).toThrow(ConflictError);
     expect(() => assertVenueCanCharge(venue)).toThrow("payments_not_enabled");
+  });
+});
+
+describe("listSucceededCharges", () => {
+  it("lists succeeded charges on each connected account in whole forints", async () => {
+    await createVenue({ stripeAccountId: accountId });
+    api.charges.list.mockReturnValue(
+      (async function* () {
+        yield {
+          status: "succeeded",
+          payment_intent: "pi_1",
+          amount: 537_000,
+          amount_refunded: 100_000,
+        };
+        yield { status: "failed", payment_intent: "pi_2", amount: 1_000 };
+      })(),
+    );
+    const from = new Date("2026-11-06T06:30:00Z");
+    const to = new Date("2026-11-07T06:30:00Z");
+
+    const charges = await listSucceededCharges({ from, to });
+
+    expect(charges).toEqual([
+      { paymentIntentId: "pi_1", amountHuf: 5_370, refundedHuf: 1_000 },
+    ]);
+    expect(api.charges.list).toHaveBeenCalledWith(
+      {
+        created: { gte: from.getTime() / 1000, lt: to.getTime() / 1000 },
+        limit: 100,
+      },
+      { stripeAccount: accountId },
+    );
   });
 });

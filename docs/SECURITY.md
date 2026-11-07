@@ -24,7 +24,7 @@ Card data never touches our servers: Stripe Elements / Payment Request and Payme
 
 ## 03 Authentication and authorization
 
-- Provider: Better Auth. Session cookie httpOnly, secure, sameSite=lax. Sign-in: Apple, Google, email link.
+- Provider: Better Auth. Session cookie httpOnly, secure, sameSite=lax, per-app names on the `.namitiszunk.hu` parent domain in production; apps/api accepts a cookie only with an allowlisted `Origin` of the app that owns it (CSRF check), the mobile app uses a Bearer token. Sign-in: Apple, Google, email link.
 - HQ requires 2FA for every platform role. Staff on the bar view use a PIN on a device signed in by a Manager.
 - Guests access their order with a per-order guest token, never with a guessable order id.
 - Roles: venue roles Owner, Manager, Bartender, VIP host; platform roles Admin, Support, Finance. Every check runs on the server through `packages/core/src/auth/permissions.ts`, with venue ownership checked on every resource.

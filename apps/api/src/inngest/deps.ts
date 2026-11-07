@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { NotifyDeps, StripeCharge } from "@namitiszunk/core/jobs";
+import { listSucceededCharges } from "@namitiszunk/core/payments";
 import { sendEmail } from "@namitiszunk/emails";
 import { NonRetriableError } from "inngest";
 
@@ -16,8 +17,8 @@ export const deps = {
       `refund on expiry for order ${orderId} needs T-034`,
     );
   },
-  // shortcut: null until the Stripe client (T-032) lists succeeded charges with refunds in forints; reconcile skips until then.
-  listStripeCharges: null as
+  // Nullable so tests can switch reconciliation off.
+  listStripeCharges: listSucceededCharges as
     ((range: { from: Date; to: Date }) => Promise<StripeCharge[]>) | null,
   notify: {
     // shortcut: no push service before T-090 (Expo Push), so every guest falls back to the live page and SMS.

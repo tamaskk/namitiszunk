@@ -107,7 +107,8 @@ const operations: Operation[] = [
     method: "post",
     path: "/v1/realtime/token",
     operationId: "createRealtimeToken",
-    summary: "Sign an Ably TokenRequest that may only subscribe to the caller's channels",
+    summary:
+      "Sign an Ably TokenRequest that may only subscribe to the caller's channels",
     tag: "realtime",
     request: "RealtimeTokenInput",
     response: "RealtimeTokenResponse",

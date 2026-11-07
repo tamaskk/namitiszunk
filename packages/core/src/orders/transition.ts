@@ -53,7 +53,9 @@ export type TransitionOptions = {
 };
 
 // On globalThis because Next.js bundles instrumentation.ts (where apps register) apart from route handlers.
-const registry = globalThis as { __statusChangedHooks?: Set<StatusChangedHook> };
+const registry = globalThis as {
+  __statusChangedHooks?: Set<StatusChangedHook>;
+};
 const statusChangedHooks = (registry.__statusChangedHooks ??= new Set());
 
 /**

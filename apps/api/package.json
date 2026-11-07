@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@namitiszunk/auth": "workspace:*",
     "@namitiszunk/core": "workspace:*",
     "@namitiszunk/emails": "workspace:*",
     "@namitiszunk/validators": "workspace:*",

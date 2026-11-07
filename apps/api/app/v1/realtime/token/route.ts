@@ -13,5 +13,5 @@ export const POST = handler(
     input: realtimeTokenInputSchema,
     rateLimit: { limit: 30, windowSeconds: 60 },
   },
-  async ({ actor, input }) => createTokenRequest(actor.actor, input),
+  async ({ actor, input }) => createTokenRequest(actor, input),
 );

@@ -18,6 +18,7 @@ describe("CORS", () => {
 
     expect(res.status).toBe(403);
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
+    expect(res.headers.get("access-control-allow-credentials")).toBeNull();
     expect(res.headers.get("x-request-id")).toBeTruthy();
     expect(await res.json()).toEqual({
       error: {
@@ -40,6 +41,7 @@ describe("CORS", () => {
     expect(res.headers.get("access-control-allow-headers")).toContain(
       "Idempotency-Key",
     );
+    expect(res.headers.get("access-control-allow-credentials")).toBe("true");
   });
 
   it("passes a request without Origin through untouched", () => {

@@ -87,6 +87,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@namitiszunk/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@namitiszunk/core':
         specifier: workspace:*
         version: link:../../packages/core

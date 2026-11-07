@@ -1,50 +1,42 @@
 import "server-only";
 
-import type { Actor } from "@namitiszunk/core/auth";
+import {
+  guestTokenMatches,
+  hashGuestToken,
+  type RequestActor,
+} from "@namitiszunk/auth";
 
-/** The handler needs an id to rate limit by; the service needs the actor. */
-export type RealtimeCaller = { id: string; actor: Actor };
+import { getSessionActor } from "./session-actor";
 
 type Resolvers = {
   /** The staff (PIN holder) or signed-in user actor from the session, or null. */
-  sessionActor: (request: Request) => Promise<Actor | null>;
-  /** The guest token's hash (Order.guestTokenHash) when the token is genuine, or null. */
+  sessionActor: (request: Request) => Promise<RequestActor | null>;
+  /** The guest token's hash (Order.guestTokenHash) when the token is well-formed, or null. */
   verifyGuestToken: (token: string) => Promise<string | null>;
 };
 
 export const GUEST_TOKEN_HEADER = "x-guest-token";
-
-function idOf(actor: Actor): string {
-  switch (actor.kind) {
-    case "staff":
-      return `member:${actor.memberId}`;
-    case "user":
-      return `user:${actor.userId}`;
-    case "guest":
-      return `guest:${actor.guestId}`;
-    case "system":
-      return `system:${actor.source}`;
-  }
-}
 
 /** A signed-in session wins; otherwise a guest proves their order with its guest token. */
 export function realtimeCallerFrom({
   sessionActor,
   verifyGuestToken,
 }: Resolvers) {
-  return async (request: Request): Promise<RealtimeCaller | null> => {
+  return async (request: Request): Promise<RequestActor | null> => {
     const session = await sessionActor(request);
-    if (session) return { id: idOf(session), actor: session };
+    if (session) return session;
     const token = request.headers.get(GUEST_TOKEN_HEADER);
     const guestId = token ? await verifyGuestToken(token) : null;
     if (!guestId) return null;
-    const actor: Actor = { kind: "guest", guestId };
-    return { id: idOf(actor), actor };
+    return { kind: "guest", id: `guest:${guestId}`, guestId };
   };
 }
 
-// shortcut: no session or guest token helpers exist yet, so every caller gets 401; wire T-030's actor builders and guest token verification here once merged.
 export const realtimeCaller = realtimeCallerFrom({
-  sessionActor: async () => null,
-  verifyGuestToken: async () => null,
+  sessionActor: getSessionActor,
+  // Core's guestId is the token hash; createTokenRequest grants only the order stored under that hash.
+  verifyGuestToken: async (token) => {
+    const hash = hashGuestToken(token);
+    return guestTokenMatches(token, hash) ? hash : null;
+  },
 });

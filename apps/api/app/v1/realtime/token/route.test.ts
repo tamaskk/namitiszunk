@@ -46,7 +46,16 @@ function post(body: unknown) {
   });
 }
 
-const as = (actor: Actor) => ({ id: "caller", actor });
+const as = (actor: Exclude<Actor, { kind: "system" }>) => ({
+  ...actor,
+  id: "caller",
+});
+// A signed-in user with no venue: may see no channel.
+const outsider = as({
+  kind: "user",
+  userId: "6a0f1c2b3d4e5f6a7b8c9d01",
+  memberships: [],
+});
 
 beforeAll(async () => {
   replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
@@ -74,7 +83,7 @@ describe("POST /v1/realtime/token", () => {
   });
 
   it("answers 403 when the caller may see no channel", async () => {
-    caller.mockResolvedValue(as({ kind: "system", source: "stripe" }));
+    caller.mockResolvedValue(outsider);
 
     const response = await POST(post({}), route);
 
@@ -82,7 +91,7 @@ describe("POST /v1/realtime/token", () => {
   });
 
   it("answers 400 for a malformed venue id", async () => {
-    caller.mockResolvedValue(as({ kind: "system", source: "stripe" }));
+    caller.mockResolvedValue(outsider);
 
     const response = await POST(post({ venueId: "nope" }), route);
 
@@ -131,7 +140,11 @@ describe("realtimeCallerFrom", () => {
     const bad = await resolve(request("bad"));
     const none = await resolve(request());
 
-    expect(good?.actor).toEqual({ kind: "guest", guestId: "a".repeat(64) });
+    expect(good).toEqual({
+      kind: "guest",
+      id: `guest:${"a".repeat(64)}`,
+      guestId: "a".repeat(64),
+    });
     expect(bad).toBeNull();
     expect(none).toBeNull();
   });

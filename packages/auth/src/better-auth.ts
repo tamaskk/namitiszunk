@@ -11,7 +11,7 @@ import {
   createAuthMiddleware,
   getSessionFromCtx,
 } from "better-auth/api";
-import { magicLink, twoFactor } from "better-auth/plugins";
+import { bearer, magicLink, twoFactor } from "better-auth/plugins";
 
 /** Each web app has its own Better Auth instance, cookie names and sessions (spec T-030 item 2). */
 export type AuthApp = "order" | "admin" | "hq";
@@ -55,17 +55,36 @@ function socialProviders(): BetterAuthOptions["socialProviders"] {
   };
 }
 
+/**
+ * Production cookies go to the parent domain, so api.namitiszunk.hu receives them; the per-app
+ * names and the session's `app` keep the apps apart. Localhost and Vercel previews stay host-only.
+ */
+export function cookieDomainFor(
+  baseUrl: string | undefined,
+): string | undefined {
+  const host = baseUrl ? URL.parse(baseUrl)?.hostname : undefined;
+  return host === "namitiszunk.hu" || host?.endsWith(".namitiszunk.hu")
+    ? ".namitiszunk.hu"
+    : undefined;
+}
+
 /** Builds the Better Auth instance for one app on an open database. Tests pass an in-memory database. */
 export function createAuth(app: AuthApp, db: Db) {
+  const cookieDomain = cookieDomainFor(process.env.BETTER_AUTH_URL);
   return betterAuth({
     appName: "Na, mit iszunk?",
     database: mongodbAdapter(db),
     secret: process.env.BETTER_AUTH_SECRET,
-    // Each app's own BETTER_AUTH_URL (its subdomain); the cookie stays host-only, never shared.
+    // Each app's own BETTER_AUTH_URL (its subdomain).
     baseURL: process.env.BETTER_AUTH_URL,
     trustedOrigins: ["https://appleid.apple.com"],
     telemetry: { enabled: false },
-    advanced: { cookiePrefix: `nmi-${app}` },
+    advanced: {
+      cookiePrefix: `nmi-${app}`,
+      ...(cookieDomain && {
+        crossSubDomainCookies: { enabled: true, domain: cookieDomain },
+      }),
+    },
     socialProviders: socialProviders(),
     session: {
       additionalFields: {
@@ -144,8 +163,8 @@ export function createAuth(app: AuthApp, db: Db) {
       }),
       // Sign-in is Apple, Google or e-mail link only: there is no password to confirm 2FA changes with.
       twoFactor({ issuer: "Na, mit iszunk?", allowPasswordless: true }),
-      // Bearer sessions for the guest mobile app (phase 3); the Expo client side is not built yet.
-      ...(app === "order" ? [expo()] : []),
+      // The guest mobile app (phase 3) calls apps/api with `Authorization: Bearer`, not a cookie; the Expo client side is not built yet.
+      ...(app === "order" ? [expo(), bearer()] : []),
     ],
   });
 }
