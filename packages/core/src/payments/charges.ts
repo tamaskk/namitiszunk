@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Venue } from "@namitiszunk/db";
+import { Payment, Venue } from "@namitiszunk/db";
 
 import type { StripeCharge } from "../jobs/reconcile";
 import { stripe } from "./stripe-client";
@@ -44,4 +44,39 @@ export async function listSucceededCharges(range: {
     }
   }
   return charges;
+}
+
+/**
+ * Payment timeout (T-035): cancels every open PaymentIntent of the order on the venue's connected account.
+ * Throws when Stripe already took the money, so the caller keeps the order and the webhook marks it paid.
+ */
+export async function cancelOrderPaymentIntents(
+  orderId: string,
+): Promise<void> {
+  const payments = await Payment.find({ orderId, status: "requires_payment" })
+    .select("venueId stripePaymentIntentId")
+    .lean();
+  for (const payment of payments) {
+    const venue = await Venue.findById(payment.venueId)
+      .select("stripeAccountId")
+      .lean();
+    if (!venue?.stripeAccountId) continue;
+    const options = { stripeAccount: venue.stripeAccountId };
+    const intent = await stripe().paymentIntents.retrieve(
+      payment.stripePaymentIntentId,
+      {},
+      options,
+    );
+    if (intent.status === "canceled") continue;
+    if (intent.status === "succeeded" || intent.status === "processing") {
+      throw new Error(
+        `PaymentIntent ${intent.id} is ${intent.status}; the order is not cancelled`,
+      );
+    }
+    await stripe().paymentIntents.cancel(
+      intent.id,
+      { cancellation_reason: "abandoned" },
+      options,
+    );
+  }
 }

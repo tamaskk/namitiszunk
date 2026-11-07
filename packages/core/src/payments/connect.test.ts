@@ -1,4 +1,10 @@
-import { AuditLog, connectDb, StripeEvent, Venue } from "@namitiszunk/db";
+import {
+  AuditLog,
+  connectDb,
+  Payment,
+  StripeEvent,
+  Venue,
+} from "@namitiszunk/db";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { Types } from "mongoose";
 import Stripe from "stripe";
@@ -29,6 +35,7 @@ const api = vi.hoisted(() => ({
   accountLinks: { create: vi.fn() },
   paymentMethodDomains: { list: vi.fn(), create: vi.fn() },
   charges: { list: vi.fn() },
+  paymentIntents: { retrieve: vi.fn(), cancel: vi.fn() },
 }));
 vi.mock("./stripe-client", () => ({ stripe: () => api }));
 
@@ -41,7 +48,8 @@ const {
   processConnectWebhook,
   setPayoutSchedule,
 } = await import("./connect");
-const { listSucceededCharges } = await import("./charges");
+const { cancelOrderPaymentIntents, listSucceededCharges } =
+  await import("./charges");
 
 const secret = "whsec_test_secret";
 const venueId = new Types.ObjectId();
@@ -471,5 +479,60 @@ describe("listSucceededCharges", () => {
       },
       { stripeAccount: accountId },
     );
+  });
+});
+
+describe("cancelOrderPaymentIntents", () => {
+  const orderId = new Types.ObjectId();
+
+  async function createOpenPayment() {
+    await createVenue({ stripeAccountId: accountId });
+    await Payment.create({
+      venueId,
+      orderId,
+      stripePaymentIntentId: "pi_open",
+      amountHuf: 2_500,
+    });
+  }
+
+  it("cancels an open PaymentIntent on the venue's connected account", async () => {
+    await createOpenPayment();
+    api.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_open",
+      status: "requires_payment_method",
+    });
+
+    await cancelOrderPaymentIntents(orderId.toHexString());
+
+    expect(api.paymentIntents.cancel).toHaveBeenCalledWith(
+      "pi_open",
+      { cancellation_reason: "abandoned" },
+      { stripeAccount: accountId },
+    );
+  });
+
+  it("skips a PaymentIntent that is already cancelled", async () => {
+    await createOpenPayment();
+    api.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_open",
+      status: "canceled",
+    });
+
+    await cancelOrderPaymentIntents(orderId.toHexString());
+
+    expect(api.paymentIntents.cancel).not.toHaveBeenCalled();
+  });
+
+  it("throws when the guest already paid, so the order is not cancelled", async () => {
+    await createOpenPayment();
+    api.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_open",
+      status: "succeeded",
+    });
+
+    const act = cancelOrderPaymentIntents(orderId.toHexString());
+
+    await expect(act).rejects.toThrow(/succeeded/);
+    expect(api.paymentIntents.cancel).not.toHaveBeenCalled();
   });
 });

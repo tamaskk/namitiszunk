@@ -1,16 +1,17 @@
 import "server-only";
 
 import type { NotifyDeps, StripeCharge } from "@namitiszunk/core/jobs";
-import { listSucceededCharges } from "@namitiszunk/core/payments";
+import {
+  cancelOrderPaymentIntents,
+  listSucceededCharges,
+} from "@namitiszunk/core/payments";
 import { sendEmail } from "@namitiszunk/emails";
 import { NonRetriableError } from "inngest";
 
 /** Integrations other wave-2 tasks own; each shortcut says what replaces it. */
 export const deps = {
-  // shortcut: no PaymentIntent is stored before T-033, so there is nothing to cancel. T-033 must wire its cancel here (idempotent, tolerating an already-cancelled intent) before the payment timeout goes live: until then a timed-out order is cancelled in the database only.
-  cancelPaymentIntent: async (orderId: string): Promise<void> => {
-    void orderId;
-  },
+  // Throws when Stripe already captured, so the job keeps the order for the webhook.
+  cancelPaymentIntent: cancelOrderPaymentIntents,
   // shortcut: refunds land with T-034; until then an enabled refund-on-expiry fails loudly (Sentry) instead of marking an unpaid refund.
   refundPayment: async (orderId: string): Promise<void> => {
     throw new NonRetriableError(

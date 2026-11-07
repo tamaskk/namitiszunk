@@ -10,4 +10,4 @@ export {
   processConnectWebhook,
   setPayoutSchedule,
 } from "./connect";
-export { listSucceededCharges } from "./charges";
+export { cancelOrderPaymentIntents, listSucceededCharges } from "./charges";
