@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./audit": "./src/audit/audit.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -13,9 +14,16 @@
   },
   "devDependencies": {
     "@namitiszunk/config": "workspace:*",
+    "@types/node": "^20.19.43",
     "eslint": "^9.39.5",
     "fast-check": "^4.10.2",
+    "mongodb-memory-server": "11.3.0",
+    "mongoose": "9.12.0",
     "typescript": "~5.9.3",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "@namitiszunk/db": "workspace:*",
+    "server-only": "^0.0.1"
   }
 }
