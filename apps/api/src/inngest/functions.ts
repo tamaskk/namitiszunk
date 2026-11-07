@@ -11,6 +11,7 @@ import {
   sendPickupReminder,
 } from "@namitiszunk/core/jobs";
 import { AppError } from "@namitiszunk/core/errors";
+import { runRetention } from "@namitiszunk/core/retention";
 import * as Sentry from "@sentry/nextjs";
 import { RetryAfterError } from "inngest";
 
@@ -182,8 +183,11 @@ export const retentionDaily = inngest.createFunction(
     triggers: [{ cron: "TZ=Europe/Budapest 0 5 * * *" }],
     onFailure: reportFailure,
   },
-  // shortcut: the retention service (T-028) is on another branch; call its runRetention here once merged.
-  async () => ({ skipped: "retention service not merged (T-028)" }),
+  async ({ step }) =>
+    step.run("run-retention", async () => {
+      await connectJobsDb();
+      return runRetention({ now: new Date(), dryRun: false });
+    }),
 );
 
 export const reportsWeekly = inngest.createFunction(
