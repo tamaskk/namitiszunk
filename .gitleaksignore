@@ -1,0 +1,2 @@
+# Test-only literal used to sign values in packages/auth tests; not a real credential.
+73fe00124d2bf7a63402453e8624f3dda1c646f7:packages/auth/src/test-db.ts:generic-api-key:5
