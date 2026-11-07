@@ -15,7 +15,8 @@
     "./uploads": "./src/uploads/blob.ts",
     "./payments": "./src/payments/index.ts",
     "./realtime": "./src/realtime/index.ts",
-    "./realtime/channels": "./src/realtime/channels.ts"
+    "./realtime/channels": "./src/realtime/channels.ts",
+    "./jobs": "./src/jobs/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

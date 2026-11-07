@@ -41,17 +41,31 @@ export type StatusChanged = {
   version: number;
 };
 
+export type StatusChangedHook = (change: StatusChanged) => Promise<void> | void;
+
 export type TransitionOptions = {
   /** Required when staff rejects an order. */
   reason?: string;
-  // shortcut: a plain hook instead of the Inngest SDK, wire `order/status.changed` (T-035) once merged.
-  /** Runs only after the commit; its errors reach the caller although the status already changed. */
-  afterCommit?: (change: StatusChanged) => Promise<void> | void;
   // shortcut: core has no Sentry SDK, so callers pass Sentry.captureException; route callers (T-034, T-054) must pass it.
-  /** Gets a failed Ably publish once; the status change stays committed. */
+  /** Gets each failed post-commit hook (Ably publish, onStatusChanged hooks) once; the status change stays committed. */
   reportError?: (error: unknown) => void;
   now?: Date;
 };
+
+// On globalThis because Next.js bundles instrumentation.ts (where apps register) apart from route handlers.
+const registry = globalThis as { __statusChangedHooks?: Set<StatusChangedHook> };
+const statusChangedHooks = (registry.__statusChangedHooks ??= new Set());
+
+/**
+ * Registers a hook that runs after every committed transition in this process, next to the Ably publish.
+ * Every app process that calls transition() must register its hooks (apps/api does in instrumentation.ts).
+ * All hooks run even when one fails; each failure goes to `reportError` once and never reaches the caller.
+ * Returns an unregister function.
+ */
+export function onStatusChanged(hook: StatusChangedHook): () => void {
+  statusChangedHooks.add(hook);
+  return () => statusChangedHooks.delete(hook);
+}
 
 // A signed-in user acting on an order (owner from admin, platform support) is staff for the state machine.
 function actorKindOf(actor: Actor): ActorKind {
@@ -197,12 +211,17 @@ export async function transitionWith(
     await session.endSession();
   }
   if (!change) throw new Error("transaction finished without a change");
-  // The database is the source of truth; clients refetch on reconnect, so a lost message only delays them.
-  try {
-    await publishStatusChange(change);
-  } catch (error) {
-    (options.reportError ?? console.error)(error);
+  // The database is the source of truth: a failed hook never undoes or fails the committed change.
+  const committed = change;
+  const results = await Promise.allSettled(
+    [publishStatusChange, ...statusChangedHooks].map(async (hook) =>
+      hook(committed),
+    ),
+  );
+  for (const result of results) {
+    if (result.status === "rejected") {
+      (options.reportError ?? console.error)(result.reason);
+    }
   }
-  await options.afterCommit?.(change);
   return change;
 }
