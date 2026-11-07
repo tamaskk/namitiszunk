@@ -3,6 +3,19 @@
     "appName": "Na, mit iszunk?",
     "loading": "Betöltés…"
   },
+  "apiErrors": {
+    "validation_failed": "Néhány mező nem megfelelő.",
+    "invalid_json": "A kérést nem sikerült beolvasni.",
+    "unauthorized": "A folytatáshoz jelentkezz be.",
+    "forbidden": "Ehhez nincs hozzáférésed.",
+    "origin_forbidden": "Ez az oldal nem hívhatja az API-t.",
+    "not_found": "Nem található.",
+    "conflict": "Közben valami megváltozott. Próbáld újra.",
+    "idempotency_in_progress": "Ezt a kérést még feldolgozzuk.",
+    "idempotency_key_reused": "Ezt a kéréskulcsot már egy másik kéréshez használták.",
+    "rate_limited": "Túl sok kérés. Várj egy kicsit, és próbáld újra.",
+    "internal": "Valami hiba történt. Próbáld újra."
+  },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon"
   },

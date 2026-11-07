@@ -3,6 +3,19 @@
     "appName": "Na, mit iszunk?",
     "loading": "Loading…"
   },
+  "apiErrors": {
+    "validation_failed": "Some fields are not valid.",
+    "invalid_json": "The request could not be read.",
+    "unauthorized": "Sign in to continue.",
+    "forbidden": "You do not have access to this.",
+    "origin_forbidden": "This site may not call the API.",
+    "not_found": "Not found.",
+    "conflict": "This changed in the meantime. Try again.",
+    "idempotency_in_progress": "This request is still being processed.",
+    "idempotency_key_reused": "This request key was already used for another request.",
+    "rate_limited": "Too many requests. Wait a moment and try again.",
+    "internal": "Something went wrong. Try again."
+  },
   "landing": {
     "tagline": "Order and pay on your phone"
   },
