@@ -103,7 +103,7 @@ Request path for every write:
 Order lifecycle:
 - Created as Awaiting payment (not visible to the bar) → Stripe webhook `payment_intent.succeeded` → New → In progress → Ready → Picked up. Side branches: Rejected (only from New, whole order, full refund), Expired, Refunded, Payment failed.
 - Every transition goes through one server function (`packages/core/src/orders/transition.ts`) that checks the allowed transition, writes the audit log and publishes an Ably event.
-- After the commit, `transition()` runs the Ably publish and every hook registered with `onStatusChanged()` (the Inngest `order/status.changed` emit) side by side. A failing hook never fails the call, since the change is committed: each failure goes once to the caller's `reportError` (console when none). Any app process that calls `transition()` must register its hooks at startup: apps/api does in `instrumentation.ts`; admin and order do not call `transition()` today, and must register the same hooks when they start to.
+- After the commit, `transition()` runs the Ably publish and every hook registered with `onStatusChanged()` (the Inngest `order/status.changed` emit) side by side. A failing hook never fails the call, since the change is committed: each failure goes once to the caller's `reportError`, else to the reporter set with `setDefaultErrorReporter()` (Sentry), else the console. Any app process that calls `transition()` must register its hooks and reporter at startup: apps/api does in `instrumentation.ts`; admin and order do not call `transition()` today, and must register the same hooks when they start to.
 
 State:
 - Server state lives in MongoDB; the bar view keeps a local list and resyncs after a network drop.

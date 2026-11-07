@@ -26,10 +26,13 @@ export type UploadKind = keyof typeof uploadPermission;
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
-/** The token constraints. The pathname is always generated here, never taken from the client. */
-export function uploadTokenOptions(venueId: string) {
+/**
+ * The token constraints. The pathname is always generated here, never taken from the client;
+ * the kind is in it, so deleting checks the same permission the upload needed.
+ */
+export function uploadTokenOptions(venueId: string, kind: UploadKind) {
   return {
-    pathname: `venues/${venueId}/${randomUUID()}`,
+    pathname: `venues/${venueId}/${kind}/${randomUUID()}`,
     allowedContentTypes: UPLOAD_CONTENT_TYPES,
     maximumSizeInBytes: UPLOAD_MAX_BYTES,
     addRandomSuffix: false,
@@ -46,13 +49,17 @@ export async function createUploadToken(
   requirePermission(actor, uploadPermission[input.kind], {
     venueId: input.venueId,
   });
-  const options = uploadTokenOptions(input.venueId);
+  const options = uploadTokenOptions(input.venueId, input.kind);
   const clientToken = await generateClientTokenFromReadWriteToken(options);
   return { clientToken, pathname: options.pathname };
 }
 
-/** True only for an image we issued for this venue: our Blob host and exactly `venues/{venueId}/{uuid}`. */
-export function isVenueBlobUrl(url: string, venueId: string): boolean {
+/** True only for an image we issued for this venue and kind: our Blob host and exactly `venues/{venueId}/{kind}/{uuid}`. */
+export function isVenueBlobUrl(
+  url: string,
+  venueId: string,
+  kind: UploadKind,
+): boolean {
   // The venue id goes into the RegExp below, so it must be a plain ObjectId first.
   if (!/^[0-9a-f]{24}$/.test(venueId)) return false;
   if (!blobUrlSchema.safeParse(url).success) return false;
@@ -60,11 +67,11 @@ export function isVenueBlobUrl(url: string, venueId: string): boolean {
   return (
     search === "" &&
     hash === "" &&
-    new RegExp(`^/venues/${venueId}/${UUID}$`).test(pathname)
+    new RegExp(`^/venues/${venueId}/${kind}/${UUID}$`).test(pathname)
   );
 }
 
-/** Deletes a replaced or removed image. Refuses any URL outside the actor's venue folder. */
+/** Deletes a replaced or removed image. Refuses any URL outside the actor's venue and kind folder. */
 export async function deleteBlob(
   actor: Actor,
   input: { venueId: string; kind: UploadKind; url: string },
@@ -72,7 +79,7 @@ export async function deleteBlob(
   requirePermission(actor, uploadPermission[input.kind], {
     venueId: input.venueId,
   });
-  if (!isVenueBlobUrl(input.url, input.venueId))
+  if (!isVenueBlobUrl(input.url, input.venueId, input.kind))
     throw new AppError(400, "validation_failed", { url: "invalid" });
   await del(input.url);
 }

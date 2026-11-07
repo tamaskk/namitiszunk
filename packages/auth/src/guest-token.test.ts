@@ -1,5 +1,6 @@
 import * as crypto from "node:crypto";
 
+import { can } from "@namitiszunk/core/auth";
 import { Order } from "@namitiszunk/db";
 import { Types } from "mongoose";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -22,12 +23,14 @@ useTestDb();
 const orderId = new Types.ObjectId().toString();
 const otherOrderId = new Types.ObjectId().toString();
 let token: string;
+let tokenHash: string;
 let otherToken: string;
 
 beforeAll(async () => {
   const first = createGuestToken();
   const second = createGuestToken();
   token = first.token;
+  tokenHash = first.hash;
   otherToken = second.token;
   // Only the fields this test reads; the full order shape is T-033's.
   await Order.collection.insertMany([
@@ -72,8 +75,21 @@ describe("guestActorFromToken", () => {
     expect(actor).toEqual({
       kind: "guest",
       id: `guest:${orderId}`,
-      guestId: orderId,
+      guestId: tokenHash,
     });
+  });
+
+  it("gives a guest that passes core's own-order check for this order only", async () => {
+    const actor = await guestActorFromToken(orderId, token);
+    const venueId = new Types.ObjectId().toString();
+
+    const own = can(actor, "order.reject", { venueId, guestId: tokenHash });
+    const other = can(actor, "order.reject", {
+      venueId,
+      guestId: "b".repeat(64),
+    });
+
+    expect([own, other]).toEqual([true, false]);
   });
 
   it.each([

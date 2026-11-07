@@ -180,7 +180,8 @@ export const permissions = {
 
 export type Action = keyof typeof permissions;
 
-const pinRoles: readonly VenueRole[] = ["bartender", "vip_host"];
+/** The roles that may sign in with a PIN on a staff device; owners and managers use their own account. */
+export const pinRoles: readonly VenueRole[] = ["bartender", "vip_host"];
 
 function cellAllows(
   cell: Cell | undefined,

@@ -45,12 +45,16 @@ async function signedInUser(
 }
 
 // The same signed value Better Auth sets (better-call signCookieValue).
-function cookieHeaders(app: AuthApp, token: string): Headers {
+function signed(token: string): string {
   const signature = createHmac("sha256", testSecret)
     .update(token)
     .digest("base64");
+  return `${token}.${signature}`;
+}
+
+function cookieHeaders(app: AuthApp, token: string): Headers {
   return new Headers({
-    cookie: `nmi-${app}.session_token=${encodeURIComponent(`${token}.${signature}`)}`,
+    cookie: `nmi-${app}.session_token=${encodeURIComponent(signed(token))}`,
   });
 }
 
@@ -350,15 +354,113 @@ describe("HQ two-factor flow", () => {
 });
 
 describe("API sessions (wave 2)", () => {
-  it("accepts an order-app Bearer token without cookies, and only in the order app", async () => {
+  it("accepts a signed order-app Bearer token without cookies, and only in the order app", async () => {
     const { userId, token } = await signedInUser("order");
-    const headers = new Headers({ authorization: `Bearer ${token}` });
+    const headers = new Headers({ authorization: `Bearer ${signed(token)}` });
+    const unsigned = new Headers({ authorization: `Bearer ${token}` });
 
     const order = await userActorFromHeaders(auths.order, "order", headers);
     const admin = await userActorFromHeaders(auths.admin, "admin", headers);
+    const raw = await userActorFromHeaders(auths.order, "order", unsigned);
 
     expect(order).toMatchObject({ kind: "user", userId });
     expect(admin).toBeNull();
+    expect(raw).toBeNull();
+  });
+
+  it("refuses a verified HQ session sent as Bearer to the order app", async () => {
+    const { token } = await signedInUser("hq", { twoFactorEnabled: true });
+    await markTwoFactorVerified("hq", token);
+
+    const response = await auths.order.handler(
+      new Request("http://localhost:3002/api/auth/update-user", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${signed(token)}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ name: "Taken over" }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("does not serve the session list, which carries every session token", async () => {
+    const { token } = await signedInUser("order");
+
+    const response = await auths.order.handler(
+      new Request("http://localhost:3002/api/auth/list-sessions", {
+        headers: cookieHeaders("order", token),
+      }),
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it("lets a session that skipped TOTP do nothing but finish the check", async () => {
+    const { token } = await signedInUser("hq", { twoFactorEnabled: true });
+    const headers = cookieHeaders("hq", token);
+
+    const results = await Promise.allSettled([
+      auths.hq.api.getTOTPURI({ headers, body: {} }),
+      auths.hq.api.revokeSessions({ headers }),
+      auths.hq.api.updateUser({ headers, body: { name: "x" } }),
+      auths.hq.api.linkSocialAccount({
+        headers,
+        body: { provider: "google" },
+      }),
+    ]);
+
+    expect(results).toEqual(
+      Array(4).fill(
+        expect.objectContaining({
+          status: "rejected",
+          reason: expect.objectContaining({ statusCode: 403 }),
+        }),
+      ),
+    );
+  });
+
+  it("locks TOTP checks for a user after 5 attempts, whatever the IP", async () => {
+    const { token } = await signedInUser("hq", { twoFactorEnabled: true });
+    const attempt = (i: number) =>
+      auths.hq.api
+        .verifyTOTP({
+          headers: new Headers({
+            ...Object.fromEntries(cookieHeaders("hq", token)),
+            "x-forwarded-for": `198.51.100.${i}`,
+          }),
+          body: { code: "000000" },
+        })
+        .then(
+          () => 200,
+          (e: { statusCode: number }) => e.statusCode,
+        );
+
+    const codes: number[] = [];
+    for (let i = 0; i < 7; i++) codes.push(await attempt(i));
+
+    expect(codes.slice(0, 5)).not.toContain(429);
+    expect(codes.slice(5)).toEqual([429, 429]);
+  });
+
+  it("sends at most 5 e-mail links per address in 15 minutes, whatever the IP", async () => {
+    const send = (i: number) =>
+      auths.order.api
+        .signInMagicLink({
+          headers: new Headers({ "x-forwarded-for": `203.0.113.${i}` }),
+          body: { email: "Flood@Example.com" },
+        })
+        .then(
+          () => 200,
+          (e: { statusCode: number }) => e.statusCode,
+        );
+
+    const codes: number[] = [];
+    for (let i = 0; i < 6; i++) codes.push(await send(i));
+
+    expect(codes).toEqual([200, 200, 200, 200, 200, 429]);
   });
 
   it("shares cookies with the parent domain in production only", () => {

@@ -167,6 +167,58 @@ describe("signInStaffWithPin", () => {
     await expect(fifth).rejects.toMatchObject({ code: "pin_locked" });
     await expect(otherDevice).resolves.toBeDefined();
   });
+
+  it("checks at most 4 of 10 parallel wrong PINs, the rest are locked out", async () => {
+    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 10 }, () =>
+        signInStaffWithPin(
+          { deviceCookie: device, memberId: anna, pin: "0000" },
+          t0,
+        ),
+      ),
+    );
+
+    const codes = results.map((r) =>
+      r.status === "rejected" ? (r.reason as { code: string }).code : "ok",
+    );
+    expect(codes.filter((c) => c === "pin_invalid")).toHaveLength(4);
+    expect(codes.filter((c) => c === "pin_locked")).toHaveLength(6);
+  });
+
+  it("does not count correct PINs towards the lockout", async () => {
+    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    for (let i = 0; i < 6; i++)
+      await signInStaffWithPin(
+        { deviceCookie: device, memberId: anna, pin: "1234" },
+        t0 + i,
+      );
+
+    const wrong = signInStaffWithPin(
+      { deviceCookie: device, memberId: anna, pin: "0000" },
+      t0 + 10,
+    );
+
+    await expect(wrong).rejects.toMatchObject({ code: "pin_invalid" });
+  });
+
+  it("never unlocks an owner or manager with a PIN", async () => {
+    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const boss = await VenueMember.create({
+      venueId,
+      role: "manager",
+      displayName: "Boss",
+      pinHash: await hashPin("4321"),
+    });
+
+    const attempt = signInStaffWithPin(
+      { deviceCookie: device, memberId: boss._id.toString(), pin: "4321" },
+      t0,
+    );
+
+    await expect(attempt).rejects.toMatchObject({ code: "pin_invalid" });
+  });
 });
 
 describe("staffActorFromRequest", () => {

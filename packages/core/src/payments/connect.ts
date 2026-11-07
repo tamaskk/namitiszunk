@@ -8,10 +8,10 @@ import {
 } from "@namitiszunk/db";
 import Stripe from "stripe";
 
-import { audit, type AuditEntry } from "../audit/audit";
+import { audit, type AuditEntry, auditActorOf } from "../audit/audit";
 import { type Actor, requirePermission } from "../auth/permissions";
 import { AppError, ConflictError, NotFoundError } from "../errors";
-import { auditActorOf } from "../orders/transition";
+import { reportError } from "../report-error";
 import { stripe } from "./stripe-client";
 
 /** The guest ordering site; Apple Pay and Google Pay need it registered on every connected account. */
@@ -190,8 +190,7 @@ async function ensureOrderDomain(accountId: string): Promise<void> {
 
 /**
  * account.updated from the Connect webhook: mirrors charges, payouts and missing requirements
- * onto the Venue, and registers the order domain when charges first become enabled.
- * The domain call runs inside the transaction, so if it fails nothing is stored and Stripe retries.
+ * onto the Venue, and makes sure the order domain is registered while charges are enabled.
  */
 export async function handleAccountUpdated(
   event: Stripe.AccountUpdatedEvent,
@@ -204,7 +203,9 @@ export async function handleAccountUpdated(
     stripeRequirementsDue: account.requirements?.currently_due ?? [],
   };
 
+  let updated = false;
   await inTransaction(async (session) => {
+    updated = false;
     if (!(await claimStripeEvent(session, event))) return;
     const venue = await Venue.findOne({ stripeAccountId: account.id })
       .select("chargesEnabled payoutsEnabled stripeRequirementsDue")
@@ -227,10 +228,12 @@ export async function handleAccountUpdated(
       after,
     };
     await audit(session, entry);
-    if (after.chargesEnabled && !venue.chargesEnabled) {
-      await ensureOrderDomain(account.id);
-    }
+    updated = true;
   });
+  // After the commit: a Stripe outage must not undo the flags. The next account.updated checks again.
+  if (updated && after.chargesEnabled) {
+    await ensureOrderDomain(account.id).catch(reportError);
+  }
 }
 
 /**
@@ -244,6 +247,8 @@ export async function processConnectWebhook(
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) throw new Error("STRIPE_WEBHOOK_SECRET is missing");
   const event = constructStripeEvent(rawBody, signature, secret);
+  // A test-mode event never changes production data, nor a live one a preview or local database.
+  if (event.livemode !== (process.env.VERCEL_ENV === "production")) return;
   if (event.type === "account.updated") await handleAccountUpdated(event);
 }
 

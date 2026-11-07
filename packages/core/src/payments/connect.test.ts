@@ -14,6 +14,7 @@ import {
 
 import { type Actor, Forbidden } from "../auth/permissions";
 import { ConflictError } from "../errors";
+import { setDefaultErrorReporter } from "../report-error";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
@@ -341,8 +342,14 @@ describe("processConnectWebhook", () => {
     expect(api.paymentMethodDomains.create).toHaveBeenCalledTimes(1);
   });
 
-  it("registers the order domain once, when charges become enabled", async () => {
+  it("registers the order domain once, and later events only check it", async () => {
     await createVenue({ stripeAccountId: accountId });
+    api.paymentMethodDomains.create.mockImplementation(async () => {
+      api.paymentMethodDomains.list.mockResolvedValue({
+        data: [{ id: "pmd_1", domain_name: ORDER_DOMAIN }],
+      });
+      return { id: "pmd_1" };
+    });
     const first = signed(accountUpdated("evt_a", enabled));
     const second = signed(accountUpdated("evt_b", enabled));
 
@@ -371,18 +378,36 @@ describe("processConnectWebhook", () => {
     expect(venue?.chargesEnabled).toBe(true);
   });
 
-  it("rolls back when the domain registration fails, so Stripe's retry runs it again", async () => {
+  it("keeps the update and reports a failed domain registration; the next event retries it", async () => {
     await createVenue({ stripeAccountId: accountId });
-    api.paymentMethodDomains.create.mockRejectedValueOnce(new Error("down"));
-    const delivery = signed(accountUpdated("evt_retry", enabled));
+    const failure = new Error("down");
+    api.paymentMethodDomains.create.mockRejectedValueOnce(failure);
+    const report = vi.fn();
+    setDefaultErrorReporter(report);
 
-    await expect(processConnectWebhook(...delivery)).rejects.toThrow("down");
-    expect(await StripeEvent.countDocuments()).toBe(0);
-    await processConnectWebhook(...delivery);
+    await processConnectWebhook(...signed(accountUpdated("evt_r1", enabled)));
+    const afterFailure = await Venue.findById(venueId).lean();
+    await processConnectWebhook(...signed(accountUpdated("evt_r2", enabled)));
+    setDefaultErrorReporter(console.error);
 
-    const venue = await Venue.findById(venueId).lean();
-    expect(venue?.chargesEnabled).toBe(true);
+    expect(afterFailure?.chargesEnabled).toBe(true);
+    expect(report).toHaveBeenCalledExactlyOnceWith(failure);
     expect(api.paymentMethodDomains.create).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores a live event outside production and a test event in production", async () => {
+    await createVenue({ stripeAccountId: accountId });
+    const live = { ...accountUpdated("evt_live", enabled), livemode: true };
+
+    await processConnectWebhook(...signed(live));
+    vi.stubEnv("VERCEL_ENV", "production");
+    await processConnectWebhook(...signed(accountUpdated("evt_test", enabled)));
+    vi.unstubAllEnvs();
+
+    expect(await StripeEvent.countDocuments()).toBe(0);
+    expect((await Venue.findById(venueId).lean())?.chargesEnabled).not.toBe(
+      true,
+    );
   });
 
   it("acknowledges an event type it does not handle without storing it", async () => {

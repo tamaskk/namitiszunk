@@ -11,6 +11,10 @@ type GuestActor = Extract<RequestActor, { kind: "guest" }>;
 
 const tokenPattern = /^[A-Za-z0-9_-]{22}$/;
 
+/** Whether the value has the shape of a guest token, before any lookup. */
+export const isGuestTokenFormat = (token: string): boolean =>
+  tokenPattern.test(token);
+
 export function hashGuestToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -38,15 +42,20 @@ export function guestTokenMatches(
 /**
  * The guest of one order, proven by its token. A missing order, a missing token and a wrong
  * token all throw the same 404, so the response never tells whether the order exists.
- * `guestId` is the order id: the token grants this one order and nothing else.
+ * `guestId` is the token hash (Order.guestTokenHash): the token grants this one order and nothing else.
  */
 export async function guestActorFromToken(
   orderId: string,
   token: string | null | undefined,
 ): Promise<GuestActor> {
   if (!isObjectId(orderId) || !token) throw new NotFoundError();
-  const order = await Order.findById(orderId, { guestTokenHash: 1 }).lean();
+  const order = await Order.findById(orderId).select("+guestTokenHash").lean();
   if (!order || !guestTokenMatches(token, order.guestTokenHash))
     throw new NotFoundError();
-  return { kind: "guest", id: `guest:${orderId}`, guestId: orderId };
+  // Core's own-order check compares guestId with Order.guestTokenHash.
+  return {
+    kind: "guest",
+    id: `guest:${orderId}`,
+    guestId: order.guestTokenHash,
+  };
 }

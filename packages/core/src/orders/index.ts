@@ -7,3 +7,4 @@ export {
   transition,
   type TransitionOptions,
 } from "./transition";
+export { setDefaultErrorReporter } from "../report-error";

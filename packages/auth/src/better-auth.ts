@@ -1,7 +1,11 @@
 import "server-only";
 
 import { expo } from "@better-auth/expo";
-import { hitRateLimit } from "@namitiszunk/core/api";
+import {
+  hitRateLimit,
+  lockRateLimit,
+  rateLimitLockedFor,
+} from "@namitiszunk/core/api";
 import { connectDb } from "@namitiszunk/db";
 import { sendEmail } from "@namitiszunk/emails";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
@@ -21,12 +25,18 @@ type Db = Parameters<typeof mongodbAdapter>[0];
 // Sign-in, e-mail link and 2FA attempts per client IP (docs/SECURITY.md §03).
 const limitedPaths = ["/sign-in/", "/magic-link/", "/two-factor/"];
 const authRateLimit = { limit: 10, windowSeconds: 60 };
-const guardedTwoFactorPaths = [
-  "/two-factor/enable",
-  "/two-factor/disable",
-  "/two-factor/get-totp-uri",
-  "/two-factor/generate-backup-codes",
+// A session that has not passed TOTP yet may only finish the check, read itself or sign out.
+const unverifiedSessionPaths = [
+  "/two-factor/verify-totp",
+  "/two-factor/verify-backup-code",
+  "/get-session",
+  "/sign-out",
 ];
+// TOTP guesses per user on top of the IP limit, then a lockout (6 digits fall to a distributed guesser otherwise).
+const totpUserRateLimit = { limit: 5, windowSeconds: 5 * 60 };
+const totpLockSeconds = 15 * 60;
+// E-mail links per address, so one inbox cannot be flooded from many IPs.
+const magicLinkEmailRateLimit = { limit: 5, windowSeconds: 15 * 60 };
 
 function clientIp(headers: Headers | undefined): string {
   return (
@@ -79,6 +89,8 @@ export function createAuth(app: AuthApp, db: Db) {
     baseURL: process.env.BETTER_AUTH_URL,
     trustedOrigins: ["https://appleid.apple.com"],
     telemetry: { enabled: false },
+    // It returns every session's token: a stolen session must not be able to read the others.
+    disabledPaths: ["/list-sessions"],
     advanced: {
       cookiePrefix: `nmi-${app}`,
       ...(cookieDomain && {
@@ -110,22 +122,53 @@ export function createAuth(app: AuthApp, db: Db) {
     },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        if (!limitedPaths.some((p) => ctx.path.startsWith(p))) return;
-        const limited = await hitRateLimit(
-          `auth:${app}:${ctx.path}:${clientIp(ctx.headers)}`,
-          authRateLimit,
-        );
-        if (limited) throw new APIError("TOO_MANY_REQUESTS");
+        if (limitedPaths.some((p) => ctx.path.startsWith(p))) {
+          const limited = await hitRateLimit(
+            `auth:${app}:${ctx.path}:${clientIp(ctx.headers)}`,
+            authRateLimit,
+          );
+          if (limited) throw new APIError("TOO_MANY_REQUESTS");
+        }
+        const email: unknown = ctx.body?.email;
+        if (ctx.path === "/sign-in/magic-link" && typeof email === "string") {
+          const limited = await hitRateLimit(
+            `auth:${app}:magic-link-email:${email.trim().toLowerCase()}`,
+            magicLinkEmailRateLimit,
+          );
+          if (limited) throw new APIError("TOO_MANY_REQUESTS");
+        }
 
-        // Without passwords (allowPasswordless), a session that has not passed TOTP yet must not
-        // read, replace or remove the factor: that would let a stolen OAuth session bypass 2FA.
-        if (!guardedTwoFactorPaths.includes(ctx.path)) return;
-        const session = await getSessionFromCtx(ctx);
+        // bearer() turns the header into the session cookie only after this hook, so check that session now.
+        const bearerToken = ctx.headers?.get("authorization");
+        const headers = new Headers(ctx.headers);
+        if (app === "order" && bearerToken?.startsWith("Bearer "))
+          headers.set(
+            "cookie",
+            `${ctx.context.authCookies.sessionToken.name}=${encodeURIComponent(bearerToken.slice("Bearer ".length))}`,
+          );
+        const session = await getSessionFromCtx({ ...ctx, headers });
+        if (!session) return;
+        // A session (cookie or Bearer) is valid only in the app that created it.
+        if (session.session.app !== app) throw new APIError("UNAUTHORIZED");
+        // Without passwords (allowPasswordless), a session that skipped TOTP must not read, replace
+        // or remove the factor, list or revoke sessions or change the user: that would let a stolen
+        // OAuth or e-mail link session bypass 2FA.
         if (
-          session?.user.twoFactorEnabled &&
-          session.session.twoFactorVerified !== true
+          session.user.twoFactorEnabled &&
+          session.session.twoFactorVerified !== true &&
+          !unverifiedSessionPaths.includes(ctx.path)
         )
           throw new APIError("FORBIDDEN", { code: "two_factor_required" });
+
+        if (ctx.path.startsWith("/two-factor/verify-")) {
+          const bucket = `auth:${app}:totp:${session.user.id}`;
+          if (await rateLimitLockedFor(bucket))
+            throw new APIError("TOO_MANY_REQUESTS");
+          if (await hitRateLimit(bucket, totpUserRateLimit)) {
+            await lockRateLimit(bucket, totpLockSeconds);
+            throw new APIError("TOO_MANY_REQUESTS");
+          }
+        }
       }),
       after: createAuthMiddleware(async (ctx) => {
         if (
@@ -153,6 +196,7 @@ export function createAuth(app: AuthApp, db: Db) {
     plugins: [
       magicLink({
         expiresIn: 15 * 60,
+        storeToken: "hashed",
         sendMagicLink: async ({ email, url }, ctx) => {
           const accept = ctx?.headers?.get("accept-language") ?? "";
           await sendEmail("signIn", email, {
@@ -164,7 +208,7 @@ export function createAuth(app: AuthApp, db: Db) {
       // Sign-in is Apple, Google or e-mail link only: there is no password to confirm 2FA changes with.
       twoFactor({ issuer: "Na, mit iszunk?", allowPasswordless: true }),
       // The guest mobile app (phase 3) calls apps/api with `Authorization: Bearer`, not a cookie; the Expo client side is not built yet.
-      ...(app === "order" ? [expo(), bearer()] : []),
+      ...(app === "order" ? [expo(), bearer({ requireSignature: true })] : []),
     ],
   });
 }

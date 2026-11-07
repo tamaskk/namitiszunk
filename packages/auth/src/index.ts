@@ -10,6 +10,7 @@ export {
   guestActorFromToken,
   guestTokenMatches,
   hashGuestToken,
+  isGuestTokenFormat,
 } from "./guest-token";
 export { acceptStaffInvite, createStaffInvite } from "./invites";
 export {

@@ -14,6 +14,7 @@ import {
 import { type Actor, Forbidden } from "../auth/permissions";
 import { NotFoundError } from "../errors";
 import { InvalidTransition } from "./state-machine";
+import { setDefaultErrorReporter } from "../report-error";
 import { onStatusChanged, transition, transitionWith } from "./transition";
 
 // "server-only" throws outside a React Server Components bundle.
@@ -278,6 +279,19 @@ describe("transition", () => {
     expect(reportError).toHaveBeenCalledTimes(2);
     expect(reportError).toHaveBeenCalledWith(ablyDown);
     expect(reportError).toHaveBeenCalledWith(inngestDown);
+  });
+
+  it("reports to the process reporter when the caller passes none", async () => {
+    const order = await createOrder();
+    const failure = new Error("ably down");
+    publish.mockRejectedValue(failure);
+    const report = vi.fn();
+    setDefaultErrorReporter(report);
+
+    await transitionWith(allow, order._id, "payment_succeeded", system);
+    setDefaultErrorReporter(console.error);
+
+    expect(report).toHaveBeenCalledExactlyOnceWith(failure);
   });
 
   it("stops when authorize denies the actor", async () => {

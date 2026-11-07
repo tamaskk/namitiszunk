@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deps } from "./deps";
 import {
   expire,
+  expireCancelOn,
   notify,
   paymentTimeout,
   pickupReminder,
@@ -126,6 +127,14 @@ describe("order/pickup-reminder", () => {
 });
 
 describe("order/expire", () => {
+  it("is not cancelled by its own ready to expired event, only by other changes of the order", () => {
+    const [cancel] = expireCancelOn;
+
+    expect(cancel?.if).toBe(
+      'async.data.orderId == event.data.orderId && async.data.event != "expire"',
+    );
+  });
+
   it("sleeps until the venue deadline, then expires the order", async () => {
     const t = new InngestTestEngine({
       function: expire,

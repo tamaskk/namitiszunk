@@ -2,7 +2,7 @@ import "server-only";
 
 import { Order, type OrderStatus, Venue } from "@namitiszunk/db";
 
-import { audit, type AuditActor } from "../audit/audit";
+import { audit, type AuditActor, auditActorOf } from "../audit/audit";
 import {
   type Actor,
   requirePermission,
@@ -10,6 +10,7 @@ import {
 } from "../auth/permissions";
 import { AppError, NotFoundError } from "../errors";
 import { publishStatusChange } from "../realtime";
+import { reportError } from "../report-error";
 import {
   type ActorKind,
   actionFor,
@@ -46,8 +47,7 @@ export type StatusChangedHook = (change: StatusChanged) => Promise<void> | void;
 export type TransitionOptions = {
   /** Required when staff rejects an order. */
   reason?: string;
-  // shortcut: core has no Sentry SDK, so callers pass Sentry.captureException; route callers (T-034, T-054) must pass it.
-  /** Gets each failed post-commit hook (Ably publish, onStatusChanged hooks) once; the status change stays committed. */
+  /** Gets each failed post-commit hook (Ably publish, onStatusChanged hooks) once; defaults to setDefaultErrorReporter's. */
   reportError?: (error: unknown) => void;
   now?: Date;
 };
@@ -72,20 +72,6 @@ export function onStatusChanged(hook: StatusChangedHook): () => void {
 // A signed-in user acting on an order (owner from admin, platform support) is staff for the state machine.
 function actorKindOf(actor: Actor): ActorKind {
   return actor.kind === "user" ? "staff" : actor.kind;
-}
-
-export function auditActorOf(actor: Actor): AuditActor {
-  switch (actor.kind) {
-    case "staff":
-      return { type: "venue_member", id: actor.memberId };
-    case "user":
-      return { type: "user", id: actor.userId };
-    case "system":
-      return { type: "system", name: actor.source };
-    case "guest":
-      // The guest session id is not a User id, so it stays out of the ObjectId field.
-      return { type: "user", name: "guest" };
-  }
 }
 
 /** Whether the actor may learn that the order exists; otherwise it gets 404, not 403. */
@@ -222,7 +208,7 @@ export async function transitionWith(
   );
   for (const result of results) {
     if (result.status === "rejected") {
-      (options.reportError ?? console.error)(result.reason);
+      (options.reportError ?? reportError)(result.reason);
     }
   }
   return change;

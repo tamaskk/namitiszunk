@@ -3,6 +3,7 @@ import "server-only";
 import type { Actor } from "@namitiszunk/core/auth";
 import { AppError } from "@namitiszunk/core/errors";
 import { PlatformMember, VenueMember } from "@namitiszunk/db";
+import { APIError } from "better-auth/api";
 
 import { getAuth, type Auth, type AuthApp } from "./better-auth";
 
@@ -28,7 +29,13 @@ export async function userActorFromHeaders(
   app: AuthApp,
   headers: Headers,
 ): Promise<UserActor | null> {
-  const result = await auth.api.getSession({ headers });
+  // A session of another app is refused by the auth hook (401): here that simply means no session.
+  const result = await auth.api
+    .getSession({ headers })
+    .catch((error: unknown) => {
+      if (error instanceof APIError && error.statusCode === 401) return null;
+      throw error;
+    });
   if (!result || result.session.app !== app) return null;
   const { user, session } = result;
 

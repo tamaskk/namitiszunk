@@ -30,6 +30,7 @@ Card data never touches our servers: Stripe Elements / Payment Request and Payme
 - Roles: venue roles Owner, Manager, Bartender, VIP host; platform roles Admin, Support, Finance. Every check runs on the server through `packages/core/src/auth/permissions.ts`, with venue ownership checked on every resource.
 - Refunds after hand-over: Manager or Owner only. Impersonation from HQ is read-only by default and always audit-logged.
 - Rate limits: sign-in, email link / OTP, PIN entry, payment intent creation, demo form.
+- Better Auth hardening (packages/auth): a session is refused outside the app that created it (cookie or Bearer); a session that skipped TOTP may only verify, read itself or sign out; TOTP checks are limited per user (5 per 5 minutes, then a 15 minute lock) on top of the IP limit; e-mail links are limited per address and stored hashed; `/list-sessions` is disabled (it returns session tokens); Bearer tokens must be signed. PIN attempts are counted before the check, PINs unlock only Bartender and VIP host, and an unknown member costs the same argon2 check.
 
 ## 04 Secrets
 
@@ -43,7 +44,7 @@ Card data never touches our servers: Stripe Elements / Payment Request and Payme
 - MongoDB: never pass request objects into queries; reject `$`-prefixed keys from user input; validate ObjectIds.
 - Amounts, prices, fees and the commission are always computed on the server from database values.
 - No `dangerouslySetInnerHTML` without sanitization (menu descriptions are plain text).
-- Uploads (Vercel Blob): images only (jpeg, png, webp), max 5 MB, enforced in a short-lived client token from `POST /v1/uploads` (T-038). Product images need `menu.edit` (Manager, Owner); logo and cover need `venue.editSettings` (Owner, HQ admin with a confirmed write). The server fixes the path `venues/{venueId}/{uuid}`; `deleteBlob` (@namitiszunk/core/uploads) deletes only URLs on the Blob public host under that venue's folder.
+- Uploads (Vercel Blob): images only (jpeg, png, webp), max 5 MB, enforced in a short-lived client token from `POST /v1/uploads` (T-038). Product images need `menu.edit` (Manager, Owner); logo and cover need `venue.editSettings` (Owner, HQ admin with a confirmed write). The server fixes the path `venues/{venueId}/{kind}/{uuid}` (kind `product` or `venue`); `deleteBlob` (@namitiszunk/core/uploads) deletes only URLs on the Blob public host under that venue and kind, so the delete needs the same permission as the upload.
 
 ## 06 Dependencies
 

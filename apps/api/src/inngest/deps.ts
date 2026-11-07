@@ -7,7 +7,7 @@ import { NonRetriableError } from "inngest";
 
 /** Integrations other wave-2 tasks own; each shortcut says what replaces it. */
 export const deps = {
-  // shortcut: no PaymentIntent exists before T-033, so there is nothing to cancel; wire T-033's cancel (idempotent, tolerating an already-cancelled intent) once merged.
+  // shortcut: no PaymentIntent is stored before T-033, so there is nothing to cancel. T-033 must wire its cancel here (idempotent, tolerating an already-cancelled intent) before the payment timeout goes live: until then a timed-out order is cancelled in the database only.
   cancelPaymentIntent: async (orderId: string): Promise<void> => {
     void orderId;
   },

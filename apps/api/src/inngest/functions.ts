@@ -23,10 +23,13 @@ import { deps } from "./deps";
 
 const becameReady = 'event.data.to == "ready"';
 // Any later change of the same order (pick-up, expiry) ends the wait.
-const leftReady = [
+const sameOrder = "async.data.orderId == event.data.orderId";
+const leftReady = [{ event: orderStatusChanged, if: sameOrder }];
+// The run's own ready→expired event must not cancel it before the refund step.
+export const expireCancelOn = [
   {
     event: orderStatusChanged,
-    if: "async.data.orderId == event.data.orderId",
+    if: `${sameOrder} && async.data.event != "expire"`,
   },
 ];
 
@@ -72,7 +75,7 @@ export const expire = inngest.createFunction(
   {
     id: "order-expire",
     triggers: [{ event: orderStatusChanged, if: becameReady }],
-    cancelOn: leftReady,
+    cancelOn: expireCancelOn,
     onFailure: reportFailure,
   },
   async ({ event, step }) => {

@@ -53,7 +53,7 @@ describe("createUploadToken", () => {
       });
       expect(result.clientToken).toBe("client-token");
       expect(result.pathname).toMatch(
-        new RegExp(`^venues/${venueId}/[0-9a-f-]{36}$`),
+        new RegExp(`^venues/${venueId}/product/[0-9a-f-]{36}$`),
       );
     },
   );
@@ -82,7 +82,7 @@ describe("createUploadToken", () => {
 });
 
 describe("uploadTokenOptions", () => {
-  const options = uploadTokenOptions(venueId);
+  const options = uploadTokenOptions(venueId, "product");
 
   it("accepts a JPEG, PNG or WebP up to 5 MB", () => {
     for (const type of ["image/jpeg", "image/png", "image/webp"])
@@ -103,33 +103,42 @@ describe("uploadTokenOptions", () => {
       addRandomSuffix: false,
       allowOverwrite: false,
     });
-    expect(uploadTokenOptions(venueId).pathname).not.toBe(options.pathname);
+    expect(uploadTokenOptions(venueId, "product").pathname).not.toBe(
+      options.pathname,
+    );
     expect(options.validUntil).toBeGreaterThan(Date.now());
   });
 });
 
 describe("deleteBlob", () => {
   it("deletes an image in the actor's venue folder", async () => {
-    const url = `${host}/venues/${venueId}/${uuid}`;
+    const url = `${host}/venues/${venueId}/product/${uuid}`;
     await deleteBlob(user("manager"), { venueId, kind: "product", url });
     expect(del).toHaveBeenCalledWith(url);
   });
 
   it.each([
-    ["a foreign host", `https://evil.com/venues/${venueId}/${uuid}`],
+    ["a foreign host", `https://evil.com/venues/${venueId}/product/${uuid}`],
     [
       "plain http",
-      `http://abc123.public.blob.vercel-storage.com/venues/${venueId}/${uuid}`,
+      `http://abc123.public.blob.vercel-storage.com/venues/${venueId}/product/${uuid}`,
     ],
     [
       "a lookalike host",
-      `https://abc.public.blob.vercel-storage.com.evil.com/venues/${venueId}/${uuid}`,
+      `https://abc.public.blob.vercel-storage.com.evil.com/venues/${venueId}/product/${uuid}`,
     ],
-    ["another venue's folder", `${host}/venues/${otherVenueId}/${uuid}`],
+    [
+      "another venue's folder",
+      `${host}/venues/${otherVenueId}/product/${uuid}`,
+    ],
     ["a path outside venues/", `${host}/other/${uuid}`],
-    ["a traversal", `${host}/venues/${venueId}/../${otherVenueId}/${uuid}`],
-    ["a nested path", `${host}/venues/${venueId}/x/${uuid}`],
-    ["a query string", `${host}/venues/${venueId}/${uuid}?x=1`],
+    [
+      "a traversal",
+      `${host}/venues/${venueId}/product/../${otherVenueId}/product/${uuid}`,
+    ],
+    ["a nested path", `${host}/venues/${venueId}/product/x/${uuid}`],
+    ["a path without the kind", `${host}/venues/${venueId}/${uuid}`],
+    ["a query string", `${host}/venues/${venueId}/product/${uuid}?x=1`],
   ])("refuses %s", async (_name, url) => {
     await expect(
       deleteBlob(user("manager"), { venueId, kind: "product", url }),
@@ -150,12 +159,31 @@ describe("deleteBlob", () => {
     ).rejects.toMatchObject({ status: 400 });
   });
 
+  it("never lets a manager delete the logo or cover, whatever kind is claimed", async () => {
+    const url = `${host}/venues/${venueId}/venue/${uuid}`;
+
+    const asProduct = deleteBlob(user("manager"), {
+      venueId,
+      kind: "product",
+      url,
+    });
+    const asVenue = deleteBlob(user("manager"), {
+      venueId,
+      kind: "venue",
+      url,
+    });
+
+    await expect(asProduct).rejects.toMatchObject({ status: 400 });
+    await expect(asVenue).rejects.toMatchObject({ status: 403 });
+    expect(del).not.toHaveBeenCalled();
+  });
+
   it("refuses a bartender before looking at the URL", async () => {
     await expect(
       deleteBlob(user("bartender"), {
         venueId,
         kind: "product",
-        url: `${host}/venues/${venueId}/${uuid}`,
+        url: `${host}/venues/${venueId}/product/${uuid}`,
       }),
     ).rejects.toMatchObject({ status: 403 });
     expect(del).not.toHaveBeenCalled();

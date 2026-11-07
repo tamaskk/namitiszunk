@@ -147,6 +147,17 @@ describe("parseAppEnv", () => {
     expect(act).toThrow(/HEALTH_FORCE_FAIL must not be set in production/);
   });
 
+  it.each(["INNGEST_DEV", "NEXT_PUBLIC_INNGEST_DEV"])(
+    "refuses %s in production, which skips Inngest's signature check",
+    (name) => {
+      const source = { ...liveApiEnv, [name]: "1" };
+
+      const act = () => parseAppEnv("api", source);
+
+      expect(act).toThrow(new RegExp(`${name} must not be set in production`));
+    },
+  );
+
   it("rejects a short Sentry test token and an unknown health override", () => {
     const source = {
       ...testApiEnv,

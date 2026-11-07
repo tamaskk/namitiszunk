@@ -8,6 +8,7 @@ export {
 } from "./idempotency";
 export {
   hitRateLimit,
+  undoRateLimitHit,
   lockRateLimit,
   rateLimitLockedFor,
   type RateLimitRule,

@@ -12,6 +12,9 @@ import type { RequestActor } from "./actors";
 import type { Auth } from "./better-auth";
 
 const inviteTtlMs = 7 * 24 * 60 * 60 * 1000;
+// Fixed here, never taken from the caller, so an invite e-mail cannot link to another site.
+// shortcut: local and preview invites also link to production Admin; read the Admin URL from config if staff management (T-057) needs local invites.
+export const inviteAcceptUrl = "https://admin.namitiszunk.hu/invite";
 type InviteRole = "manager" | "owner";
 
 // Invites live in Better Auth's verification collection under a hashed identifier: no new collection.
@@ -42,8 +45,6 @@ export async function createStaffInvite(
     email: string;
     role: InviteRole;
     locale: Locale;
-    /** The admin app's accept page; the token is appended as `?token=`. */
-    acceptUrl: string;
   },
   now = Date.now(),
 ): Promise<void> {
@@ -63,7 +64,7 @@ export async function createStaffInvite(
     }),
     expiresAt: new Date(now + inviteTtlMs),
   });
-  const url = new URL(invite.acceptUrl);
+  const url = new URL(inviteAcceptUrl);
   url.searchParams.set("token", token);
   await sendEmail("staffInvite", email, {
     venueName: invite.venueName,
@@ -80,7 +81,12 @@ export async function createStaffInvite(
  */
 export async function acceptStaffInvite(
   auth: Auth,
-  user: { userId: string; email: string; name?: string | null },
+  user: {
+    userId: string;
+    email: string;
+    emailVerified: boolean;
+    name?: string | null;
+  },
   token: string,
   now = Date.now(),
 ): Promise<{ venueId: string; role: InviteRole }> {
@@ -91,9 +97,10 @@ export async function acceptStaffInvite(
 
   const found = await ctx.internalAdapter.findVerificationValue(identifier);
   const payload = found && parsePayload(found.value);
-  // A forwarded link must not let another account join the venue.
+  // A forwarded link must not let another account join the venue, nor an unproven address claim it.
   if (
     !payload ||
+    !user.emailVerified ||
     found.expiresAt.getTime() <= now ||
     payload.email !== user.email.trim().toLowerCase()
   )

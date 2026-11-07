@@ -6,6 +6,15 @@ import { RateLimit } from "@namitiszunk/db";
 
 export type RateLimitRule = { limit: number; windowSeconds: number };
 
+function windowOf(bucket: string, rule: RateLimitRule, now: number) {
+  const windowMs = rule.windowSeconds * 1000;
+  const windowEnd = (Math.floor(now / windowMs) + 1) * windowMs;
+  const key = createHash("sha256")
+    .update(`${bucket}|${windowEnd}`)
+    .digest("hex");
+  return { key, windowEnd };
+}
+
 /**
  * Counts one request in a fixed window; returns the seconds to wait when over the limit.
  * shortcut: one database write per request; the spec accepts it for the pilot, k6 decides at T-117.
@@ -15,11 +24,7 @@ export async function hitRateLimit(
   rule: RateLimitRule,
   now = Date.now(),
 ): Promise<{ retryAfterSeconds: number } | null> {
-  const windowMs = rule.windowSeconds * 1000;
-  const windowEnd = (Math.floor(now / windowMs) + 1) * windowMs;
-  const key = createHash("sha256")
-    .update(`${bucket}|${windowEnd}`)
-    .digest("hex");
+  const { key, windowEnd } = windowOf(bucket, rule, now);
 
   const doc = await RateLimit.findOneAndUpdate(
     { key },
@@ -32,6 +37,19 @@ export async function hitRateLimit(
 
   if (doc.count <= rule.limit) return null;
   return { retryAfterSeconds: Math.ceil((windowEnd - now) / 1000) };
+}
+
+/** Takes back one hit counted by `hitRateLimit` in the same window (an attempt that turned out valid). */
+export async function undoRateLimitHit(
+  bucket: string,
+  rule: RateLimitRule,
+  now = Date.now(),
+): Promise<void> {
+  const { key } = windowOf(bucket, rule, now);
+  await RateLimit.updateOne(
+    { key, count: { $gt: 0 } },
+    { $inc: { count: -1 } },
+  );
 }
 
 const lockKey = (bucket: string) =>

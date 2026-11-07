@@ -47,6 +47,12 @@ function signIn(deployment: DeploymentEnv) {
   };
 }
 
+function notInProduction(deployment: DeploymentEnv) {
+  return deployment === "production"
+    ? z.undefined({ message: "must not be set in production" }).optional()
+    : z.string().optional();
+}
+
 // Source maps reach Sentry only from production builds; preview and local builds skip the upload.
 function sentryBuild(deployment: DeploymentEnv) {
   return {
@@ -111,6 +117,9 @@ const appSchemas = {
       BLOB_READ_WRITE_TOKEN: required,
       INNGEST_EVENT_KEY: required,
       INNGEST_SIGNING_KEY: required,
+      // Dev mode skips Inngest's request signature check: never in production.
+      INNGEST_DEV: notInProduction(d),
+      NEXT_PUBLIC_INNGEST_DEV: notInProduction(d),
     }),
 } satisfies Record<AppName, (d: DeploymentEnv) => z.ZodType>;
 

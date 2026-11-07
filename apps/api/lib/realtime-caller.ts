@@ -1,8 +1,8 @@
 import "server-only";
 
 import {
-  guestTokenMatches,
   hashGuestToken,
+  isGuestTokenFormat,
   type RequestActor,
 } from "@namitiszunk/auth";
 
@@ -35,8 +35,6 @@ export function realtimeCallerFrom({
 export const realtimeCaller = realtimeCallerFrom({
   sessionActor: getSessionActor,
   // Core's guestId is the token hash; createTokenRequest grants only the order stored under that hash.
-  verifyGuestToken: async (token) => {
-    const hash = hashGuestToken(token);
-    return guestTokenMatches(token, hash) ? hash : null;
-  },
+  verifyGuestToken: async (token) =>
+    isGuestTokenFormat(token) ? hashGuestToken(token) : null,
 });

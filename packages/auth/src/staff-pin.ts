@@ -6,7 +6,9 @@ import {
   hitRateLimit,
   lockRateLimit,
   rateLimitLockedFor,
+  undoRateLimitHit,
 } from "@namitiszunk/core/api";
+import { pinRoles } from "@namitiszunk/core/auth";
 import { AppError } from "@namitiszunk/core/errors";
 import { VenueMember } from "@namitiszunk/db";
 import { hash, verify } from "@node-rs/argon2";
@@ -20,6 +22,7 @@ const deviceTtlMs = 30 * 24 * 60 * 60 * 1000;
 // One shift; an inactive or removed member is refused on the next request anyway.
 const staffTtlMs = 8 * 60 * 60 * 1000;
 // Spec T-030 item 4: 5 wrong PINs per minute per device, then a 5 minute lockout.
+// Every attempt counts before the PIN check, so parallel guesses cannot overshoot; a correct PIN takes its hit back.
 // shortcut: fixed windows (T-029 store), so up to 8 failures can straddle a window edge; sliding window if PIN abuse shows up.
 const pinFailures = { limit: 4, windowSeconds: 60 };
 const pinLockSeconds = 5 * 60;
@@ -31,6 +34,9 @@ type UserActor = Extract<RequestActor, { kind: "user" }>;
 export function hashPin(pin: string): Promise<string> {
   return hash(pin);
 }
+
+// Verified when the member is unknown, so the response time does not tell which member ids exist.
+let dummyPinHash: Promise<string> | undefined;
 
 /**
  * Turns a club tablet into a staff device: only a Manager or Owner of the venue may do it.
@@ -78,24 +84,28 @@ export async function signInStaffWithPin(
   if (await rateLimitLockedFor(bucket, now))
     throw new AppError(429, "pin_locked");
 
-  const member =
-    isObjectId(input.memberId) && /^\d{4,6}$/.test(input.pin)
-      ? await VenueMember.findOne(
-          { _id: input.memberId, venueId: device.venueId, isActive: true },
-          { role: 1, pinHash: 1 },
-        ).lean()
-      : null;
-  const valid = member?.pinHash
-    ? await verify(member.pinHash, input.pin)
-    : false;
-
-  if (!member || !valid) {
-    if (await hitRateLimit(bucket, pinFailures, now)) {
-      await lockRateLimit(bucket, pinLockSeconds, now);
-      throw new AppError(429, "pin_locked");
-    }
-    throw new AppError(401, "pin_invalid");
+  if (await hitRateLimit(bucket, pinFailures, now)) {
+    await lockRateLimit(bucket, pinLockSeconds, now);
+    throw new AppError(429, "pin_locked");
   }
+  const wellFormed = isObjectId(input.memberId) && /^\d{4,6}$/.test(input.pin);
+  const member = wellFormed
+    ? await VenueMember.findOne(
+        {
+          _id: input.memberId,
+          venueId: device.venueId,
+          isActive: true,
+          role: { $in: pinRoles },
+        },
+        { role: 1, pinHash: 1 },
+      ).lean()
+    : null;
+  const valid = await verify(
+    member?.pinHash ?? (await (dummyPinHash ??= hash("000000"))),
+    input.pin,
+  );
+  if (!member?.pinHash || !valid) throw new AppError(401, "pin_invalid");
+  await undoRateLimitHit(bucket, pinFailures, now);
 
   const expiresAt = now + staffTtlMs;
   const memberId = String(member._id);
@@ -137,7 +147,12 @@ export async function staffActorFromRequest(
     return null;
 
   const member = await VenueMember.findOne(
-    { _id: staff.memberId, venueId: device.venueId, isActive: true },
+    {
+      _id: staff.memberId,
+      venueId: device.venueId,
+      isActive: true,
+      role: { $in: pinRoles },
+    },
     { role: 1 },
   ).lean();
   if (!member) return null;

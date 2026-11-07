@@ -31,6 +31,7 @@ const owner: RequestActor = {
 const invitee = {
   userId: new Types.ObjectId().toString(),
   email: "Mari@Example.com",
+  emailVerified: true,
   name: "Mari",
 };
 
@@ -45,7 +46,6 @@ async function invite(role: "manager" | "owner" = "manager", actor = owner) {
       email: "mari@example.com",
       role,
       locale: "hu",
-      acceptUrl: "https://admin.namitiszunk.hu/invite",
     },
     t0,
   );
@@ -103,6 +103,23 @@ describe("staff invites", () => {
     const stranger = { ...invitee, email: "other@example.com" };
 
     const result = acceptStaffInvite(auth, stranger, token, t0);
+
+    await expect(result).rejects.toMatchObject({ code: "invite_invalid" });
+  });
+
+  it("links only to the fixed Admin accept page", async () => {
+    const token = await invite();
+
+    const { url } = vi.mocked(sendEmail).mock.calls[0]![2] as { url: string };
+
+    expect(url).toBe(`https://admin.namitiszunk.hu/invite?token=${token}`);
+  });
+
+  it("refuses an account whose e-mail address is not verified", async () => {
+    const token = await invite();
+    const unverified = { ...invitee, emailVerified: false };
+
+    const result = acceptStaffInvite(auth, unverified, token, t0);
 
     await expect(result).rejects.toMatchObject({ code: "invite_invalid" });
   });

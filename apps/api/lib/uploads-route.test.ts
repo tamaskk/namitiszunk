@@ -82,7 +82,7 @@ describe("POST /v1/uploads", () => {
     expect(res.status).toBe(200);
     const { data } = await res.json();
     expect(data.pathname).toMatch(
-      new RegExp(`^venues/${venueId}/[0-9a-f-]{36}$`),
+      new RegExp(`^venues/${venueId}/product/[0-9a-f-]{36}$`),
     );
     expect(tokenPayload(data.clientToken)).toMatchObject({
       pathname: data.pathname,
