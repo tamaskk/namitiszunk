@@ -4,6 +4,7 @@ export const transpilePackages = [
   "@namitiszunk/config",
   "@namitiszunk/core",
   "@namitiszunk/db",
+  "@namitiszunk/emails",
   "@namitiszunk/i18n",
   "@namitiszunk/ui",
   "@namitiszunk/validators",

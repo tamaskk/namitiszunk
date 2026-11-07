@@ -3,6 +3,22 @@
     "appName": "Na, mit iszunk?",
     "loading": "Loading…"
   },
+  "apiErrors": {
+    "validation_failed": "Some fields are not valid.",
+    "invalid_json": "The request could not be read.",
+    "unauthorized": "Sign in to continue.",
+    "forbidden": "You do not have access to this.",
+    "origin_forbidden": "This site may not call the API.",
+    "not_found": "Not found.",
+    "conflict": "This changed in the meantime. Try again.",
+    "idempotency_in_progress": "This request is still being processed.",
+    "idempotency_key_reused": "This request key was already used for another request.",
+    "rate_limited": "Too many requests. Wait a moment and try again.",
+    "internal": "Something went wrong. Try again.",
+    "invalid_transition": "This order cannot change like that now. Refresh and try again.",
+    "reason_required": "Give a reason.",
+    "client_unknown": "The request could not be identified. Try again."
+  },
   "landing": {
     "tagline": "Order and pay on your phone"
   },
@@ -63,6 +79,71 @@
     "title": "Na, mit iszunk?"
   },
   "emails": {
-    "receiptSubject": "Receipt for your order"
+    "footer": "Sent by Na, mit iszunk? · namitiszunk.hu",
+    "ignoreIfNotYou": "If you did not ask for this, ignore this email.",
+    "total": "Total",
+    "refundTiming": "The refund can take a few business days to reach your account.",
+    "signIn": {
+      "subject": "Your sign-in link",
+      "heading": "Sign in",
+      "body": "Use the button to sign in. The link works only for a short time.",
+      "button": "Sign in"
+    },
+    "staffInvite": {
+      "subject": "Invitation: {venueName}",
+      "heading": "You are invited",
+      "body": "{venueName} invited you as {role, select, owner {Owner} other {Manager}}.",
+      "button": "Accept the invitation"
+    },
+    "orderConfirmation": {
+      "subject": "Order confirmation ({shortNumber})",
+      "heading": "We got your order",
+      "body": "{venueName} is making it. We will tell you when you can pick it up at the bar.",
+      "orderNumber": "Order number",
+      "notReceipt": "This is not a receipt"
+    },
+    "orderRejected": {
+      "subject": "Your order was rejected ({shortNumber})",
+      "heading": "Order rejected",
+      "body": "{venueName} cannot make your order. We refund the full amount, {amount}, to the card you paid with."
+    },
+    "orderRefunded": {
+      "subject": "Refund ({shortNumber})",
+      "heading": "Refund started",
+      "body": "We started a refund of {amount} to the card you paid with."
+    },
+    "problemReport": {
+      "subject": "Problem report: {shortNumber}",
+      "heading": "Problem report",
+      "body": "A guest reported a problem with order {shortNumber} at {venueName}.",
+      "message": "Message",
+      "guestEmail": "Guest email"
+    },
+    "newLead": {
+      "subject": "New lead: {venueName}",
+      "heading": "New lead",
+      "name": "Name",
+      "venue": "Venue",
+      "email": "Email",
+      "phone": "Phone",
+      "message": "Message"
+    },
+    "onboardingReminder": {
+      "subject": "Finish setting up {venueName}",
+      "heading": "A few steps left",
+      "body": "Finish the setup of {venueName} and your guests can start ordering.",
+      "button": "Continue setup"
+    },
+    "weeklyReport": {
+      "subject": "Weekly report: {venueName}",
+      "heading": "Last week at {venueName}",
+      "orders": "Orders",
+      "revenue": "Revenue",
+      "button": "Open the report"
+    }
+  },
+  "sms": {
+    "ready": "Na mit iszunk: #{shortNumber} is ready. Pick it up at {barName}. {link}",
+    "reminder": "Your drink is still waiting at {barName}."
   }
 }

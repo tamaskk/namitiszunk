@@ -7,12 +7,21 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build": "node scripts/write-openapi.ts",
+    "lint:openapi": "node scripts/write-openapi.ts && redocly lint dist/openapi.json",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@namitiszunk/config": "workspace:*",
+    "@redocly/cli": "^2.76.0",
+    "@types/node": "^20.19.43",
+    "eslint": "^9.39.5",
     "typescript": "~5.9.3",
-    "eslint": "^9.39.5"
+    "vitest": "^5.1.0"
   }
 }

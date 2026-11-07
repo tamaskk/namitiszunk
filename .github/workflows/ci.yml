@@ -29,7 +29,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      # Download the MongoDB binary once; parallel test packages otherwise race on its lockfile.
+      - run: pnpm --filter @namitiszunk/db exec node -e "import('mongodb-memory-server').then((m) => m.MongoBinary.getPath())"
       - run: pnpm exec turbo run lint typecheck test build
+      - run: pnpm --filter @namitiszunk/validators lint:openapi
       # Inside `verify` so branch protection needs no new required check.
       - run: pnpm --filter @namitiszunk/admin exec playwright install --with-deps chromium
       - run: pnpm test:e2e

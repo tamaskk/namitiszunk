@@ -19,7 +19,7 @@ The caller gives you a range (e.g. `main...HEAD`) or files. If not, review `git 
 
 ## Check, in this order
 1. Correctness: edge cases, null and undefined, async errors, race conditions (double submit, duplicate webhooks), off-by-one, wrong status codes, business-day boundaries in `Europe/Budapest`.
-2. Money and orders: integer forints only; totals computed on the server; status changes only via `transitionOrder`; item snapshots kept.
+2. Money and orders: integer forints only; totals computed on the server; status changes only via `transition()` (`packages/core/src/orders/transition.ts`); item snapshots kept.
 3. Security basics: auth, RBAC and venue ownership at entry points, input validation with shared schemas, secrets in client code. Deep security work belongs to security-auditor.
 4. Boundaries: no db or secret SDK imports in apps' components; thin routes; logic in packages/core; mobile only through api-client.
 5. Types: no `any`, no unexplained ts-ignore, types that match the domain.

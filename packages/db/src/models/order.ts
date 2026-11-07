@@ -2,7 +2,7 @@ import { Schema, type InferSchemaType } from "mongoose";
 
 import { capPercent, defineModel, huf, objectId } from "./shared";
 
-// Changed only through transitionOrder in packages/core (T-021), never by a direct update.
+// Changed only through transition() in packages/core (T-021), never by a direct update.
 export const orderStatuses = [
   "awaiting_payment",
   "new",
