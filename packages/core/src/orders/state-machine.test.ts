@@ -2,47 +2,39 @@ import { orderStatuses, type OrderStatus } from "@namitiszunk/db";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  type ActorKind,
   InvalidTransition,
   next,
   orderEvents,
   type OrderEvent,
   type TransitionContext,
-  type TriggerRole,
 } from "./state-machine";
 
 // @namitiszunk/db (for orderStatuses) is server-only.
 vi.mock("server-only", () => ({}));
 
-const roles: TriggerRole[] = [
-  "owner",
-  "manager",
-  "bartender",
-  "vip_host",
-  "system",
-  "guest",
-];
+const kinds: ActorKind[] = ["staff", "system", "guest"];
 
 // Written out by hand from docs/fejlesztesi-terv.md #21, independent of the table under test.
 const allowed: Partial<
-  Record<`${OrderStatus}:${OrderEvent}`, [OrderStatus, TriggerRole]>
+  Record<`${OrderStatus}:${OrderEvent}`, [OrderStatus, ActorKind]>
 > = {
   "awaiting_payment:payment_succeeded": ["new", "system"],
   "awaiting_payment:payment_timeout": ["cancelled", "system"],
-  "new:start_preparing": ["preparing", "bartender"],
-  "new:reject": ["rejected", "bartender"],
-  "preparing:mark_ready": ["ready", "bartender"],
-  "ready:pick_up": ["picked_up", "bartender"],
+  "new:start_preparing": ["preparing", "staff"],
+  "new:reject": ["rejected", "staff"],
+  "preparing:mark_ready": ["ready", "staff"],
+  "ready:pick_up": ["picked_up", "staff"],
   "ready:expire": ["expired", "system"],
-  "expired:refund": ["refunded", "manager"],
-  "picked_up:refund": ["refunded", "owner"],
+  "expired:refund": ["refunded", "staff"],
+  "picked_up:refund": ["refunded", "staff"],
 };
 
 const ctx = (
-  role: TriggerRole,
+  actorKind: ActorKind,
   over: Partial<TransitionContext> = {},
 ): TransitionContext => ({
-  role,
-  isVip: false,
+  actorKind,
   accepted: true,
   refundOnExpiry: false,
   ...over,
@@ -59,33 +51,29 @@ describe("next", () => {
     if (expected) {
       expect(next(state, event, ctx(expected[1]))).toBe(expected[0]);
     } else {
-      for (const role of roles) {
-        const all = { isVip: true, accepted: false, refundOnExpiry: true };
-        expect(() => next(state, event, ctx(role, all))).toThrow(
+      for (const kind of kinds) {
+        const loose = { accepted: false, refundOnExpiry: true };
+        expect(() => next(state, event, ctx(kind, loose))).toThrow(
           InvalidTransition,
         );
-        expect(() => next(state, event, ctx(role))).toThrow(InvalidTransition);
+        expect(() => next(state, event, ctx(kind))).toThrow(InvalidTransition);
       }
     }
   });
 
   it("rejects a transition from Ready back to New", () => {
-    const act = () => next("ready", "start_preparing", ctx("bartender"));
+    const act = () => next("ready", "start_preparing", ctx("staff"));
 
-    expect(act).toThrow(/bartender cannot start_preparing .* ready/);
+    expect(act).toThrow(/staff cannot start_preparing .* ready/);
   });
 
-  it("lets only a VIP host or manager hand over a VIP order", () => {
-    const vip = { isVip: true };
-
-    expect(next("ready", "pick_up", ctx("vip_host", vip))).toBe("picked_up");
-    expect(next("ready", "pick_up", ctx("manager", vip))).toBe("picked_up");
-    expect(() => next("ready", "pick_up", ctx("bartender", vip))).toThrow(
-      InvalidTransition,
-    );
-    expect(() => next("ready", "pick_up", ctx("vip_host"))).toThrow(
-      InvalidTransition,
-    );
+  it.each([
+    ["awaiting_payment", "payment_succeeded"],
+    ["awaiting_payment", "payment_timeout"],
+    ["ready", "expire"],
+  ] as const)("lets only the system %s + %s", (state, event) => {
+    expect(() => next(state, event, ctx("staff"))).toThrow(InvalidTransition);
+    expect(() => next(state, event, ctx("guest"))).toThrow(InvalidTransition);
   });
 
   it("lets a guest cancel only before acceptance", () => {
@@ -95,6 +83,9 @@ describe("next", () => {
     expect(() => next("new", "reject", ctx("guest"))).toThrow(
       InvalidTransition,
     );
+    expect(() =>
+      next("new", "reject", ctx("system", { accepted: false })),
+    ).toThrow(InvalidTransition);
   });
 
   it("auto-refunds an expired order only when the venue enabled it", () => {
@@ -104,19 +95,11 @@ describe("next", () => {
     expect(() => next("expired", "refund", ctx("system"))).toThrow(
       InvalidTransition,
     );
-    expect(() => next("picked_up", "refund", ctx("bartender"))).toThrow(
+    expect(() =>
+      next("picked_up", "refund", ctx("system", { refundOnExpiry: true })),
+    ).toThrow(InvalidTransition);
+    expect(() => next("expired", "refund", ctx("guest"))).toThrow(
       InvalidTransition,
     );
-  });
-
-  it("keeps money and bar actions away from roles the plan does not name", () => {
-    for (const role of ["guest", "vip_host", "owner", "manager"] as const) {
-      expect(() => next("new", "start_preparing", ctx(role))).toThrow(
-        InvalidTransition,
-      );
-    }
-    expect(() =>
-      next("awaiting_payment", "payment_succeeded", ctx("guest")),
-    ).toThrow(InvalidTransition);
   });
 });

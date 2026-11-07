@@ -1,21 +1,21 @@
 import "server-only";
 
-import { Order, type OrderStatus, Venue } from "@namitiszunk/db";
+import {
+  Order,
+  type OrderStatus,
+  Venue,
+  type venueRoles,
+} from "@namitiszunk/db";
 
 import { audit, type AuditActor } from "../audit/audit";
-import {
-  InvalidTransition,
-  next,
-  type OrderEvent,
-  type TriggerRole,
-} from "./state-machine";
+import { InvalidTransition, next, type OrderEvent } from "./state-machine";
 
 type Id = AuditActor["id"] & {};
 
 export type OrderActor =
   | {
       kind: "staff";
-      role: Exclude<TriggerRole, "system" | "guest">;
+      role: (typeof venueRoles)[number];
       /** The active PIN holder's VenueMember id. */
       memberId: Id;
       name: string;
@@ -23,7 +23,7 @@ export type OrderActor =
   | { kind: "system"; name: string }
   | { kind: "guest"; userId?: Id };
 
-/** Throws when the actor may not perform `action` at the venue. */
+/** Throws when the actor may not perform `action` at the venue. The only role check. */
 export type Authorize = (
   actor: OrderActor,
   action: `order.${OrderEvent}`,
@@ -42,6 +42,7 @@ export type StatusChanged = {
 
 export type TransitionOptions = {
   // shortcut: injected because RBAC is built in parallel, wire to requirePermission (T-023) once merged.
+  // shortcut: authorize does not see isVip, so "VIP orders are handed over by the VIP host" is unenforced; pass the order context or a separate action when wiring T-023.
   authorize: Authorize;
   /** Required when staff rejects an order. */
   reason?: string;
@@ -50,10 +51,6 @@ export type TransitionOptions = {
   afterCommit?: (change: StatusChanged) => Promise<void> | void;
   now?: Date;
 };
-
-function roleOf(actor: OrderActor): TriggerRole {
-  return actor.kind === "staff" ? actor.role : actor.kind;
-}
 
 function auditActorOf(actor: OrderActor): AuditActor {
   if (actor.kind === "staff") {
@@ -81,7 +78,7 @@ export async function transition(
   try {
     await session.withTransaction(async () => {
       const order = await Order.findById(orderId)
-        .select("venueId barId status isVip acceptedAt")
+        .select("venueId barId status acceptedAt")
         .session(session)
         .lean();
       if (!order) throw new Error(`order ${String(orderId)} not found`);
@@ -94,8 +91,7 @@ export async function transition(
       if (!venue) throw new Error(`venue ${String(order.venueId)} not found`);
       const from = order.status;
       const to = next(from, event, {
-        role: roleOf(actor),
-        isVip: order.isVip ?? false,
+        actorKind: actor.kind,
         accepted: order.acceptedAt != null,
         refundOnExpiry: venue.orderRules?.refundOnExpiry ?? false,
       });
@@ -124,7 +120,7 @@ export async function transition(
         { $set: set },
         { session },
       );
-      if (!updated) throw new InvalidTransition(from, event, roleOf(actor));
+      if (!updated) throw new InvalidTransition(from, event, actor.kind);
 
       await audit(session, {
         actor: auditActorOf(actor),

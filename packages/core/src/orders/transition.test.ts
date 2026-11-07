@@ -172,6 +172,20 @@ describe("transition", () => {
       order.venueId,
     );
     expect((await Order.findById(order._id).lean())?.status).toBe("new");
+    expect(await AuditLog.countDocuments()).toBe(0);
+  });
+
+  it("asks authorize with the event's action and the order's venue", async () => {
+    const order = await createOrder({ status: "ready" });
+    const authorize = vi.fn();
+
+    await transition(order._id, "pick_up", bartender, { authorize });
+
+    expect(authorize).toHaveBeenCalledExactlyOnceWith(
+      bartender,
+      "order.pick_up",
+      order.venueId,
+    );
   });
 
   it("requires a reason when staff rejects and stores it", async () => {
