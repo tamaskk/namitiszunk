@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./audit": "./src/audit/audit.ts"
+    "./audit": "./src/audit/audit.ts",
+    "./orders": "./src/orders/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
