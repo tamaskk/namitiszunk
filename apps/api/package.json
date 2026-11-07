@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "@namitiszunk/core": "workspace:*",
+    "@namitiszunk/emails": "workspace:*",
     "@namitiszunk/validators": "workspace:*",
     "@sentry/nextjs": "11.10.0",
+    "inngest": "^4.26.2",
     "next": "16.4.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -20,6 +22,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@inngest/test": "^1.0.0",
     "@namitiszunk/config": "workspace:*",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",

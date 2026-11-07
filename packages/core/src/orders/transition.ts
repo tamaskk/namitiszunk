@@ -37,14 +37,29 @@ export type StatusChanged = {
   actor: Actor;
 };
 
+export type StatusChangedHook = (change: StatusChanged) => Promise<void> | void;
+
 export type TransitionOptions = {
   /** Required when staff rejects an order. */
   reason?: string;
-  // shortcut: a plain hook instead of the SDKs, wire Ably publish (T-031) then Inngest `order/status.changed` (T-035) once merged.
+  // shortcut: a plain hook instead of the SDKs, wire Ably publish (T-031) once merged; Inngest uses onStatusChanged (T-035).
   /** Runs only after the commit; its errors reach the caller although the status already changed. */
-  afterCommit?: (change: StatusChanged) => Promise<void> | void;
+  afterCommit?: StatusChangedHook;
   now?: Date;
 };
+
+// On globalThis because Next.js bundles instrumentation.ts (where apps register) apart from route handlers.
+const registry = globalThis as { __statusChangedHooks?: Set<StatusChangedHook> };
+const statusChangedHooks = (registry.__statusChangedHooks ??= new Set());
+
+/**
+ * Registers a hook that runs after every committed transition in this process, after `afterCommit`.
+ * All hooks run even when one fails; the first failure then reaches the caller. Returns an unregister function.
+ */
+export function onStatusChanged(hook: StatusChangedHook): () => void {
+  statusChangedHooks.add(hook);
+  return () => statusChangedHooks.delete(hook);
+}
 
 // A signed-in user acting on an order (owner from admin, platform support) is staff for the state machine.
 function actorKindOf(actor: Actor): ActorKind {
@@ -188,6 +203,12 @@ export async function transitionWith(
     await session.endSession();
   }
   if (!change) throw new Error("transaction finished without a change");
-  await options.afterCommit?.(change);
+  const committed = change;
+  await options.afterCommit?.(committed);
+  const results = await Promise.allSettled(
+    [...statusChangedHooks].map(async (hook) => hook(committed)),
+  );
+  const failed = results.find((r) => r.status === "rejected");
+  if (failed) throw failed.reason;
   return change;
 }

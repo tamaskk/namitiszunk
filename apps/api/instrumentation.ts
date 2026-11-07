@@ -7,6 +7,12 @@ export async function register() {
   ) {
     await import("./sentry.server.config");
   }
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    // Every committed order transition in this process emits order/status.changed (T-035).
+    const { onStatusChanged } = await import("@namitiszunk/core/orders");
+    const { publishStatusChanged } = await import("./src/inngest/client");
+    onStatusChanged(publishStatusChanged);
+  }
 }
 
 // Reports errors thrown while rendering or in route handlers, with the request path.
