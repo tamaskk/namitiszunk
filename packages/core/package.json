@@ -16,7 +16,8 @@
     "./payments": "./src/payments/index.ts",
     "./realtime": "./src/realtime/index.ts",
     "./realtime/channels": "./src/realtime/channels.ts",
-    "./jobs": "./src/jobs/index.ts"
+    "./jobs": "./src/jobs/index.ts",
+    "./retention": "./src/retention/retention.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
