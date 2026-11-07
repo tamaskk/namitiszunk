@@ -10,3 +10,4 @@ export * from "./promos";
 export * from "./shared";
 export * from "./staff";
 export * from "./venues";
+export * from "./uploads";
