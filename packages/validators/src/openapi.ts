@@ -6,6 +6,7 @@ import * as orders from "./orders";
 import * as promos from "./promos";
 import { errorResponseSchema } from "./shared";
 import * as staff from "./staff";
+import * as uploads from "./uploads";
 import * as venues from "./venues";
 
 const components = {
@@ -31,6 +32,8 @@ const components = {
   EmailOtpVerifyInput: auth.emailOtpVerifyInputSchema,
   PinSignInInput: auth.pinSignInInputSchema,
   SessionUserResponse: auth.sessionUserResponseSchema,
+  UploadTokenInput: uploads.uploadTokenInputSchema,
+  UploadTokenResponse: uploads.uploadTokenResponseSchema,
   PingResponse: z.object({ pong: z.literal(true) }),
   OpenApiDocument: z.looseObject({ openapi: z.string() }),
 } satisfies Record<string, z.ZodType>;
@@ -85,6 +88,16 @@ const operations: Operation[] = [
     summary: "This OpenAPI document",
     tag: "meta",
     response: "OpenApiDocument",
+    status: 200,
+  },
+  {
+    method: "post",
+    path: "/v1/uploads",
+    operationId: "createUploadToken",
+    summary: "Issue a client token for one image upload to Vercel Blob",
+    tag: "uploads",
+    request: "UploadTokenInput",
+    response: "UploadTokenResponse",
     status: 200,
   },
 ];

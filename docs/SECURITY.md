@@ -43,7 +43,7 @@ Card data never touches our servers: Stripe Elements / Payment Request and Payme
 - MongoDB: never pass request objects into queries; reject `$`-prefixed keys from user input; validate ObjectIds.
 - Amounts, prices, fees and the commission are always computed on the server from database values.
 - No `dangerouslySetInnerHTML` without sanitization (menu descriptions are plain text).
-- Uploads (Vercel Blob): images only (jpeg, png, webp), max 5 MB (assumed — confirm), authorized Manager/Owner/HQ only.
+- Uploads (Vercel Blob): images only (jpeg, png, webp), max 5 MB, enforced in a short-lived client token from `POST /v1/uploads` (T-038). Product images need `menu.edit` (Manager, Owner); logo and cover need `venue.editSettings` (Owner, HQ admin with a confirmed write). The server fixes the path `venues/{venueId}/{uuid}`; `deleteBlob` (@namitiszunk/core/uploads) deletes only URLs on the Blob public host under that venue's folder.
 
 ## 06 Dependencies
 

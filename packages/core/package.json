@@ -11,7 +11,8 @@
     "./api": "./src/api/index.ts",
     "./errors": "./src/errors.ts",
     "./orders": "./src/orders/index.ts",
-    "./notify": "./src/notify/sms.ts"
+    "./notify": "./src/notify/sms.ts",
+    "./uploads": "./src/uploads/blob.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -33,6 +34,7 @@
     "@namitiszunk/db": "workspace:*",
     "@namitiszunk/i18n": "workspace:*",
     "@namitiszunk/validators": "workspace:*",
+    "@vercel/blob": "^2.8.2",
     "libphonenumber-js": "^1.13.15",
     "server-only": "^0.0.1",
     "twilio": "^6.3.0",

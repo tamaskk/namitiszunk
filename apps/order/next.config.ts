@@ -1,5 +1,6 @@
 import { validateBuildEnv } from "@namitiszunk/config/env";
 import {
+  images,
   sentryBuildOptions,
   transpilePackages,
 } from "@namitiszunk/config/next";
@@ -13,6 +14,7 @@ import {
 
 const nextConfig: NextConfig = {
   transpilePackages,
+  images,
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
