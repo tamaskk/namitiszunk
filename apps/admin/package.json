@@ -10,6 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@namitiszunk/auth": "workspace:*",
     "@namitiszunk/core": "workspace:*",
     "@namitiszunk/i18n": "workspace:*",
     "@namitiszunk/ui": "workspace:*",
