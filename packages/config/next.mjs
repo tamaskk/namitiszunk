@@ -1,6 +1,7 @@
 // Workspace packages export TypeScript source, so every Next app must transpile them.
 export const transpilePackages = [
   "@namitiszunk/api-client",
+  "@namitiszunk/auth",
   "@namitiszunk/config",
   "@namitiszunk/core",
   "@namitiszunk/db",
@@ -30,3 +31,21 @@ export function sentryBuildOptions(env) {
     telemetry: false,
   };
 }
+
+/**
+ * next/image for uploaded images (T-038): only the Vercel Blob public host (validators' blobUrlSchema)
+ * under venues/, served as AVIF first, WebP as fallback.
+ */
+export const images = {
+  formats: /** @type {("image/avif" | "image/webp")[]} */ ([
+    "image/avif",
+    "image/webp",
+  ]),
+  remotePatterns: [
+    {
+      protocol: /** @type {const} */ ("https"),
+      hostname: "*.public.blob.vercel-storage.com",
+      pathname: "/venues/**",
+    },
+  ],
+};

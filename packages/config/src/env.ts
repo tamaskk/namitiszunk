@@ -30,6 +30,29 @@ const server = {
 
 const sentryDsn = z.url({ message: "must be a URL" });
 
+// Sign-in (T-030) in the order, admin and HQ apps: the app's own URL, the OAuth clients and the
+// e-mail link sender. Optional locally and in previews (Apple sign-in cannot work on preview URLs).
+function signIn(deployment: DeploymentEnv) {
+  return {
+    BETTER_AUTH_URL: monitoring(
+      z.url({ message: "must be a URL" }),
+      deployment,
+    ),
+    GOOGLE_CLIENT_ID: monitoring(required, deployment),
+    GOOGLE_CLIENT_SECRET: monitoring(required, deployment),
+    // The Services ID and the client secret JWT signed with the Apple key; the JWT expires within 6 months.
+    APPLE_CLIENT_ID: monitoring(required, deployment),
+    APPLE_CLIENT_SECRET: monitoring(required, deployment),
+    RESEND_API_KEY: monitoring(required, deployment),
+  };
+}
+
+function notInProduction(deployment: DeploymentEnv) {
+  return deployment === "production"
+    ? z.undefined({ message: "must not be set in production" }).optional()
+    : z.string().optional();
+}
+
 // Source maps reach Sentry only from production builds; preview and local builds skip the upload.
 function sentryBuild(deployment: DeploymentEnv) {
   return {
@@ -62,10 +85,13 @@ const appSchemas = {
     z.object({
       ...browserMonitoring(d),
       ...server,
+      ...signIn(d),
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: stripeKey("pk", d),
     }),
-  admin: (d: DeploymentEnv) => z.object({ ...browserMonitoring(d), ...server }),
-  hq: (d: DeploymentEnv) => z.object({ ...browserMonitoring(d), ...server }),
+  admin: (d: DeploymentEnv) =>
+    z.object({ ...browserMonitoring(d), ...server, ...signIn(d) }),
+  hq: (d: DeploymentEnv) =>
+    z.object({ ...browserMonitoring(d), ...server, ...signIn(d) }),
   api: (d: DeploymentEnv) =>
     z.object({
       ...sentryBuild(d),
@@ -91,6 +117,9 @@ const appSchemas = {
       BLOB_READ_WRITE_TOKEN: required,
       INNGEST_EVENT_KEY: required,
       INNGEST_SIGNING_KEY: required,
+      // Dev mode skips Inngest's request signature check: never in production.
+      INNGEST_DEV: notInProduction(d),
+      NEXT_PUBLIC_INNGEST_DEV: notInProduction(d),
     }),
 } satisfies Record<AppName, (d: DeploymentEnv) => z.ZodType>;
 

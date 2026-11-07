@@ -2,13 +2,15 @@ import "server-only";
 
 import { Order, type OrderStatus, Venue } from "@namitiszunk/db";
 
-import { audit, type AuditActor } from "../audit/audit";
+import { audit, type AuditActor, auditActorOf } from "../audit/audit";
 import {
   type Actor,
   requirePermission,
   type Resource,
 } from "../auth/permissions";
 import { AppError, NotFoundError } from "../errors";
+import { publishStatusChange } from "../realtime";
+import { reportError } from "../report-error";
 import {
   type ActorKind,
   actionFor,
@@ -31,38 +33,45 @@ export type StatusChanged = {
   orderId: Id;
   venueId: Id;
   barId: Id;
+  isVip: boolean;
   event: OrderEvent;
   from: OrderStatus;
   to: OrderStatus;
   actor: Actor;
+  /** Order.updatedAt in epoch ms after the change; the realtime message carries it so clients drop stale ones. */
+  version: number;
 };
+
+export type StatusChangedHook = (change: StatusChanged) => Promise<void> | void;
 
 export type TransitionOptions = {
   /** Required when staff rejects an order. */
   reason?: string;
-  // shortcut: a plain hook instead of the SDKs, wire Ably publish (T-031) then Inngest `order/status.changed` (T-035) once merged.
-  /** Runs only after the commit; its errors reach the caller although the status already changed. */
-  afterCommit?: (change: StatusChanged) => Promise<void> | void;
+  /** Gets each failed post-commit hook (Ably publish, onStatusChanged hooks) once; defaults to setDefaultErrorReporter's. */
+  reportError?: (error: unknown) => void;
   now?: Date;
 };
+
+// On globalThis because Next.js bundles instrumentation.ts (where apps register) apart from route handlers.
+const registry = globalThis as {
+  __statusChangedHooks?: Set<StatusChangedHook>;
+};
+const statusChangedHooks = (registry.__statusChangedHooks ??= new Set());
+
+/**
+ * Registers a hook that runs after every committed transition in this process, next to the Ably publish.
+ * Every app process that calls transition() must register its hooks (apps/api does in instrumentation.ts).
+ * All hooks run even when one fails; each failure goes to `reportError` once and never reaches the caller.
+ * Returns an unregister function.
+ */
+export function onStatusChanged(hook: StatusChangedHook): () => void {
+  statusChangedHooks.add(hook);
+  return () => statusChangedHooks.delete(hook);
+}
 
 // A signed-in user acting on an order (owner from admin, platform support) is staff for the state machine.
 function actorKindOf(actor: Actor): ActorKind {
   return actor.kind === "user" ? "staff" : actor.kind;
-}
-
-function auditActorOf(actor: Actor): AuditActor {
-  switch (actor.kind) {
-    case "staff":
-      return { type: "venue_member", id: actor.memberId };
-    case "user":
-      return { type: "user", id: actor.userId };
-    case "system":
-      return { type: "system", name: actor.source };
-    case "guest":
-      // The guest session id is not a User id, so it stays out of the ObjectId field.
-      return { type: "user", name: "guest" };
-  }
 }
 
 /** Whether the actor may learn that the order exists; otherwise it gets 404, not 403. */
@@ -161,8 +170,8 @@ export async function transitionWith(
       const updated = await Order.findOneAndUpdate(
         { _id: orderId, status: from },
         { $set: set },
-        { session },
-      );
+        { session, returnDocument: "after" },
+      ).lean();
       if (!updated)
         throw new InvalidTransition(from, event, actorKindOf(actor));
 
@@ -178,16 +187,29 @@ export async function transitionWith(
         orderId: order._id,
         venueId: order.venueId,
         barId: order.barId,
+        isVip: order.isVip ?? false,
         event,
         from,
         to,
         actor,
+        version: updated.updatedAt.getTime(),
       };
     });
   } finally {
     await session.endSession();
   }
   if (!change) throw new Error("transaction finished without a change");
-  await options.afterCommit?.(change);
+  // The database is the source of truth: a failed hook never undoes or fails the committed change.
+  const committed = change;
+  const results = await Promise.allSettled(
+    [publishStatusChange, ...statusChangedHooks].map(async (hook) =>
+      hook(committed),
+    ),
+  );
+  for (const result of results) {
+    if (result.status === "rejected") {
+      (options.reportError ?? reportError)(result.reason);
+    }
+  }
   return change;
 }

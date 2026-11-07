@@ -103,6 +103,7 @@ Request path for every write:
 Order lifecycle:
 - Created as Awaiting payment (not visible to the bar) → Stripe webhook `payment_intent.succeeded` → New → In progress → Ready → Picked up. Side branches: Rejected (only from New, whole order, full refund), Expired, Refunded, Payment failed.
 - Every transition goes through one server function (`packages/core/src/orders/transition.ts`) that checks the allowed transition, writes the audit log and publishes an Ably event.
+- After the commit, `transition()` runs the Ably publish and every hook registered with `onStatusChanged()` (the Inngest `order/status.changed` emit) side by side. A failing hook never fails the call, since the change is committed: each failure goes once to the caller's `reportError`, else to the reporter set with `setDefaultErrorReporter()` (Sentry), else the console. Any app process that calls `transition()` must register its hooks and reporter at startup: apps/api does in `instrumentation.ts`; admin and order do not call `transition()` today, and must register the same hooks when they start to.
 
 State:
 - Server state lives in MongoDB; the bar view keeps a local list and resyncs after a network drop.
@@ -112,6 +113,11 @@ State:
 Auth:
 - Sessions are checked at the route or action. Services receive an actor (user id + role + venue) and never read the session themselves.
 - Guests use a per-order guest token; staff on the bar view use a PIN on a signed-in device.
+- `packages/auth` builds the actor: `userActorFromRequest(app, request)`, `staffActorFromRequest`, `guestActorFromToken`. Request data never yields a `system` actor; a platform role comes only from an active PlatformMember in a 2FA-verified HQ session.
+- order, admin and hq each run their own Better Auth instance (`/api/auth/[...all]`) with their own cookie names (`nmi-<app>.*`); every session records the app that created it and is refused by the others. Venue memberships count only in admin, the platform role only in HQ.
+- In production the cookies are set on `.namitiszunk.hu` (derived from `BETTER_AUTH_URL`, no extra variable), so `api.namitiszunk.hu` receives them; on localhost and Vercel previews they stay host-only, so browser calls to the API carry no session there. apps/api (`lib/session-actor.ts`) picks the cookie by the request `Origin`: only an allowlisted origin of order, admin or hq counts, and only that app's session (an admin session never counts for an HQ request). A request without an allowlisted `Origin` never gets a cookie session, which is the CSRF check for state-changing calls; CORS sends `Access-Control-Allow-Credentials` only to allowlisted origins. The mobile app (no `Origin`) authenticates with an order-app Bearer token (Better Auth `bearer()`), never a cookie. On admin, a staff PIN session (`nmi-device` + `nmi-staff`) counts when no user is signed in; the code that sets those cookies must use the same parent domain.
+- 2FA (TOTP) is enforced by us, not only by the plugin: OAuth and e-mail link sign-ins skip the plugin's challenge, so a session is marked `twoFactorVerified` only by a TOTP or backup-code check. HQ requires it; venue users once they turn 2FA on.
+- Staff device and PIN sessions are HMAC-signed cookies (`nmi-device`, 30 days; `nmi-staff`, 8 hours); invites are hashed one-time tokens in Better Auth's `verification` collection (no extra collection).
 
 Errors:
 - Validation errors return to the form with a message.
@@ -143,6 +149,7 @@ The agent must not "fix" these.
 - Menu items are archived, never hard-deleted.
 - The bar never sees Awaiting payment orders; an order exists for the bar only after the webhook.
 - Direct charges on the venue's connected account: Stripe fees, refunds and chargebacks are the venue's, the platform only takes the application fee. Guests pay no platform fee.
+- The Stripe webhook lives at `apps/api/app/webhooks/stripe`, outside `/v1` and outside `handler()`: Stripe authenticates with the signature on the raw body, not a session, and its retries plus the `stripeEvents` unique event id replace rate limits and idempotency keys. With direct charges every event arrives on this one Connect endpoint, signed with `STRIPE_WEBHOOK_SECRET`.
 - The confirmation page deliberately does not look like a receipt; fiscal receipts come from the club's own till.
 - The Atlas network allowlist is `0.0.0.0/0` because Vercel functions have no fixed IPs; compensated by strong per-environment database users with minimal roles.
 - Tokens live in `tokens.json`, not in a shared Tailwind config (web Tailwind v4, mobile Tailwind v3).
@@ -176,12 +183,15 @@ Environment variables (names only; values live in Vercel and `.env.local`), vali
 | Name | Used by | Server-only |
 | --- | --- | --- |
 | MONGODB_URI | packages/db | yes |
-| BETTER_AUTH_SECRET | packages/auth | yes |
+| BETTER_AUTH_SECRET | packages/auth (sessions, staff device and PIN cookies) | yes |
+| BETTER_AUTH_URL | packages/auth; each of apps/order, admin, hq sets its own URL (separate sessions per app) | yes |
+| GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET | packages/auth Google sign-in (order, admin, hq) | yes |
+| APPLE_CLIENT_ID, APPLE_CLIENT_SECRET | packages/auth Apple sign-in: Services ID and the client secret JWT (renew within 6 months) | yes |
 | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET | packages/core payments, apps/api webhooks | yes |
 | NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY | apps/order checkout | no |
 | ABLY_API_KEY | packages/core realtime, token route | yes |
 | TWILIO_* | packages/core notify | yes |
-| RESEND_API_KEY | packages/emails | yes |
+| RESEND_API_KEY | packages/emails (apps/api; apps/order, admin, hq for the sign-in e-mail link) | yes |
 | BLOB_READ_WRITE_TOKEN | apps/api uploads | yes |
 | INNGEST_* | apps/api inngest | yes |
 | SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN | all apps (server, browser); one Sentry project per app (`namitiszunk-<app>`), events also tagged `app` | no (DSN is public) |

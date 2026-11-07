@@ -6,6 +6,8 @@ import {
   type ClientSession,
 } from "@namitiszunk/db";
 
+import type { Actor } from "../auth/permissions";
+
 // Mongoose casts hex strings; ObjectIds come straight from loaded documents.
 type Id = NonNullable<AuditLogDoc["target"]>["id"] | string;
 
@@ -113,4 +115,19 @@ export async function audit(
     ],
     { session },
   );
+}
+
+/** How an Actor is recorded in the audit log. */
+export function auditActorOf(actor: Actor): AuditActor {
+  switch (actor.kind) {
+    case "staff":
+      return { type: "venue_member", id: actor.memberId };
+    case "user":
+      return { type: "user", id: actor.userId };
+    case "system":
+      return { type: "system", name: actor.source };
+    case "guest":
+      // The guest session id is not a User id, so it stays out of the ObjectId field.
+      return { type: "user", name: "guest" };
+  }
 }

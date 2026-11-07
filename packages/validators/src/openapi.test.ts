@@ -22,8 +22,12 @@ describe("buildOpenApiDocument", () => {
     expect(Object.keys(paths)).toEqual([
       "/v1/orders",
       "/v1/venues",
+      "/v1/stripe/connect/account",
+      "/v1/stripe/connect/link",
+      "/v1/realtime/token",
       "/v1/ping",
       "/v1/openapi.json",
+      "/v1/uploads",
     ]);
     expect(createOrder.requestBody.content["application/json"]?.schema).toEqual(
       { $ref: "#/components/schemas/CreateOrderInput" },

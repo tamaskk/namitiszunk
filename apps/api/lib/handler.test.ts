@@ -10,6 +10,8 @@ import {
 } from "vitest";
 import { z } from "zod";
 
+import type { RequestActor } from "@namitiszunk/auth";
+
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
 const captureException = vi.hoisted(() => vi.fn());
@@ -27,6 +29,12 @@ const openapi = await import("@/app/v1/openapi.json/route");
 let replSet: MongoMemoryReplSet;
 let db: Awaited<ReturnType<typeof connectDb>>;
 const route = { params: Promise.resolve({}) };
+const u1: RequestActor = {
+  kind: "user",
+  id: "u1",
+  userId: "u1",
+  memberships: [],
+};
 const url = "https://api.namitiszunk.hu/v1/test";
 
 function post(body: unknown, headers: Record<string, string> = {}) {
@@ -64,7 +72,7 @@ describe("handler order", () => {
       rateLimit: { limit: 1, windowSeconds: 60 },
       auth: async (req) => {
         calls.push("auth");
-        return req.headers.get("authorization") ? { id: "u1" } : null;
+        return req.headers.get("authorization") ? u1 : null;
       },
       input: z.object({ qty: z.number().int().positive() }),
       permission: () => {
@@ -265,7 +273,7 @@ describe("rate limit", () => {
   it("limits a signed-in caller across client addresses", async () => {
     const endpoint = handler(
       {
-        auth: async () => ({ id: "u1" }),
+        auth: async () => u1,
         permission: "none",
         rateLimit: { limit: 1, windowSeconds: 60 },
       },

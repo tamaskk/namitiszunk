@@ -9,6 +9,7 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@namitiszunk/auth": "workspace:*",
     "@namitiszunk/core": "workspace:*",
     "@namitiszunk/i18n": "workspace:*",
     "@namitiszunk/ui": "workspace:*",

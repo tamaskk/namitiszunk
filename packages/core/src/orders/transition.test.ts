@@ -14,10 +14,23 @@ import {
 import { type Actor, Forbidden } from "../auth/permissions";
 import { NotFoundError } from "../errors";
 import { InvalidTransition } from "./state-machine";
-import { transition, transitionWith } from "./transition";
+import { setDefaultErrorReporter } from "../report-error";
+import { onStatusChanged, transition, transitionWith } from "./transition";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
+// Ably is the boundary: record publishes instead of calling the REST API.
+const publish = vi.hoisted(() => vi.fn());
+vi.mock("ably", () => ({
+  Rest: class {
+    channels = {
+      get: (channel: string) => ({
+        publish: (name: string, data: unknown) => publish(channel, name, data),
+      }),
+    };
+  },
+}));
+process.env.ABLY_API_KEY = "test.key:secret";
 
 const now = new Date("2026-11-07T22:00:00Z");
 const venueId = new Types.ObjectId();
@@ -51,6 +64,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  publish.mockReset();
   await Promise.all(
     Object.values(mongoose.connection.collections).map((c) => c.deleteMany()),
   );
@@ -93,15 +107,17 @@ async function createOrder(
 describe("transition", () => {
   it("moves a paid order to New, auto-accepts it and audits the actor", async () => {
     const order = await createOrder();
-    const afterCommit = vi.fn();
+    const hook = vi.fn();
+    const off = onStatusChanged(hook);
 
     const change = await transitionWith(
       allow,
       order._id,
       "payment_succeeded",
       system,
-      { afterCommit, now },
+      { now },
     );
+    off();
 
     const saved = await Order.findById(order._id).lean();
     const logs = await AuditLog.find().lean();
@@ -118,7 +134,7 @@ describe("transition", () => {
       before: { status: "awaiting_payment" },
       after: { status: "new" },
     });
-    expect(afterCommit).toHaveBeenCalledWith(change);
+    expect(hook).toHaveBeenCalledWith(change);
   });
 
   it("gives one New order when the same webhook arrives twice", async () => {
@@ -158,18 +174,124 @@ describe("transition", () => {
 
   it("leaves the order unchanged on a forbidden transition", async () => {
     const order = await createOrder({ status: "ready" });
-    const afterCommit = vi.fn();
+    const hook = vi.fn();
+    const off = onStatusChanged(hook);
 
-    const act = transitionWith(allow, order._id, "start_preparing", bartender, {
-      afterCommit,
-    });
+    const act = transitionWith(allow, order._id, "start_preparing", bartender);
 
     await expect(act).rejects.toBeInstanceOf(InvalidTransition);
+    off();
     const saved = await Order.findById(order._id).lean();
     expect(saved?.status).toBe("ready");
     expect(saved?.updatedAt).toEqual(order.updatedAt);
     expect(await AuditLog.countDocuments()).toBe(0);
-    expect(afterCommit).not.toHaveBeenCalled();
+    expect(hook).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it("publishes the new status once to the order and bar channels after the commit", async () => {
+    const order = await createOrder();
+
+    const change = await transitionWith(
+      allow,
+      order._id,
+      "payment_succeeded",
+      system,
+      { now },
+    );
+
+    const saved = await Order.findById(order._id).lean();
+    const message = {
+      orderId: String(order._id),
+      status: "new",
+      version: saved!.updatedAt.getTime(),
+    };
+    expect(change.version).toBe(message.version);
+    expect(publish).toHaveBeenCalledTimes(2);
+    expect(publish).toHaveBeenCalledWith(
+      `order:${order._id}`,
+      "status",
+      message,
+    );
+    expect(publish).toHaveBeenCalledWith(
+      `venue:${venueId}:bar:${order.barId}`,
+      "status",
+      message,
+    );
+  });
+
+  it("also publishes a VIP order to the venue VIP channel", async () => {
+    const order = await createOrder({ isVip: true });
+
+    await transitionWith(allow, order._id, "payment_succeeded", system, {});
+
+    expect(publish).toHaveBeenCalledTimes(3);
+    expect(publish).toHaveBeenCalledWith(
+      `venue:${venueId}:vip`,
+      "status",
+      expect.objectContaining({ status: "new" }),
+    );
+  });
+
+  it("keeps the status change and reports once when the Ably publish fails", async () => {
+    const order = await createOrder();
+    const failure = new Error("ably down");
+    publish.mockRejectedValue(failure);
+    const reportError = vi.fn();
+
+    const change = await transitionWith(
+      allow,
+      order._id,
+      "payment_succeeded",
+      system,
+      { reportError },
+    );
+
+    expect(change.to).toBe("new");
+    expect((await Order.findById(order._id).lean())?.status).toBe("new");
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(reportError).toHaveBeenCalledWith(failure);
+  });
+
+  it("runs every hook, reports each failure once and never throws to the caller", async () => {
+    const order = await createOrder();
+    const ablyDown = new Error("ably down");
+    const inngestDown = new Error("inngest down");
+    publish.mockRejectedValue(ablyDown);
+    const failing = onStatusChanged(() => Promise.reject(inngestDown));
+    const healthy = vi.fn();
+    const off = onStatusChanged(healthy);
+    const reportError = vi.fn();
+
+    const change = await transitionWith(
+      allow,
+      order._id,
+      "payment_succeeded",
+      system,
+      { reportError },
+    );
+    failing();
+    off();
+
+    expect(change.to).toBe("new");
+    expect((await Order.findById(order._id).lean())?.status).toBe("new");
+    expect(healthy).toHaveBeenCalledWith(change);
+    expect(reportError).toHaveBeenCalledTimes(2);
+    expect(reportError).toHaveBeenCalledWith(ablyDown);
+    expect(reportError).toHaveBeenCalledWith(inngestDown);
+  });
+
+  it("reports to the process reporter when the caller passes none", async () => {
+    const order = await createOrder();
+    const failure = new Error("ably down");
+    publish.mockRejectedValue(failure);
+    const report = vi.fn();
+    setDefaultErrorReporter(report);
+
+    await transitionWith(allow, order._id, "payment_succeeded", system);
+    setDefaultErrorReporter(console.error);
+
+    expect(report).toHaveBeenCalledExactlyOnceWith(failure);
   });
 
   it("stops when authorize denies the actor", async () => {

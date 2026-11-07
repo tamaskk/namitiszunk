@@ -3,10 +3,16 @@ import { z } from "zod";
 import * as auth from "./auth";
 import * as menu from "./menu";
 import * as orders from "./orders";
+import * as payments from "./payments";
 import * as promos from "./promos";
+import * as realtime from "./realtime";
 import { errorResponseSchema } from "./shared";
 import * as staff from "./staff";
+import * as uploads from "./uploads";
 import * as venues from "./venues";
+
+export const pingResponseSchema = z.object({ pong: z.literal(true) });
+export const openApiDocumentSchema = z.looseObject({ openapi: z.string() });
 
 const components = {
   ErrorResponse: errorResponseSchema,
@@ -31,8 +37,15 @@ const components = {
   EmailOtpVerifyInput: auth.emailOtpVerifyInputSchema,
   PinSignInInput: auth.pinSignInInputSchema,
   SessionUserResponse: auth.sessionUserResponseSchema,
-  PingResponse: z.object({ pong: z.literal(true) }),
-  OpenApiDocument: z.looseObject({ openapi: z.string() }),
+  UploadTokenInput: uploads.uploadTokenInputSchema,
+  UploadTokenResponse: uploads.uploadTokenResponseSchema,
+  StripeConnectInput: payments.stripeConnectInputSchema,
+  ConnectAccountResponse: payments.connectAccountResponseSchema,
+  AccountLinkResponse: payments.accountLinkResponseSchema,
+  RealtimeTokenInput: realtime.realtimeTokenInputSchema,
+  RealtimeTokenResponse: realtime.realtimeTokenResponseSchema,
+  PingResponse: pingResponseSchema,
+  OpenApiDocument: openApiDocumentSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ComponentName = keyof typeof components;
@@ -70,6 +83,38 @@ const operations: Operation[] = [
     status: 200,
   },
   {
+    method: "post",
+    path: "/v1/stripe/connect/account",
+    operationId: "createConnectAccount",
+    summary: "Create the venue's Stripe Express account (Owner only)",
+    tag: "payments",
+    request: "StripeConnectInput",
+    response: "ConnectAccountResponse",
+    status: 200,
+  },
+  {
+    method: "post",
+    path: "/v1/stripe/connect/link",
+    operationId: "createConnectAccountLink",
+    summary:
+      "Create a Stripe onboarding link back to the Admin Payouts page (Owner only)",
+    tag: "payments",
+    request: "StripeConnectInput",
+    response: "AccountLinkResponse",
+    status: 200,
+  },
+  {
+    method: "post",
+    path: "/v1/realtime/token",
+    operationId: "createRealtimeToken",
+    summary:
+      "Sign an Ably TokenRequest that may only subscribe to the caller's channels",
+    tag: "realtime",
+    request: "RealtimeTokenInput",
+    response: "RealtimeTokenResponse",
+    status: 200,
+  },
+  {
     method: "get",
     path: "/v1/ping",
     operationId: "ping",
@@ -85,6 +130,16 @@ const operations: Operation[] = [
     summary: "This OpenAPI document",
     tag: "meta",
     response: "OpenApiDocument",
+    status: 200,
+  },
+  {
+    method: "post",
+    path: "/v1/uploads",
+    operationId: "createUploadToken",
+    summary: "Issue a client token for one image upload to Vercel Blob",
+    tag: "uploads",
+    request: "UploadTokenInput",
+    response: "UploadTokenResponse",
     status: 200,
   },
 ];
