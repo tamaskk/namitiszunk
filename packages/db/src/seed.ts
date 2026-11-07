@@ -27,11 +27,30 @@ export function seedId(key: string): Types.ObjectId {
   );
 }
 
+function isLocalHost(host: string): boolean {
+  return host === "localhost" || host === "127.0.0.1";
+}
+
 /**
  * Allowlist, not a denylist: seeding runs only against a local server or a database whose name
- * ends in "dev" or "test". Throws before any connection is opened.
+ * ends in "_dev"/"-dev" or "_test"/"-test". Checked on the URI before connecting and again on the
+ * open connection in seedDemo().
  */
-export function assertSeedableUri(uri: string): void {
+function assertSeedableTarget(hosts: string[], dbName: string): void {
+  const isLocal = hosts.length > 0 && hosts.every(isLocalHost);
+  if (!isLocal && !/[_-](dev|test)$/.test(dbName)) {
+    throw new Error(
+      `Refusing to seed: MONGODB_URI must point to localhost or a database whose name ends in "_dev" or "_test" (got hosts "${hosts.join(",")}", database "${dbName}").`,
+    );
+  }
+}
+
+/** Returns the database name it checked; pass it to mongoose.connect as dbName. */
+export function assertSeedableUri(uri: string): string {
+  // A fragment is dropped by the driver but would be read as part of the name here.
+  if (uri.includes("#")) {
+    throw new Error("Refusing to seed: MONGODB_URI must not contain '#'.");
+  }
   const match = /^mongodb(?:\+srv)?:\/\/(?:[^@/]*@)?([^/?]+)\/?([^?]*)/.exec(
     uri,
   );
@@ -39,15 +58,9 @@ export function assertSeedableUri(uri: string): void {
     .split(",")
     .filter(Boolean)
     .map((host) => host.replace(/:\d+$/, "").toLowerCase());
-  const dbName = decodeURIComponent(match?.[2] ?? "").toLowerCase();
-  const isLocal =
-    hosts.length > 0 &&
-    hosts.every((host) => host === "localhost" || host === "127.0.0.1");
-  if (!isLocal && !/(dev|test)$/.test(dbName)) {
-    throw new Error(
-      `Refusing to seed: MONGODB_URI must point to localhost or a database whose name ends in "dev" or "test" (got hosts "${hosts.join(",")}", database "${dbName}").`,
-    );
-  }
+  const dbName = decodeURIComponent(match?.[2] ?? "");
+  assertSeedableTarget(hosts, dbName.toLowerCase());
+  return dbName;
 }
 
 // Club tablet sign-in PINs (name + PIN), exported for e2e tests.
@@ -366,7 +379,8 @@ const seedOrders: SeedOrder[] = [
     status: "picked_up",
     barId: terraceBarId,
     zoneKey: "terrace",
-    lines: [line("Nagyfröccs", 2), line("Ásványvíz", 1)],
+    // 3860 Ft: above WELCOME500's 3000 Ft minimum.
+    lines: [line("Nagyfröccs", 3), line("Ásványvíz", 1)],
     minutesAgo: 40,
     promoCode: "WELCOME500",
   },
@@ -432,7 +446,8 @@ function buildOrder(order: SeedOrder, index: number, now: Date): Fields {
     zoneId: seedId(`zone:${order.zoneKey}`),
     // shortcut: plain sequential numbers; T-024 allocates them through Counter in production.
     shortNumber: index + 1,
-    businessDate: businessDateOf(now),
+    // From the order's own time: an order placed before 06:00 belongs to the previous business day.
+    businessDate: businessDateOf(createdAt),
     status: order.status,
     items: order.lines.map((l, lineIndex) => ({
       ...l,
@@ -463,6 +478,11 @@ function buildOrder(order: SeedOrder, index: number, now: Date): Fields {
 
 /** Writes the Demo Klub into the current mongoose connection; safe to run any number of times. */
 export async function seedDemo(now = new Date()): Promise<void> {
+  // Re-checked on the open connection, so a caller that skipped assertSeedableUri is still stopped.
+  assertSeedableTarget(
+    [mongoose.connection.host.toLowerCase()],
+    mongoose.connection.name.toLowerCase(),
+  );
   await Promise.all(
     Object.values(mongoose.models).map((model) => model.init()),
   );
@@ -595,18 +615,30 @@ export async function seedDemo(now = new Date()): Promise<void> {
     },
   ]);
 
-  const businessDate = businessDateOf(now);
-  await upsert(
-    Order,
-    seedOrders.map((order, index) => buildOrder(order, index, now)),
+  const orders = seedOrders.map((order, index) =>
+    buildOrder(order, index, now),
   );
-  // Keeps T-024's sequence past the seeded short numbers for today.
-  await Counter.updateOne(
-    { venueId, businessDate },
-    {
-      $max: { seq: seedOrders.length },
-      $setOnInsert: { _id: seedId(`counter:${businessDate}`) },
-    },
-    { upsert: true },
+  await upsert(Order, orders);
+  // Keeps T-024's sequence past the seeded short numbers on each business day they landed on.
+  const maxShortNumber = new Map<string, number>();
+  for (const order of orders) {
+    const date = order.businessDate as string;
+    const shortNumber = order.shortNumber as number;
+    maxShortNumber.set(
+      date,
+      Math.max(maxShortNumber.get(date) ?? 0, shortNumber),
+    );
+  }
+  await Promise.all(
+    [...maxShortNumber].map(([businessDate, seq]) =>
+      Counter.updateOne(
+        { venueId, businessDate },
+        {
+          $max: { seq },
+          $setOnInsert: { _id: seedId(`counter:${businessDate}`) },
+        },
+        { upsert: true },
+      ),
+    ),
   );
 }

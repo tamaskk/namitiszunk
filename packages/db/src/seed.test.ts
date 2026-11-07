@@ -2,7 +2,7 @@ import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { Item, Order, orderStatuses, Venue } from "./models";
+import { Item, Order, orderStatuses, Promo, Venue } from "./models";
 import { assertSeedableUri, seedDemo, seedId } from "./seed";
 
 let replSet: MongoMemoryReplSet;
@@ -90,6 +90,50 @@ describe("seedDemo", () => {
     }
     expect(await Item.countDocuments({ vipOnly: true })).toBeGreaterThan(0);
   });
+
+  it("applies promos only to orders that meet their minimum", async () => {
+    await seedDemo(now);
+
+    const promoOrders = await Order.find({ promoId: { $exists: true } }).lean();
+    const promos = await Promo.find().lean();
+
+    expect(promoOrders.length).toBeGreaterThan(0);
+    for (const order of promoOrders) {
+      const promo = promos.find((p) => p._id.equals(order.promoId));
+      expect(order.subtotalHuf).toBeGreaterThanOrEqual(promo?.minOrderHuf ?? 0);
+    }
+  });
+
+  it("dates each order by its own time when seeded just after 06:00", async () => {
+    const justAfterOpening = new Date("2026-11-07T05:30:00Z"); // 06:30 Budapest (CET)
+    const dayStart = new Date("2026-11-07T05:00:00Z");
+
+    await seedDemo(justAfterOpening);
+
+    const orders = await Order.find().lean();
+    for (const order of orders) {
+      expect(order.businessDate).toBe(
+        order.createdAt < dayStart ? "2026-11-06" : "2026-11-07",
+      );
+    }
+    expect(orders.some((o) => o.businessDate === "2026-11-06")).toBe(true);
+  });
+
+  it("refuses to write into a connection that points at a non-seedable database", async () => {
+    const connection = mongoose.connection;
+    const original = { name: connection.name, host: connection.host };
+    // Simulates a caller that connected to the production cluster without assertSeedableUri.
+    Object.assign(connection, {
+      name: "namitiszunk",
+      host: "cluster0.abcde.mongodb.net",
+    });
+
+    const act = seedDemo(now);
+
+    await expect(act).rejects.toThrow(/Refusing to seed/);
+    Object.assign(connection, original);
+    expect(await Venue.countDocuments()).toBe(0);
+  });
 });
 
 describe("assertSeedableUri", () => {
@@ -97,6 +141,9 @@ describe("assertSeedableUri", () => {
     "mongodb+srv://app:secret@cluster0.abcde.mongodb.net/namitiszunk?retryWrites=true",
     "mongodb+srv://app:secret@cluster0.abcde.mongodb.net/",
     "mongodb://db.example.com:27017/namitiszunk_prod",
+    "mongodb+srv://app:secret@cluster0.abcde.mongodb.net/namitiszunk#test",
+    "mongodb+srv://app:secret@cluster0.abcde.mongodb.net/namitiszunk_latest",
+    "mongodb+srv://app:secret@cluster0.abcde.mongodb.net/contest",
     "not a uri",
   ])("rejects %s", (uri) => {
     const act = () => assertSeedableUri(uri);
@@ -113,5 +160,14 @@ describe("assertSeedableUri", () => {
     const act = () => assertSeedableUri(uri);
 
     expect(act).not.toThrow();
+  });
+
+  it("returns the database name for mongoose.connect", () => {
+    const uri =
+      "mongodb+srv://app:s@cluster0.abcde.mongodb.net/namitiszunk_dev?w=majority";
+
+    const dbName = assertSeedableUri(uri);
+
+    expect(dbName).toBe("namitiszunk_dev");
   });
 });
