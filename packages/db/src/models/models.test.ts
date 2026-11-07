@@ -256,6 +256,21 @@ describe("secrets and limits", () => {
 });
 
 describe("AuditLog", () => {
+  it("stores the actor name and the impersonating platform member", async () => {
+    const platformMemberId = new Types.ObjectId();
+
+    const entry = await AuditLog.create({
+      actor: { type: "venue_member", id: new Types.ObjectId(), name: "Anna" },
+      impersonatedBy: { id: platformMemberId, name: "Support Béla" },
+      action: "menu.price_changed",
+      target: { type: "item", id: new Types.ObjectId() },
+    });
+
+    const stored = await AuditLog.findById(entry._id).lean();
+    expect(stored?.actor?.name).toBe("Anna");
+    expect(stored?.impersonatedBy?.id?.equals(platformMemberId)).toBe(true);
+  });
+
   it("refuses every way of changing or deleting an entry", async () => {
     const entry = await AuditLog.create({
       actor: { type: "system" },

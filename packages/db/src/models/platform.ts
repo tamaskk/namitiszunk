@@ -62,6 +62,13 @@ const auditLogSchema = new Schema(
         required: true,
       },
       id: objectId,
+      // Display name at the time of the action, so the log stays readable after a rename.
+      name: String,
+    },
+    // Set when a platform member acts on behalf of a venue (impersonation, task 70).
+    impersonatedBy: {
+      id: { type: objectId, ref: "PlatformMember" },
+      name: String,
     },
     venueId: { type: objectId, ref: "Venue" },
     action: { type: String, required: true },
