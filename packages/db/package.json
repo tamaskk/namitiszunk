@@ -11,7 +11,9 @@
     "lint": "eslint .",
     "test": "vitest run",
     "verify-restore": "node scripts/verify-restore.ts",
-    "check-transaction": "node scripts/check-transaction.ts"
+    "check-transaction": "node scripts/check-transaction.ts",
+    "seed": "node --env-file-if-exists=../../apps/api/.env.local --import ./scripts/ts-resolve.ts scripts/seed.ts",
+    "seed:e2e": "node --import ./scripts/ts-resolve.ts scripts/seed.ts --e2e"
   },
   "devDependencies": {
     "@namitiszunk/config": "workspace:*",
