@@ -8,7 +8,13 @@ import {
 } from "@namitiszunk/db";
 
 import { audit, type AuditActor } from "../audit/audit";
-import { InvalidTransition, next, type OrderEvent } from "./state-machine";
+import {
+  actionFor,
+  InvalidTransition,
+  next,
+  type OrderAction,
+  type OrderEvent,
+} from "./state-machine";
 
 type Id = AuditActor["id"] & {};
 
@@ -26,7 +32,7 @@ export type OrderActor =
 /** Throws when the actor may not perform `action` at the venue. The only role check. */
 export type Authorize = (
   actor: OrderActor,
-  action: `order.${OrderEvent}`,
+  action: OrderAction,
   venueId: Id,
 ) => Promise<void> | void;
 
@@ -42,7 +48,6 @@ export type StatusChanged = {
 
 export type TransitionOptions = {
   // shortcut: injected because RBAC is built in parallel, wire to requirePermission (T-023) once merged.
-  // shortcut: authorize does not see isVip, so "VIP orders are handed over by the VIP host" is unenforced; pass the order context or a separate action when wiring T-023.
   authorize: Authorize;
   /** Required when staff rejects an order. */
   reason?: string;
@@ -78,11 +83,11 @@ export async function transition(
   try {
     await session.withTransaction(async () => {
       const order = await Order.findById(orderId)
-        .select("venueId barId status acceptedAt")
+        .select("venueId barId status isVip acceptedAt")
         .session(session)
         .lean();
       if (!order) throw new Error(`order ${String(orderId)} not found`);
-      await options.authorize(actor, `order.${event}`, order.venueId);
+      await options.authorize(actor, actionFor(event, order), order.venueId);
 
       const venue = await Venue.findById(order.venueId)
         .select("orderRules")

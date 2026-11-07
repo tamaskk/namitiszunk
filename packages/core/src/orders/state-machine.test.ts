@@ -2,12 +2,14 @@ import { orderStatuses, type OrderStatus } from "@namitiszunk/db";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  actionFor,
   type ActorKind,
   InvalidTransition,
   next,
   orderEvents,
   type OrderEvent,
   type TransitionContext,
+  transitionTable,
 } from "./state-machine";
 
 // @namitiszunk/db (for orderStatuses) is server-only.
@@ -76,6 +78,33 @@ describe("next", () => {
     expect(() => next(state, event, ctx("guest"))).toThrow(InvalidTransition);
   });
 
+  it("gives every rule an actor-kind guard, so the table fails closed", () => {
+    const loose = { accepted: false, refundOnExpiry: true };
+
+    const unguarded = transitionTable.filter((rule) =>
+      kinds.every((kind) => rule.when(ctx(kind, loose))),
+    );
+
+    expect(unguarded).toEqual([]);
+  });
+
+  it.each([
+    ["new", "start_preparing"],
+    ["preparing", "mark_ready"],
+    ["ready", "pick_up"],
+    ["new", "reject"],
+    ["picked_up", "refund"],
+  ] as const)("keeps guests and the system from %s + %s", (state, event) => {
+    const loose = { accepted: true, refundOnExpiry: true };
+
+    expect(() => next(state, event, ctx("guest", loose))).toThrow(
+      InvalidTransition,
+    );
+    expect(() => next(state, event, ctx("system", loose))).toThrow(
+      InvalidTransition,
+    );
+  });
+
   it("lets a guest cancel only before acceptance", () => {
     expect(next("new", "reject", ctx("guest", { accepted: false }))).toBe(
       "rejected",
@@ -101,5 +130,14 @@ describe("next", () => {
     expect(() => next("expired", "refund", ctx("guest"))).toThrow(
       InvalidTransition,
     );
+  });
+});
+
+describe("actionFor", () => {
+  it("maps a VIP pick-up to the hand-over permission", () => {
+    expect(actionFor("pick_up", { isVip: true })).toBe("order.handOverVip");
+    expect(actionFor("pick_up", { isVip: false })).toBe("order.pick_up");
+    expect(actionFor("pick_up", {})).toBe("order.pick_up");
+    expect(actionFor("mark_ready", { isVip: true })).toBe("order.mark_ready");
   });
 });

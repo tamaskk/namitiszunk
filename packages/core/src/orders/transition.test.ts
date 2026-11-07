@@ -188,6 +188,19 @@ describe("transition", () => {
     );
   });
 
+  it("asks authorize for the VIP hand-over on a VIP order", async () => {
+    const order = await createOrder({ status: "ready", isVip: true });
+    const authorize = vi.fn();
+
+    await transition(order._id, "pick_up", bartender, { authorize });
+
+    expect(authorize).toHaveBeenCalledExactlyOnceWith(
+      bartender,
+      "order.handOverVip",
+      order.venueId,
+    );
+  });
+
   it("requires a reason when staff rejects and stores it", async () => {
     const order = await createOrder({ status: "new" });
 

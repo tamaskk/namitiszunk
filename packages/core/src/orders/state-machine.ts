@@ -27,7 +27,8 @@ type Rule = {
   from: OrderStatus;
   event: OrderEvent;
   to: OrderStatus;
-  when?: (ctx: TransitionContext) => boolean;
+  // Required, so a new rule cannot forget the actor-kind guard (fails closed).
+  when: (ctx: TransitionContext) => boolean;
 };
 
 const bySystem = (ctx: TransitionContext) => ctx.actorKind === "system";
@@ -47,7 +48,7 @@ export const transitionTable: readonly Rule[] = [
     to: "cancelled",
     when: bySystem,
   },
-  { from: "new", event: "start_preparing", to: "preparing" },
+  { from: "new", event: "start_preparing", to: "preparing", when: byStaff },
   // Guests may cancel only before acceptance, so only at a manual-acceptance venue.
   {
     from: "new",
@@ -55,8 +56,8 @@ export const transitionTable: readonly Rule[] = [
     to: "rejected",
     when: (ctx) => byStaff(ctx) || (ctx.actorKind === "guest" && !ctx.accepted),
   },
-  { from: "preparing", event: "mark_ready", to: "ready" },
-  { from: "ready", event: "pick_up", to: "picked_up" },
+  { from: "preparing", event: "mark_ready", to: "ready", when: byStaff },
+  { from: "ready", event: "pick_up", to: "picked_up", when: byStaff },
   { from: "ready", event: "expire", to: "expired", when: bySystem },
   // The automatic refund only when the venue enabled it; staff may always refund in full.
   {
@@ -87,8 +88,20 @@ export function next(
   ctx: TransitionContext,
 ): OrderStatus {
   const rule = transitionTable.find(
-    (r) => r.from === state && r.event === event && (r.when?.(ctx) ?? true),
+    (r) => r.from === state && r.event === event && r.when(ctx),
   );
   if (!rule) throw new InvalidTransition(state, event, ctx.actorKind);
   return rule.to;
+}
+
+export type OrderAction = `order.${OrderEvent}` | "order.handOverVip";
+
+/** The RBAC action for an event: a VIP hand-over is its own permission (vip_host, manager, owner). */
+export function actionFor(
+  event: OrderEvent,
+  order: { isVip?: boolean | null },
+): OrderAction {
+  return event === "pick_up" && order.isVip
+    ? "order.handOverVip"
+    : `order.${event}`;
 }
