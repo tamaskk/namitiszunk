@@ -28,33 +28,38 @@ const roles = [
   "support",
   "admin",
   "finance",
+  "system",
 ] as const satisfies readonly Role[];
 
 // prettier-ignore
 const matrix: Record<Action, readonly string[]> = {
-  //                       guest  bart  mgr        owner vip   supp  admin fin
-  "order.create":          ["✓",  "-",  "-",       "-",  "-",  "-",  "-",  "-"],
-  "order.cancelOwn":       ["own","-",  "-",       "-",  "-",  "-",  "-",  "-"],
-  "order.process":         ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-"],
-  "order.handOver":        ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-"],
-  "order.handOverVip":     ["-",  "-",  "-",       "-",  "✓",  "-",  "-",  "-"],
-  "order.viewTakeOutList": ["-",  "-",  "-",       "-",  "✓",  "-",  "-",  "-"],
-  "product.setSoldOut":    ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-"],
-  "bar.pauseOrders":       ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-"],
-  "order.refund":          ["-",  "-",  "limit",   "✓",  "-",  "✓",  "✓",  "-"],
-  "menu.edit":             ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-"],
-  "venue.manageBars":      ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-"],
-  "report.viewDaily":      ["-",  "-",  "✓",       "✓",  "-",  "✓",  "✓",  "✓"],
-  "report.viewAll":        ["-",  "-",  "-",       "✓",  "-",  "✓",  "✓",  "✓"],
-  "staff.invite":          ["-",  "-",  "pinRoles","✓",  "-",  "-",  "✓",  "-"],
-  "payout.manage":         ["-",  "-",  "-",       "✓",  "-",  "-",  "-",  "-"],
-  "venue.editSettings":    ["-",  "-",  "-",       "✓",  "-",  "-",  "✓",  "-"],
-  "billing.view":          ["-",  "-",  "-",       "✓",  "-",  "-",  "✓",  "-"],
-  "venue.create":          ["-",  "-",  "-",       "-",  "-",  "-",  "✓",  "-"],
-  "venue.suspend":         ["-",  "-",  "-",       "-",  "-",  "-",  "✓",  "-"],
-  "venue.impersonate":     ["-",  "-",  "-",       "-",  "-",  "✓",  "✓",  "-"],
-  "plan.edit":             ["-",  "-",  "-",       "-",  "-",  "-",  "✓",  "-"],
-  "platformReport.view":   ["-",  "-",  "-",       "-",  "-",  "-",  "✓",  "✓"],
+  //                       guest  bart  mgr        owner vip   supp  admin fin  system
+  "order.create":          ["✓",  "-",  "-",       "-",  "-",  "-",  "-",  "-",  "-"],
+  "order.pay":             ["-",  "-",  "-",       "-",  "-",  "-",  "-",  "-",  "✓"],
+  "order.cancel":          ["-",  "-",  "-",       "-",  "-",  "-",  "-",  "-",  "✓"],
+  "order.expire":          ["-",  "-",  "-",       "-",  "-",  "-",  "-",  "-",  "✓"],
+  "order.start":           ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "order.ready":           ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "order.pickUp":          ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "order.reject":          ["own","✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "order.handOverVip":     ["-",  "-",  "✓",       "✓",  "✓",  "-",  "-",  "-",  "-"],
+  "order.viewTakeOutList": ["-",  "-",  "✓",       "✓",  "✓",  "-",  "-",  "-",  "-"],
+  "product.setSoldOut":    ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "bar.pauseOrders":       ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "order.refund":          ["-",  "-",  "limit",   "✓",  "-",  "✓",  "✓",  "-",  "-"],
+  "menu.edit":             ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "venue.manageBars":      ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "report.viewDaily":      ["-",  "-",  "✓",       "✓",  "-",  "✓",  "✓",  "✓",  "-"],
+  "report.viewAll":        ["-",  "-",  "-",       "✓",  "-",  "✓",  "✓",  "✓",  "-"],
+  "staff.invite":          ["-",  "-",  "pinRoles","✓",  "-",  "-",  "✓",  "-",  "-"],
+  "payout.manage":         ["-",  "-",  "-",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "venue.editSettings":    ["-",  "-",  "-",       "✓",  "-",  "-",  "✓",  "-",  "-"],
+  "billing.view":          ["-",  "-",  "-",       "✓",  "-",  "-",  "✓",  "-",  "-"],
+  "venue.create":          ["-",  "-",  "-",       "-",  "-",  "-",  "✓",  "-",  "-"],
+  "venue.suspend":         ["-",  "-",  "-",       "-",  "-",  "-",  "✓",  "-",  "-"],
+  "venue.impersonate":     ["-",  "-",  "-",       "-",  "-",  "✓",  "✓",  "-",  "-"],
+  "plan.edit":             ["-",  "-",  "-",       "-",  "-",  "-",  "✓",  "-",  "-"],
+  "platformReport.view":   ["-",  "-",  "-",       "-",  "-",  "-",  "✓",  "✓",  "-"],
 };
 
 const venueA = "venue-a";
@@ -65,6 +70,7 @@ const isVenueRole = (role: Role): role is VenueRole =>
 
 function actorFor(role: Role, venueId = venueA): Actor {
   if (role === "guest") return { kind: "guest", guestId: "guest-1" };
+  if (role === "system") return { kind: "system", source: "stripe" };
   if (isVenueRole(role))
     return {
       kind: "user",
@@ -90,7 +96,12 @@ const satisfyingResource: Resource = {
 
 describe("permission matrix", () => {
   it("covers exactly the actions and roles in the code", () => {
-    const codeRoles = ["guest", ...venueRoles, ...platformRoles].sort();
+    const codeRoles = [
+      "guest",
+      "system",
+      ...venueRoles,
+      ...platformRoles,
+    ].sort();
 
     const fixtureActions = Object.keys(matrix).sort();
 
@@ -156,7 +167,7 @@ describe("venue isolation", () => {
   it("denies a guest cancelling another guest's order", () => {
     const resource = { venueId: venueA, guestId: "guest-2" };
 
-    expect(can(actorFor("guest"), "order.cancelOwn", resource)).toBe(false);
+    expect(can(actorFor("guest"), "order.reject", resource)).toBe(false);
   });
 });
 
@@ -177,8 +188,8 @@ describe("staff PIN session", () => {
   });
 
   it("acts with the PIN holder's role only in the tablet's venue", () => {
-    expect(can(pinBartender, "order.process", { venueId: venueA })).toBe(true);
-    expect(can(pinBartender, "order.process", { venueId: venueB })).toBe(false);
+    expect(can(pinBartender, "order.start", { venueId: venueA })).toBe(true);
+    expect(can(pinBartender, "order.start", { venueId: venueB })).toBe(false);
   });
 });
 

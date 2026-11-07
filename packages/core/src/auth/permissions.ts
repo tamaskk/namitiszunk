@@ -4,7 +4,7 @@ import type { platformRoles, venueRoles } from "@namitiszunk/db";
 
 export type VenueRole = (typeof venueRoles)[number];
 export type PlatformRole = (typeof platformRoles)[number];
-export type Role = "guest" | VenueRole | PlatformRole;
+export type Role = "guest" | "system" | VenueRole | PlatformRole;
 
 /** A venue role as stored on an active VenueMember. Callers pass only active memberships. */
 export type VenueMembership = {
@@ -16,6 +16,8 @@ export type VenueMembership = {
 export type Actor =
   /** A guest identified by their guest session (phone OTP or anonymous token). */
   | { kind: "guest"; guestId: string }
+  /** The Stripe webhook or an Inngest job; it may only pay, cancel (payment timeout) and expire orders. */
+  | { kind: "system"; source: "stripe" | "inngest" }
   /**
    * The active PIN holder on a club tablet. The tablet signs in with the venue account,
    * but the acting role and the logged actor are this member, never the venue account.
@@ -35,7 +37,7 @@ export type Actor =
 
 export type Resource = {
   venueId?: string;
-  /** Owner of the order, for `order.cancelOwn`. */
+  /** Owner of the order, for a guest's `order.reject`. */
   guestId?: string;
   /** Refund amount in integer forints, for `order.refund`. */
   amountHuf?: number;
@@ -59,26 +61,41 @@ type Rule = {
 // Single source of the permission matrix (product doc, rev 306). Change the product doc with it.
 export const permissions = {
   "order.create": { scope: "venue", write: true, roles: { guest: true } },
-  "order.cancelOwn": { scope: "venue", write: true, roles: { guest: "own" } },
-  "order.process": {
+  // Order transitions: the state machine (T-021) calls requirePermission(actor, "order.<event>").
+  // Guest cancel before acceptance is the `reject` event on the guest's own order.
+  // `cancel` is the payment timeout, not a guest action.
+  "order.pay": { scope: "venue", write: true, roles: { system: true } },
+  "order.cancel": { scope: "venue", write: true, roles: { system: true } },
+  "order.expire": { scope: "venue", write: true, roles: { system: true } },
+  "order.start": {
     scope: "venue",
     write: true,
     roles: { bartender: true, manager: true, owner: true },
   },
-  "order.handOver": {
+  "order.ready": {
     scope: "venue",
     write: true,
     roles: { bartender: true, manager: true, owner: true },
+  },
+  "order.pickUp": {
+    scope: "venue",
+    write: true,
+    roles: { bartender: true, manager: true, owner: true },
+  },
+  "order.reject": {
+    scope: "venue",
+    write: true,
+    roles: { guest: "own", bartender: true, manager: true, owner: true },
   },
   "order.handOverVip": {
     scope: "venue",
     write: true,
-    roles: { vip_host: true },
+    roles: { vip_host: true, manager: true, owner: true },
   },
   "order.viewTakeOutList": {
     scope: "venue",
     write: false,
-    roles: { vip_host: true },
+    roles: { vip_host: true, manager: true, owner: true },
   },
   "product.setSoldOut": {
     scope: "venue",
@@ -214,8 +231,8 @@ export function can(
   const { venueId } = resource;
   if (!venueId) return false;
 
-  if (actor.kind === "guest")
-    return cellAllows(rule.roles.guest, actor, resource);
+  if (actor.kind === "guest" || actor.kind === "system")
+    return cellAllows(rule.roles[actor.kind], actor, resource);
 
   const venueRole = venueRoleFor(actor, venueId);
   if (venueRole && cellAllows(rule.roles[venueRole], actor, resource))
@@ -228,6 +245,7 @@ export function can(
 }
 
 /** Thrown when an actor lacks a permission. The API layer maps it to 403. */
+// shortcut: plain Error with AppError-shaped status/code, extend T-029's AppError (packages/core/src/errors.ts) once merged.
 export class Forbidden extends Error {
   readonly status = 403;
   readonly code = "forbidden";
