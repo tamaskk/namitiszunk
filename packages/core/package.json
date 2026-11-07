@@ -13,8 +13,9 @@
   },
   "devDependencies": {
     "@namitiszunk/config": "workspace:*",
+    "eslint": "^9.39.5",
+    "fast-check": "^4.10.2",
     "typescript": "~5.9.3",
-    "vitest": "^5.1.0",
-    "eslint": "^9.39.5"
+    "vitest": "^5.1.0"
   }
 }
