@@ -64,5 +64,9 @@
   },
   "emails": {
     "receiptSubject": "Receipt for your order"
+  },
+  "sms": {
+    "ready": "Na mit iszunk: #{shortNumber} is ready. Pick it up at the {barName} bar. {link}",
+    "reminder": "Your drink is still waiting at the {barName} bar."
   }
 }

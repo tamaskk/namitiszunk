@@ -59,42 +59,57 @@ describe("toGsm7", () => {
 });
 
 describe("SMS texts", () => {
-  it("builds the ready text from short number, bar name and link", () => {
-    const text = readySmsText({
-      shortNumber: 214,
-      barName: "Main Bar",
-      link: "https://namitiszunk.hu/o/x",
-    });
+  const order = {
+    shortNumber: 214,
+    barName: "Main Bar",
+    link: "https://namitiszunk.hu/o/x",
+  };
 
-    expect(text).toBe(
+  it("builds the ready text in hu and en", () => {
+    const hu = readySmsText("hu", order);
+    const en = readySmsText("en", order);
+
+    expect(hu).toBe(
       "Na mit iszunk: #214 kesz! Vedd fel a Main Bar pultnal. https://namitiszunk.hu/o/x",
     );
+    expect(en).toBe(
+      "Na mit iszunk: #214 is ready. Pick it up at the Main Bar bar. https://namitiszunk.hu/o/x",
+    );
   });
 
-  it("builds the reminder text and picks az before a vowel", () => {
-    expect(reminderSmsText({ barName: "Main Bar" })).toBe(
+  it("builds the reminder text and picks az before a vowel in hu", () => {
+    expect(reminderSmsText("hu", { barName: "Main Bar" })).toBe(
       "Meg var rad az italod a Main Bar pultnal.",
     );
-    expect(reminderSmsText({ barName: "Örvény" })).toBe(
+    expect(reminderSmsText("hu", { barName: "Örvény" })).toBe(
       "Meg var rad az italod az Orveny pultnal.",
+    );
+    expect(reminderSmsText("en", { barName: "Örvény" })).toBe(
+      "Your drink is still waiting at the Orveny bar.",
     );
   });
 
-  it("keeps every text GSM-7 and within 160 with the longest name and a long link", () => {
-    const texts = [
-      readySmsText({
-        shortNumber: 9999,
-        barName: LONGEST_BAR_NAME,
-        link: LONG_LINK,
-      }),
-      reminderSmsText({ barName: LONGEST_BAR_NAME }),
-    ];
+  it.each(["hu", "en"] as const)(
+    "keeps every %s text GSM-7 and within 160 with the longest name and a long link",
+    (locale) => {
+      const texts = [
+        readySmsText(locale, {
+          shortNumber: 9999,
+          barName: LONGEST_BAR_NAME,
+          link: LONG_LINK,
+        }),
+        reminderSmsText(locale, { barName: LONGEST_BAR_NAME }),
+      ];
 
-    for (const text of texts) {
-      expect(isGsm7Basic(text)).toBe(true);
-      expect(text.length).toBeLessThanOrEqual(SMS_MAX_LENGTH);
-    }
-  });
+      for (const text of texts) {
+        expect(text).toContain(toGsm7(LONGEST_BAR_NAME));
+        expect(isGsm7Basic(text)).toBe(true);
+        expect(text.length).toBeLessThanOrEqual(SMS_MAX_LENGTH);
+      }
+      expect(texts[0]).toContain("#9999 ");
+      expect(LONG_LINK).toHaveLength(47);
+    },
+  );
 });
 
 describe("normalizeHuPhone", () => {

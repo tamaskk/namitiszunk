@@ -1,7 +1,9 @@
 import "server-only";
 
 import { parsePhoneNumberFromString } from "libphonenumber-js";
+import { type Locale, messages } from "@namitiszunk/i18n";
 import twilio from "twilio";
+import { createTranslator } from "use-intl/core";
 
 /** One GSM-7 segment; anything longer or outside the set doubles the cost. */
 export const SMS_MAX_LENGTH = 160;
@@ -36,26 +38,42 @@ export function toGsm7(text: string): string {
   return plain;
 }
 
-// Hungarian article: "az" before a vowel ("az Aurora pultnal"), "a" otherwise.
+// Hungarian article: "az" before a vowel ("az Aurora pultnal"), "a" otherwise; en ignores it.
 function article(barName: string): string {
   return /^[aeiou]/i.test(toGsm7(barName)) ? "az" : "a";
 }
 
-export function readySmsText(input: {
-  shortNumber: number;
-  barName: string;
-  link: string;
-}): string {
+function smsTranslator(locale: Locale) {
+  return createTranslator({
+    locale,
+    messages: messages[locale],
+    namespace: "sms",
+  });
+}
+
+export function readySmsText(
+  locale: Locale,
+  input: { shortNumber: number; barName: string; link: string },
+): string {
   const { shortNumber, barName, link } = input;
   return toGsm7(
-    `Na mit iszunk: #${shortNumber} kesz! Vedd fel ${article(barName)} ${barName} pultnal. ${link}`,
+    smsTranslator(locale)("ready", {
+      // A string, so ICU does not group 9999 as "9 999" with a non GSM-7 space.
+      shortNumber: String(shortNumber),
+      article: article(barName),
+      barName,
+      link,
+    }),
   );
 }
 
-export function reminderSmsText(input: { barName: string }): string {
+export function reminderSmsText(
+  locale: Locale,
+  input: { barName: string },
+): string {
   const { barName } = input;
   return toGsm7(
-    `Meg var rad az italod ${article(barName)} ${barName} pultnal.`,
+    smsTranslator(locale)("reminder", { article: article(barName), barName }),
   );
 }
 
