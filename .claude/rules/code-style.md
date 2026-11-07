@@ -4,7 +4,7 @@
 - File names kebab-case (`order-card.tsx`); components PascalCase; hooks `useThing` in `use-thing.ts`.
 - Named exports only, except where the framework requires a default export (Next.js `page`, `layout`, `loading`, `error`, `not-found`, `template`, `default`, `route` handlers export named HTTP methods; Expo Router screens).
 - Cross-package imports use the package name (`@namitiszunk/core`), never relative paths into another package. Inside an app, use its `@/` alias; no `../../../` chains.
-- One function, one job. Name it by what it does (`transitionOrder`, not `handleOrder2`).
+- One function, one job. Name it by what it does (`calculateOrder`, not `handleOrder2`).
 - Money: integer forints (`amountHuf: number`, integers only). Never floats, never `toFixed` on amounts; format only with `formatHuf` from `@namitiszunk/i18n`.
 - User-facing strings come from `@namitiszunk/i18n` message keys (hu and en). No hard-coded copy.
 - Never swallow errors. Catch only where you can handle them or add context; report unexpected errors to Sentry once.
