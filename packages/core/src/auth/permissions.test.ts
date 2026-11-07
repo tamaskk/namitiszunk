@@ -1,6 +1,7 @@
 import { platformRoles, venueRoles } from "@namitiszunk/db";
 import { describe, expect, it, vi } from "vitest";
 
+import { AppError } from "../errors";
 import {
   can,
   Forbidden,
@@ -313,6 +314,7 @@ describe("Forbidden", () => {
     })();
 
     expect(error).toBeInstanceOf(Forbidden);
+    expect(error).toBeInstanceOf(AppError);
     expect(error).toMatchObject({
       status: 403,
       code: "forbidden",

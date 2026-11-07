@@ -12,7 +12,7 @@ export const hufSchema = z
   .int({ error: "validation.huf.integer" })
   .min(0, { error: "validation.huf.min" });
 
-// shortcut: +36 followed by 8-9 digits only, no carrier check; libphonenumber-js comes with T-036.
+// A format check only (+36 and 8-9 digits): this leaf package stays without libphonenumber-js, and @namitiszunk/core/notify validates with libphonenumber-js before sending.
 export const huPhoneSchema = z
   .string()
   .regex(/^\+36\d{8,9}$/, { error: "validation.phone.invalid" });

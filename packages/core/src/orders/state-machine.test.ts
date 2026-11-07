@@ -1,6 +1,7 @@
 import { orderStatuses, type OrderStatus } from "@namitiszunk/db";
 import { describe, expect, it, vi } from "vitest";
 
+import { permissions } from "../auth/permissions";
 import {
   actionFor,
   type ActorKind,
@@ -136,8 +137,17 @@ describe("next", () => {
 describe("actionFor", () => {
   it("maps a VIP pick-up to the hand-over permission", () => {
     expect(actionFor("pick_up", { isVip: true })).toBe("order.handOverVip");
-    expect(actionFor("pick_up", { isVip: false })).toBe("order.pick_up");
-    expect(actionFor("pick_up", {})).toBe("order.pick_up");
-    expect(actionFor("mark_ready", { isVip: true })).toBe("order.mark_ready");
+    expect(actionFor("pick_up", { isVip: false })).toBe("order.pickUp");
+    expect(actionFor("pick_up", {})).toBe("order.pickUp");
+    expect(actionFor("mark_ready", { isVip: true })).toBe("order.ready");
+  });
+
+  it("maps every event to an existing RBAC action", () => {
+    const actions = orderEvents.flatMap((event) => [
+      actionFor(event, {}),
+      actionFor(event, { isVip: true }),
+    ]);
+
+    for (const action of actions) expect(permissions).toHaveProperty([action]);
   });
 });

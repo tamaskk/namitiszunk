@@ -11,19 +11,22 @@ import {
   vi,
 } from "vitest";
 
+import { type Actor, Forbidden } from "../auth/permissions";
 import { InvalidTransition } from "./state-machine";
-import { type OrderActor, transition } from "./transition";
+import { transition } from "./transition";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
 
 const now = new Date("2026-11-07T22:00:00Z");
-const system: OrderActor = { kind: "system", name: "stripe-webhook" };
-const bartender: OrderActor = {
+const venueId = new Types.ObjectId();
+const memberId = new Types.ObjectId();
+const system: Actor = { kind: "system", source: "stripe" };
+const bartender: Actor = {
   kind: "staff",
+  venueId: venueId.toHexString(),
+  memberId: memberId.toHexString(),
   role: "bartender",
-  memberId: new Types.ObjectId(),
-  name: "Anna",
 };
 const allow = () => {};
 
@@ -48,7 +51,9 @@ beforeEach(async () => {
 });
 
 async function createOrder(overrides: Record<string, unknown> = {}) {
-  const [venue] = await Venue.create([{ slug: "pilot", name: "Pilot" }]);
+  const [venue] = await Venue.create([
+    { _id: venueId, slug: "pilot", name: "Pilot" },
+  ]);
   // Fixtures may set a status directly; app code may not (no-status-writes.test.ts).
   const [order] = await Order.create([
     {
@@ -98,7 +103,7 @@ describe("transition", () => {
     expect(logs).toHaveLength(1);
     expect(logs[0]).toMatchObject({
       action: "order.payment_succeeded",
-      actor: { type: "system", name: "stripe-webhook" },
+      actor: { type: "system", name: "stripe" },
       before: { status: "awaiting_payment" },
       after: { status: "new" },
     });
@@ -168,8 +173,8 @@ describe("transition", () => {
     await expect(act).rejects.toThrow("forbidden");
     expect(authorize).toHaveBeenCalledWith(
       bartender,
-      "order.start_preparing",
-      order.venueId,
+      "order.start",
+      venueId.toHexString(),
     );
     expect((await Order.findById(order._id).lean())?.status).toBe("new");
     expect(await AuditLog.countDocuments()).toBe(0);
@@ -183,8 +188,8 @@ describe("transition", () => {
 
     expect(authorize).toHaveBeenCalledExactlyOnceWith(
       bartender,
-      "order.pick_up",
-      order.venueId,
+      "order.pickUp",
+      venueId.toHexString(),
     );
   });
 
@@ -197,7 +202,7 @@ describe("transition", () => {
     expect(authorize).toHaveBeenCalledExactlyOnceWith(
       bartender,
       "order.handOverVip",
-      order.venueId,
+      venueId.toHexString(),
     );
   });
 
@@ -233,8 +238,23 @@ describe("transition", () => {
     expect(saved).toMatchObject({ status: "preparing", acceptedAt: now });
     expect(log?.actor).toMatchObject({
       type: "venue_member",
-      id: bartender.kind === "staff" ? bartender.memberId : undefined,
-      name: "Anna",
+      id: memberId,
     });
+  });
+
+  it("checks the RBAC matrix when no authorize is injected", async () => {
+    const order = await createOrder({ status: "new" });
+    const otherVenue: Actor = {
+      kind: "staff",
+      venueId: new Types.ObjectId().toHexString(),
+      memberId: memberId.toHexString(),
+      role: "bartender",
+    };
+
+    const denied = transition(order._id, "start_preparing", otherVenue);
+    await expect(denied).rejects.toBeInstanceOf(Forbidden);
+    const change = await transition(order._id, "start_preparing", bartender);
+
+    expect(change).toMatchObject({ from: "new", to: "preparing" });
   });
 });

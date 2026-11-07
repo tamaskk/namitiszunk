@@ -12,14 +12,19 @@ describe("buildOpenApiDocument", () => {
     expect(document.openapi).toBe("3.1.0");
   });
 
-  it("lists the order and venue paths with schema references", () => {
+  it("lists the order, venue and meta paths with schema references", () => {
     const { paths } = buildOpenApiDocument();
 
     const createOrder = paths["/v1/orders"]?.post as {
       requestBody: { content: Record<string, { schema: { $ref: string } }> };
     };
 
-    expect(Object.keys(paths)).toEqual(["/v1/orders", "/v1/venues"]);
+    expect(Object.keys(paths)).toEqual([
+      "/v1/orders",
+      "/v1/venues",
+      "/v1/ping",
+      "/v1/openapi.json",
+    ]);
     expect(createOrder.requestBody.content["application/json"]?.schema).toEqual(
       { $ref: "#/components/schemas/CreateOrderInput" },
     );

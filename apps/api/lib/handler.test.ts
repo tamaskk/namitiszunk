@@ -16,10 +16,12 @@ const captureException = vi.hoisted(() => vi.fn());
 vi.mock("@sentry/nextjs", () => ({ captureException }));
 
 const { connectDb } = await import("@namitiszunk/core/api");
-const { ConflictError, ForbiddenError, NotFoundError } =
+const { ConflictError, NotFoundError } =
   await import("@namitiszunk/core/errors");
+const { Forbidden } = await import("@namitiszunk/core/auth");
 const { handler } = await import("./handler");
 const ping = await import("@/app/v1/ping/route");
+const openapi = await import("@/app/v1/openapi.json/route");
 
 let replSet: MongoMemoryReplSet;
 let db: Awaited<ReturnType<typeof connectDb>>;
@@ -140,7 +142,7 @@ describe("handler order", () => {
 
 describe("errors", () => {
   it.each([
-    [new ForbiddenError(), 403, "forbidden"],
+    [new Forbidden("order.start"), 403, "forbidden"],
     [new NotFoundError(), 404, "not_found"],
     [new ConflictError(), 409, "conflict"],
   ])("maps %o to its status", async (error, status, code) => {
@@ -300,5 +302,20 @@ describe("GET /v1/ping", () => {
     expect(await first.json()).toEqual({ data: { pong: true } });
     expect(over.status).toBe(429);
     expect(Number(over.headers.get("retry-after"))).toBeGreaterThan(0);
+  });
+});
+
+describe("GET /v1/openapi.json", () => {
+  it("serves the OpenAPI document listing itself and /v1/ping", async () => {
+    const req = new Request("https://api.namitiszunk.hu/v1/openapi.json");
+
+    const res = await openapi.GET(req, route);
+
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.openapi).toBe("3.1.0");
+    expect(Object.keys(body.paths)).toEqual(
+      expect.arrayContaining(["/v1/ping", "/v1/openapi.json"]),
+    );
   });
 });

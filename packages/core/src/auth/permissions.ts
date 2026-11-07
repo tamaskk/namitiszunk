@@ -1,6 +1,8 @@
-// Pure and client-safe: type-only imports, so the UI can use `can` to hide controls.
-// The server must still call `requirePermission` at every entry point and in the service.
+// Pure and client-safe: type-only imports plus the dependency-free errors module, so the UI can use
+// `can` to hide controls. The server must still call `requirePermission` at every entry point and in the service.
 import type { platformRoles, venueRoles } from "@namitiszunk/db";
+
+import { AppError } from "../errors";
 
 export type VenueRole = (typeof venueRoles)[number];
 export type PlatformRole = (typeof platformRoles)[number];
@@ -244,14 +246,11 @@ export function can(
   return cellAllows(rule.roles[platformRole], actor, resource);
 }
 
-/** Thrown when an actor lacks a permission. The API layer maps it to 403. */
-// shortcut: plain Error with AppError-shaped status/code, extend T-029's AppError (packages/core/src/errors.ts) once merged.
-export class Forbidden extends Error {
-  readonly status = 403;
-  readonly code = "forbidden";
-
+/** Thrown when an actor lacks a permission. The API wrapper maps it to 403. */
+export class Forbidden extends AppError {
   constructor(readonly action: Action) {
-    super(`Forbidden: ${action}`);
+    super(403, "forbidden");
+    this.message = `Forbidden: ${action}`;
     this.name = "Forbidden";
   }
 }

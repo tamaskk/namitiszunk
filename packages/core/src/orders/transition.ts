@@ -1,14 +1,11 @@
 import "server-only";
 
-import {
-  Order,
-  type OrderStatus,
-  Venue,
-  type venueRoles,
-} from "@namitiszunk/db";
+import { Order, type OrderStatus, Venue } from "@namitiszunk/db";
 
 import { audit, type AuditActor } from "../audit/audit";
+import { type Actor, requirePermission } from "../auth/permissions";
 import {
+  type ActorKind,
   actionFor,
   InvalidTransition,
   next,
@@ -18,23 +15,16 @@ import {
 
 type Id = AuditActor["id"] & {};
 
-export type OrderActor =
-  | {
-      kind: "staff";
-      role: (typeof venueRoles)[number];
-      /** The active PIN holder's VenueMember id. */
-      memberId: Id;
-      name: string;
-    }
-  | { kind: "system"; name: string }
-  | { kind: "guest"; userId?: Id };
-
 /** Throws when the actor may not perform `action` at the venue. The only role check. */
 export type Authorize = (
-  actor: OrderActor,
+  actor: Actor,
   action: OrderAction,
-  venueId: Id,
+  venueId: string,
 ) => Promise<void> | void;
+
+// shortcut: the resource carries only the venue, so a guest's own-order reject and a manager refund under a set limit are denied; pass guestId / amountHuf once guest sessions (T-030) and refunds land.
+const authorizeByRole: Authorize = (actor, action, venueId) =>
+  requirePermission(actor, action, { venueId });
 
 export type StatusChanged = {
   orderId: Id;
@@ -43,12 +33,12 @@ export type StatusChanged = {
   event: OrderEvent;
   from: OrderStatus;
   to: OrderStatus;
-  actor: OrderActor;
+  actor: Actor;
 };
 
 export type TransitionOptions = {
-  // shortcut: injected because RBAC is built in parallel, wire to requirePermission (T-023) once merged.
-  authorize: Authorize;
+  /** Defaults to the RBAC matrix (T-023); tests inject their own. */
+  authorize?: Authorize;
   /** Required when staff rejects an order. */
   reason?: string;
   // shortcut: a plain hook instead of the SDKs, wire Ably publish (T-031) then Inngest `order/status.changed` (T-035) once merged.
@@ -57,12 +47,23 @@ export type TransitionOptions = {
   now?: Date;
 };
 
-function auditActorOf(actor: OrderActor): AuditActor {
-  if (actor.kind === "staff") {
-    return { type: "venue_member", id: actor.memberId, name: actor.name };
+// A signed-in user acting on an order (owner from admin, platform support) is staff for the state machine.
+function actorKindOf(actor: Actor): ActorKind {
+  return actor.kind === "user" ? "staff" : actor.kind;
+}
+
+function auditActorOf(actor: Actor): AuditActor {
+  switch (actor.kind) {
+    case "staff":
+      return { type: "venue_member", id: actor.memberId };
+    case "user":
+      return { type: "user", id: actor.userId };
+    case "system":
+      return { type: "system", name: actor.source };
+    case "guest":
+      // The guest session id is not a User id, so it stays out of the ObjectId field.
+      return { type: "user", name: "guest" };
   }
-  if (actor.kind === "system") return { type: "system", name: actor.name };
-  return { type: "user", id: actor.userId, name: "guest" };
 }
 
 /**
@@ -74,8 +75,8 @@ function auditActorOf(actor: OrderActor): AuditActor {
 export async function transition(
   orderId: Id,
   event: OrderEvent,
-  actor: OrderActor,
-  options: TransitionOptions,
+  actor: Actor,
+  options: TransitionOptions = {},
 ): Promise<StatusChanged> {
   const now = options.now ?? new Date();
   const session = await Order.startSession();
@@ -87,7 +88,11 @@ export async function transition(
         .session(session)
         .lean();
       if (!order) throw new Error(`order ${String(orderId)} not found`);
-      await options.authorize(actor, actionFor(event, order), order.venueId);
+      await (options.authorize ?? authorizeByRole)(
+        actor,
+        actionFor(event, order),
+        String(order.venueId),
+      );
 
       const venue = await Venue.findById(order.venueId)
         .select("orderRules")
@@ -96,7 +101,7 @@ export async function transition(
       if (!venue) throw new Error(`venue ${String(order.venueId)} not found`);
       const from = order.status;
       const to = next(from, event, {
-        actorKind: actor.kind,
+        actorKind: actorKindOf(actor),
         accepted: order.acceptedAt != null,
         refundOnExpiry: venue.orderRules?.refundOnExpiry ?? false,
       });
@@ -112,7 +117,7 @@ export async function transition(
       }
       if (event === "mark_ready") set.readyAt = now;
       if (event === "pick_up") set.pickedUpAt = now;
-      if (event === "reject" && actor.kind === "staff") {
+      if (event === "reject" && actorKindOf(actor) === "staff") {
         if (!options.reason?.trim()) {
           throw new Error("a staff rejection needs a reason");
         }
@@ -125,7 +130,8 @@ export async function transition(
         { $set: set },
         { session },
       );
-      if (!updated) throw new InvalidTransition(from, event, actor.kind);
+      if (!updated)
+        throw new InvalidTransition(from, event, actorKindOf(actor));
 
       await audit(session, {
         actor: auditActorOf(actor),

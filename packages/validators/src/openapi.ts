@@ -31,6 +31,8 @@ const components = {
   EmailOtpVerifyInput: auth.emailOtpVerifyInputSchema,
   PinSignInInput: auth.pinSignInInputSchema,
   SessionUserResponse: auth.sessionUserResponseSchema,
+  PingResponse: z.object({ pong: z.literal(true) }),
+  OpenApiDocument: z.looseObject({ openapi: z.string() }),
 } satisfies Record<string, z.ZodType>;
 
 type ComponentName = keyof typeof components;
@@ -65,6 +67,24 @@ const operations: Operation[] = [
     summary: "List public venues",
     tag: "venues",
     response: "VenueListResponse",
+    status: 200,
+  },
+  {
+    method: "get",
+    path: "/v1/ping",
+    operationId: "ping",
+    summary: "Check that the API answers",
+    tag: "meta",
+    response: "PingResponse",
+    status: 200,
+  },
+  {
+    method: "get",
+    path: "/v1/openapi.json",
+    operationId: "getOpenApiDocument",
+    summary: "This OpenAPI document",
+    tag: "meta",
+    response: "OpenApiDocument",
     status: 200,
   },
 ];
@@ -126,6 +146,7 @@ export function buildOpenApiDocument() {
     tags: [
       { name: "orders", description: "Guest orders" },
       { name: "venues", description: "Venues" },
+      { name: "meta", description: "API health and description" },
     ],
     paths: buildPaths(),
     components: { schemas },

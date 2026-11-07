@@ -73,7 +73,7 @@ describe("SMS texts", () => {
       "Na mit iszunk: #214 kesz! Vedd fel a Main Bar pultnal. https://namitiszunk.hu/o/x",
     );
     expect(en).toBe(
-      "Na mit iszunk: #214 is ready. Pick it up at the Main Bar bar. https://namitiszunk.hu/o/x",
+      "Na mit iszunk: #214 is ready. Pick it up at Main Bar. https://namitiszunk.hu/o/x",
     );
   });
 
@@ -85,7 +85,7 @@ describe("SMS texts", () => {
       "Meg var rad az italod az Orveny pultnal.",
     );
     expect(reminderSmsText("en", { barName: "Örvény" })).toBe(
-      "Your drink is still waiting at the Orveny bar.",
+      "Your drink is still waiting at Orveny.",
     );
   });
 

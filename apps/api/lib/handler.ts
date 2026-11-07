@@ -24,7 +24,7 @@ type Input<S> = S extends z.ZodType ? z.infer<S> : undefined;
 type Options<A extends Actor | null, S extends z.ZodType | undefined> = {
   /** Returns the caller, or null for 401. Leave it out for a public endpoint. */
   auth?: (request: Request) => Promise<A | null>;
-  /** Throws (ForbiddenError from @namitiszunk/core/errors, T-023's requirePermission) for 403. */
+  /** Throws (`requirePermission` from @namitiszunk/core/auth throws Forbidden) for 403. */
   permission?: (ctx: { actor: A; input: Input<S> }) => void | Promise<void>;
   /** Validates the JSON body, or the query string for GET, HEAD and DELETE. */
   input?: S;

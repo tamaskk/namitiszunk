@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@namitiszunk/core": "workspace:*",
+    "@namitiszunk/validators": "workspace:*",
     "@sentry/nextjs": "11.10.0",
     "next": "16.4.4",
     "react": "19.3.0",

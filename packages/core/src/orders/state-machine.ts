@@ -1,5 +1,7 @@
 import type { OrderStatus } from "@namitiszunk/db";
 
+import type { Action } from "../auth/permissions";
+
 export const orderEvents = [
   "payment_succeeded",
   "payment_timeout",
@@ -94,7 +96,20 @@ export function next(
   return rule.to;
 }
 
-export type OrderAction = `order.${OrderEvent}` | "order.handOverVip";
+// The RBAC action (T-023) each event needs; `satisfies` keeps it in step with the permission matrix.
+const actionByEvent = {
+  payment_succeeded: "order.pay",
+  payment_timeout: "order.cancel",
+  start_preparing: "order.start",
+  reject: "order.reject",
+  mark_ready: "order.ready",
+  pick_up: "order.pickUp",
+  expire: "order.expire",
+  refund: "order.refund",
+} as const satisfies Record<OrderEvent, Action>;
+
+export type OrderAction =
+  (typeof actionByEvent)[OrderEvent] | "order.handOverVip";
 
 /** The RBAC action for an event: a VIP hand-over is its own permission (vip_host, manager, owner). */
 export function actionFor(
@@ -103,5 +118,5 @@ export function actionFor(
 ): OrderAction {
   return event === "pick_up" && order.isVip
     ? "order.handOverVip"
-    : `order.${event}`;
+    : actionByEvent[event];
 }

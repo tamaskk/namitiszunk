@@ -1,7 +1,7 @@
 /**
  * Errors a service throws on purpose. The API wrapper (apps/api/lib/handler.ts) maps them to
  * `{ error: { code, messageKey, fields } }` with `status`; anything else is a 500.
- * shortcut: T-023 builds its own Forbidden in parallel; make it extend AppError (status 403) once merged.
+ * A missing permission is T-023's `Forbidden` (@namitiszunk/core/auth), an AppError with status 403.
  */
 export class AppError extends Error {
   constructor(
@@ -16,12 +16,6 @@ export class AppError extends Error {
   /** Key in the `apiErrors` namespace of @namitiszunk/i18n; clients translate it. */
   get messageKey(): string {
     return `apiErrors.${this.code}`;
-  }
-}
-
-export class ForbiddenError extends AppError {
-  constructor() {
-    super(403, "forbidden");
   }
 }
 
