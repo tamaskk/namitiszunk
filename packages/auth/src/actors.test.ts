@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { PlatformMember, VenueMember } from "@namitiszunk/db";
 import { Types } from "mongoose";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { userActorFromHeaders } from "./actors";
 import {
@@ -61,6 +61,13 @@ function cookieHeaders(app: AuthApp, token: string): Headers {
 async function markTwoFactorVerified(app: AuthApp, token: string) {
   const ctx = await auths[app].$context;
   await ctx.internalAdapter.updateSession(token, { twoFactorVerified: true });
+}
+
+/** Rate limits use fixed clock windows: start a counting test right after a 15-minute boundary so it never spans two windows. */
+function freezeAtWindowStart() {
+  const quarter = 15 * 60 * 1000;
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(Math.ceil(Date.now() / quarter) * quarter + 1000);
 }
 
 describe("session separation", () => {
@@ -424,6 +431,10 @@ describe("API sessions (wave 2)", () => {
 
   it("locks TOTP checks for a user after 5 attempts, whatever the IP", async () => {
     const { token } = await signedInUser("hq", { twoFactorEnabled: true });
+    freezeAtWindowStart();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const attempt = (i: number) =>
       auths.hq.api
         .verifyTOTP({
@@ -446,6 +457,10 @@ describe("API sessions (wave 2)", () => {
   });
 
   it("sends at most 5 e-mail links per address in 15 minutes, whatever the IP", async () => {
+    freezeAtWindowStart();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const send = (i: number) =>
       auths.order.api
         .signInMagicLink({
