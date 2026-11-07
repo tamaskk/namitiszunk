@@ -1,4 +1,5 @@
 export { assertIntegerHuf } from "./money/assert-integer-huf";
+export { businessDate, type BusinessDayVenue } from "./orders/business-date";
 export {
   calculateOrder,
   SMS_FEE_HUF,

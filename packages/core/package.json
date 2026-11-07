@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./audit": "./src/audit/audit.ts"
+    "./audit": "./src/audit/audit.ts",
+    "./short-number": "./src/orders/short-number.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -23,6 +24,7 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.5.0",
     "@namitiszunk/db": "workspace:*",
     "server-only": "^0.0.1"
   }
