@@ -26,7 +26,20 @@
     "two_factor_required": "Add meg a hitelesítő alkalmazásod kódját.",
     "two_factor_setup_required": "A folytatáshoz állítsd be a kétlépcsős azonosítást.",
     "invite_invalid": "Ez a meghívó lejárt vagy már felhasználták.",
-    "invite_conflict": "Már tag vagy ebben a klubban, vagy ez a név foglalt."
+    "invite_conflict": "Már tag vagy ebben a klubban, vagy ez a név foglalt.",
+    "venue_closed": "Ez a hely most nem fogad rendelést.",
+    "bar_closed": "Ez a pult zárva van. Válassz másik pultot.",
+    "bar_paused": "Ez a pult néhány percre szünetelteti a rendeléseket. Próbáld újra kicsit később.",
+    "items_unavailable": "Néhány tétel épp elfogyott. A kosarad frissült.",
+    "too_many_items": "Túl sok tétel egy rendelésben. Vegyél ki néhányat, és próbáld újra.",
+    "promo_invalid": "Ez a promóciós kód nem érvényes.",
+    "below_minimum_order": "A rendelésed a hely minimuma alatt van.",
+    "below_minimum_charge": "A végösszeg kisebb a kártyával fizethető legkisebb összegnél.",
+    "nothing_to_charge": "Ebben a rendelésben nincs mit kifizetni.",
+    "order_not_paid": "Ehhez a rendeléshez nincs visszatéríthető fizetés.",
+    "refund_exceeds_remaining": "Az összeg több, mint ami még visszatéríthető.",
+    "refund_failed": "A visszatérítés nem sikerült. Próbáld újra, vagy írj a supportnak.",
+    "refund_not_allowed_in_status": "Ez a rendelés a mostani állapotában nem téríthető vissza."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon"

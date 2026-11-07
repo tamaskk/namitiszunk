@@ -10,7 +10,9 @@ import {
   refundExpiredOrder,
   sendPickupReminder,
 } from "@namitiszunk/core/jobs";
+import { AppError } from "@namitiszunk/core/errors";
 import * as Sentry from "@sentry/nextjs";
+import { RetryAfterError } from "inngest";
 
 import { connectJobsDb } from "./db";
 import {
@@ -99,6 +101,33 @@ export const expire = inngest.createFunction(
   },
 );
 
+// A rejection (staff, or the guest before acceptance) refunds the full amount and the platform fee.
+export const rejectRefund = inngest.createFunction(
+  {
+    id: "order-reject-refund",
+    triggers: [
+      { event: orderStatusChanged, if: 'event.data.event == "reject"' },
+    ],
+    onFailure: reportFailure,
+  },
+  async ({ event, step }) =>
+    step.run("refund", async () => {
+      await connectJobsDb();
+      try {
+        await deps.refundRejected(event.data.orderId);
+      } catch (error) {
+        // Rejected before the payment webhook stored the Payment as paid: retry once it has.
+        if (error instanceof AppError && error.code === "order_not_paid") {
+          throw new RetryAfterError("payment not recorded yet", "30s", {
+            cause: error,
+          });
+        }
+        throw error;
+      }
+      return "refunded";
+    }),
+);
+
 export const notify = inngest.createFunction(
   {
     id: "order-notify",
@@ -171,6 +200,7 @@ export const functions = [
   paymentTimeout,
   pickupReminder,
   expire,
+  rejectRefund,
   notify,
   stripeReconcile,
   retentionDaily,

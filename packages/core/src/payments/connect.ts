@@ -12,6 +12,12 @@ import { audit, type AuditEntry, auditActorOf } from "../audit/audit";
 import { type Actor, requirePermission } from "../auth/permissions";
 import { AppError, ConflictError, NotFoundError } from "../errors";
 import { reportError } from "../report-error";
+import { handlePaymentFailed, handlePaymentSucceeded } from "./payment-intents";
+import {
+  handleRefundEvent,
+  type RefundEvent,
+  refundEventTypes,
+} from "./refund";
 import { stripe } from "./stripe-client";
 
 /** The guest ordering site; Apple Pay and Google Pay need it registered on every connected account. */
@@ -238,7 +244,7 @@ export async function handleAccountUpdated(
 
 /**
  * The Connect webhook (apps/api/app/webhooks/stripe): verifies first, then dispatches.
- * Event types without a handler yet are acknowledged and not stored; T-033 adds the payment events.
+ * Event types without a handler are acknowledged and not stored.
  */
 export async function processConnectWebhook(
   rawBody: string,
@@ -250,6 +256,14 @@ export async function processConnectWebhook(
   // A test-mode event never changes production data, nor a live one a preview or local database.
   if (event.livemode !== (process.env.VERCEL_ENV === "production")) return;
   if (event.type === "account.updated") await handleAccountUpdated(event);
+  if (event.type === "payment_intent.succeeded") {
+    await handlePaymentSucceeded(event);
+  }
+  if (event.type === "payment_intent.payment_failed") {
+    await handlePaymentFailed(event);
+  }
+  if (refundEventTypes.has(event.type))
+    await handleRefundEvent(event as RefundEvent);
 }
 
 /** Order creation (T-033) calls this: only a venue whose connected account can charge takes orders. */

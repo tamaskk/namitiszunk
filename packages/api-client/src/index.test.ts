@@ -213,6 +213,49 @@ describe("orders.create", () => {
   });
 });
 
+describe("orders.refund", () => {
+  it("posts the amount and reason with one Idempotency-Key across retries", async () => {
+    const orderId = "0123456789abcdef0123abcd";
+    const keys: (string | null)[] = [];
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(`${base}/v1/orders/${orderId}/refunds`, async ({ request }) => {
+        keys.push(request.headers.get("idempotency-key"));
+        bodies.push(await request.json());
+        if (keys.length === 1) return errorBody(503, "internal");
+        return HttpResponse.json({
+          data: { refundId: orderId, amountHuf: 1000, status: "pending" },
+        });
+      }),
+    );
+
+    const result = await client.orders.refund(orderId, {
+      amountHuf: 1000,
+      reason: "Missing ice",
+    });
+
+    expect(result).toEqual({
+      refundId: orderId,
+      amountHuf: 1000,
+      status: "pending",
+    });
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBe(keys[1]);
+    expect(bodies[0]).toEqual({ amountHuf: 1000, reason: "Missing ice" });
+  });
+
+  it("rejects a fractional amount before sending", async () => {
+    const error = await caught(
+      client.orders.refund("0123456789abcdef0123abcd", {
+        amountHuf: 10.5,
+        reason: "x",
+      }),
+    );
+
+    expect(error.code).toBe("invalid_input");
+  });
+});
+
 describe("realtime.token", () => {
   it("posts the venue and sends a guest token header when given", async () => {
     const tokenRequest = {

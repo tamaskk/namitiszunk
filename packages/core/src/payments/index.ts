@@ -11,3 +11,16 @@ export {
   setPayoutSchedule,
 } from "./connect";
 export { cancelOrderPaymentIntents, listSucceededCharges } from "./charges";
+export {
+  createOrder,
+  type CreatedOrder,
+  type CreateOrderOptions,
+  reissueOrderPayment,
+} from "./create-order";
+export {
+  assertMayRefund,
+  type RefundAmount,
+  refundOrder,
+  refundOrderInFull,
+  type RefundResult,
+} from "./refund";

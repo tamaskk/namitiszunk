@@ -47,6 +47,8 @@ export type StatusChangedHook = (change: StatusChanged) => Promise<void> | void;
 export type TransitionOptions = {
   /** Required when staff rejects an order. */
   reason?: string;
+  /** For `refund`: the amount and the venue's manager refund limit, so the RBAC limit check can pass (T-034). */
+  resource?: Pick<Resource, "amountHuf" | "managerRefundLimitHuf">;
   /** Gets each failed post-commit hook (Ably publish, onStatusChanged hooks) once; defaults to setDefaultErrorReporter's. */
   reportError?: (error: unknown) => void;
   now?: Date;
@@ -133,8 +135,12 @@ export async function transitionWith(
       if (!order || !canSee(actor, { venueId, guestId })) {
         throw new NotFoundError();
       }
-      // shortcut: the venue has no manager refund limit field yet, so it stays undefined and a manager refund through transition() is denied; T-034 passes amountHuf and the limit.
-      await authorize(actor, actionFor(event, order), { venueId, guestId });
+      // Without options.resource the manager refund limit stays undefined, so a manager refund is denied (fail closed).
+      await authorize(actor, actionFor(event, order), {
+        ...options.resource,
+        venueId,
+        guestId,
+      });
 
       const venue = await Venue.findById(order.venueId)
         .select("orderRules")

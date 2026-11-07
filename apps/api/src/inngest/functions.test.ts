@@ -10,6 +10,7 @@ import {
   notify,
   paymentTimeout,
   pickupReminder,
+  rejectRefund,
   stripeReconcile,
 } from "./functions";
 
@@ -169,6 +170,60 @@ describe("order/expire", () => {
       orderId,
       deps.refundPayment,
     );
+  });
+
+  it("refunds a rejected order in full", async () => {
+    const refundRejected = vi
+      .spyOn(deps, "refundRejected")
+      .mockResolvedValueOnce(undefined);
+    const t = new InngestTestEngine({ function: rejectRefund });
+
+    const { result } = await t.execute({
+      events: [
+        {
+          name: "order/status.changed",
+          data: {
+            ...readyEvent.data,
+            event: "reject",
+            from: "new",
+            to: "rejected",
+          },
+        },
+      ],
+    });
+
+    expect(refundRejected).toHaveBeenCalledWith(orderId);
+    expect(result).toBe("refunded");
+    expect(rejectRefund.opts.triggers).toEqual([
+      expect.objectContaining({ if: 'event.data.event == "reject"' }),
+    ]);
+  });
+
+  it("retries the rejection refund later while the payment is not recorded yet", async () => {
+    const { ConflictError } = await import("@namitiszunk/core/errors");
+    vi.spyOn(deps, "refundRejected").mockRejectedValueOnce(
+      new ConflictError("order_not_paid"),
+    );
+    const t = new InngestTestEngine({ function: rejectRefund });
+
+    const { error } = await t.execute({
+      events: [
+        {
+          name: "order/status.changed",
+          data: {
+            ...readyEvent.data,
+            event: "reject",
+            from: "new",
+            to: "rejected",
+          },
+        },
+      ],
+    });
+
+    expect(error).toMatchObject({
+      name: "RetryAfterError",
+      message: "payment not recorded yet",
+    });
   });
 
   it("does not wait for an order no longer Ready", async () => {

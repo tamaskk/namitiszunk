@@ -42,6 +42,8 @@ const components = {
   StripeConnectInput: payments.stripeConnectInputSchema,
   ConnectAccountResponse: payments.connectAccountResponseSchema,
   AccountLinkResponse: payments.accountLinkResponseSchema,
+  RefundOrderInput: payments.refundOrderInputSchema,
+  RefundResponse: payments.refundResponseSchema,
   RealtimeTokenInput: realtime.realtimeTokenInputSchema,
   RealtimeTokenResponse: realtime.realtimeTokenResponseSchema,
   PingResponse: pingResponseSchema,
@@ -59,6 +61,8 @@ type Operation = {
   request?: ComponentName;
   response: ComponentName;
   status: 200 | 201;
+  /** "staff": a signed-in admin or HQ session; adds 401, 403 and 409. */
+  auth?: "staff";
 };
 
 // Endpoints that exist in the spec today; every new route (T-029 onwards) adds its line here.
@@ -72,6 +76,18 @@ const operations: Operation[] = [
     request: "CreateOrderInput",
     response: "CreateOrderResponse",
     status: 201,
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/refunds",
+    operationId: "refundOrder",
+    summary:
+      "Refund a paid order in full or in part (Manager, Owner, or HQ support with write confirmation)",
+    tag: "orders",
+    request: "RefundOrderInput",
+    response: "RefundResponse",
+    status: 200,
+    auth: "staff",
   },
   {
     method: "get",
@@ -159,14 +175,35 @@ function buildPaths() {
       operationId: op.operationId,
       summary: op.summary,
       tags: [op.tag],
-      // shortcut: all listed endpoints are public; T-029/T-030 add security schemes for staff routes.
-      security: [],
+      ...(op.path.includes("{id}") && {
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+      }),
+      // shortcut: only the refund route declares its staff session so far; the other staff routes still list none.
+      security:
+        op.auth === "staff"
+          ? [{ adminSession: [] }, { hqSession: [] }, { bearerAuth: [] }]
+          : [],
       ...(op.request && {
         requestBody: { required: true, ...json(op.request) },
       }),
       responses: {
         [op.status]: { description: "Success", ...json(op.response) },
         400: { description: "Invalid input", ...json("ErrorResponse") },
+        ...(op.auth === "staff" && {
+          401: { description: "Not signed in", ...json("ErrorResponse") },
+          403: { description: "Not allowed", ...json("ErrorResponse") },
+          409: {
+            description: "Conflicts with the current state",
+            ...json("ErrorResponse"),
+          },
+        }),
         429: { description: "Rate limited", ...json("ErrorResponse") },
         500: { description: "Unexpected error", ...json("ErrorResponse") },
       },
@@ -204,6 +241,24 @@ export function buildOpenApiDocument() {
       { name: "meta", description: "API health and description" },
     ],
     paths: buildPaths(),
-    components: { schemas },
+    components: {
+      schemas,
+      // Better Auth sessions (T-030): each web app has its own cookie; the mobile app sends a Bearer token.
+      securitySchemes: {
+        adminSession: {
+          type: "apiKey",
+          in: "cookie",
+          name: "nmi-admin.session_token",
+          description: "Over HTTPS the cookie carries the __Secure- prefix.",
+        },
+        hqSession: {
+          type: "apiKey",
+          in: "cookie",
+          name: "nmi-hq.session_token",
+          description: "Over HTTPS the cookie carries the __Secure- prefix.",
+        },
+        bearerAuth: { type: "http", scheme: "bearer" },
+      },
+    },
   };
 }

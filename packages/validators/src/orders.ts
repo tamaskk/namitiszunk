@@ -60,7 +60,10 @@ export const createOrderInputSchema = z
     smsRequested: z.boolean(),
     acceptedTermsVersion: z
       .string()
-      .min(1, { error: "validation.terms.required" }),
+      .min(1, { error: "validation.terms.required" })
+      .max(32),
+    /** PostHog distinct id, copied into the PaymentIntent metadata. */
+    posthogId: z.string().max(200).optional(),
   })
   .refine((order) => !order.smsRequested || order.guestPhone !== undefined, {
     path: ["guestPhone"],
@@ -69,9 +72,10 @@ export const createOrderInputSchema = z
 
 export const createOrderResponseSchema = z.object({
   orderId: objectIdSchema,
-  /** Null when nothing is charged (a fully discounted order). */
-  clientSecret: z.string().nullable(),
-  guestToken: z.string(),
+  /** Null when nothing is charged (a fully discounted order). Absent on a replay once the order left awaiting payment. */
+  clientSecret: z.string().nullable().optional(),
+  /** Absent on a replay once the order left awaiting payment: the first answer's token stays the only one. */
+  guestToken: z.string().optional(),
 });
 
 export const orderItemResponseSchema = z.object({
