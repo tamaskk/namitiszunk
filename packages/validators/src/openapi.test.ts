@@ -35,6 +35,28 @@ describe("buildOpenApiDocument", () => {
     );
   });
 
+  it("declares the staff session and the 401, 403 and 409 answers on the refund route", () => {
+    const { paths, components } = buildOpenApiDocument();
+    const refund = paths["/v1/orders/{id}/refunds"]?.post as {
+      security: unknown[];
+      responses: Record<string, unknown>;
+    };
+
+    expect(refund.security).toEqual([
+      { adminSession: [] },
+      { hqSession: [] },
+      { bearerAuth: [] },
+    ]);
+    expect(Object.keys(refund.responses)).toEqual(
+      expect.arrayContaining(["401", "403", "409"]),
+    );
+    expect(Object.keys(components.securitySchemes)).toEqual([
+      "adminSession",
+      "hqSession",
+      "bearerAuth",
+    ]);
+  });
+
   it("emits a component per area with the cart limits", () => {
     const { components } = buildOpenApiDocument();
 

@@ -30,6 +30,14 @@ describe("createOrderInputSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("refuses a terms version longer than 32 characters", () => {
+    const input = order({ acceptedTermsVersion: "v".repeat(33) });
+
+    const result = createOrderInputSchema.safeParse(input);
+
+    expect(result.success).toBe(false);
+  });
+
   it("accepts quantities 1 and 10 at the boundaries", () => {
     const input = order({
       items: [

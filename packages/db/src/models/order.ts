@@ -160,7 +160,17 @@ const refundSchema = new Schema(
         required: true,
       },
       id: objectId,
+      // Enough to rebuild the actor for the order's `refund` transition when Stripe confirms; no personal data.
+      kind: { type: String, enum: ["staff", "user", "system"] },
+      userId: String,
+      memberId: String,
+      role: String,
+      platformRole: String,
+      confirmedWrite: Boolean,
+      source: { type: String, enum: ["stripe", "inngest"] },
     },
+    /** sha256 of the caller and its Idempotency-Key: a retried request finds this Refund. */
+    requestKey: String,
     stripeRefundId: String,
     status: {
       type: String,
@@ -175,6 +185,13 @@ refundSchema.index(
   {
     unique: true,
     partialFilterExpression: { stripeRefundId: { $type: "string" } },
+  },
+);
+refundSchema.index(
+  { requestKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { requestKey: { $type: "string" } },
   },
 );
 refundSchema.index({ paymentId: 1 });

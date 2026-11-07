@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import {
   afterAll,
@@ -27,6 +29,8 @@ const { POST } = await import("./route");
 
 const orderId = "6a0f1c2b3d4e5f6a7b8c9d0e";
 const route = { params: Promise.resolve({ id: orderId }) };
+const requestKeyOf = (key: string) =>
+  createHash("sha256").update(`manager|${key}`).digest("hex");
 const manager = {
   kind: "user" as const,
   userId: "6a0f1c2b3d4e5f6a7b8c9d01",
@@ -92,7 +96,23 @@ describe("POST /v1/orders/{id}/refunds", () => {
       1000,
       "Missing ice",
       manager,
+      { requestKey: requestKeyOf("refund-key-1") },
     );
+  });
+
+  it("passes the same request key on a retry after a failure, so the service finds the first Refund", async () => {
+    core.refundOrder.mockRejectedValueOnce(new Error("connection reset"));
+    const body = { amountHuf: "full", reason: "Wrong drink" };
+
+    const failed = await POST(post(body, "refund-key-2"), route);
+    const retry = await POST(post(body, "refund-key-2"), route);
+
+    expect(failed.status).toBe(500);
+    expect(retry.status).toBe(200);
+    expect(core.refundOrder.mock.calls.map((call) => call[4])).toEqual([
+      { requestKey: requestKeyOf("refund-key-2") },
+      { requestKey: requestKeyOf("refund-key-2") },
+    ]);
   });
 
   it("answers 403 when the caller may not refund, before the service runs", async () => {

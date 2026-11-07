@@ -31,7 +31,7 @@ vi.mock("../realtime", () => ({ publishStatusChange: vi.fn() }));
 
 // The Stripe API is the boundary: every call is a mock, webhook signatures use the real SDK.
 const api = vi.hoisted(() => ({
-  refunds: { create: vi.fn(), list: vi.fn() },
+  refunds: { create: vi.fn(), list: vi.fn(), retrieve: vi.fn() },
 }));
 vi.mock("./stripe-client", () => ({ stripe: () => api }));
 
@@ -180,8 +180,8 @@ describe("refundOrder", () => {
     });
     const log = await AuditLog.findOne({ action: "refund.created" }).lean();
     expect(log?.after).toMatchObject({ amountHuf: 2490 });
-    // Nothing left to refund: the Owner's refund moves Picked up to Refunded.
-    expect(await statusOf(orderId)).toBe("refunded");
+    // Stripe only accepted it: the order becomes Refunded when the webhook confirms the refund.
+    expect(await statusOf(orderId)).toBe("picked_up");
   });
 
   it("refunds in parts up to the remaining amount, then answers 409", async () => {
@@ -202,7 +202,7 @@ describe("refundOrder", () => {
     ]);
     await refundOrder(orderId, "full", "Rest", owner);
     expect(api.refunds.create.mock.calls.at(-1)?.[0].amount).toBe(100_000);
-    expect(await statusOf(orderId)).toBe("refunded");
+    expect(await statusOf(orderId)).toBe("picked_up");
   });
 
   it("counts failed refunds as not refunded", async () => {
@@ -261,7 +261,7 @@ describe("refundOrder", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("lets HQ support refund for the venue only after the write confirmation, logged as impersonation", async () => {
+  it("lets HQ support refund for the venue only after the write confirmation, logged as the actor", async () => {
     const { orderId } = await paidOrder();
 
     await expect(
@@ -273,7 +273,9 @@ describe("refundOrder", () => {
     const refund = await Refund.findById(result.refundId).lean();
     expect(refund?.initiatedBy?.type).toBe("platform_member");
     const log = await AuditLog.findOne({ action: "refund.created" }).lean();
-    expect(String(log?.impersonatedBy?.id)).toBe(
+    // Acting directly with a platform role is not impersonation: the support user is the actor.
+    expect(log?.impersonatedBy).toBeUndefined();
+    expect(String(log?.actor?.id)).toBe(
       (confirmed as { userId: string }).userId,
     );
   });
@@ -298,7 +300,11 @@ describe("refundOrder", () => {
 
   it("marks the Refund failed and reports it when Stripe refuses", async () => {
     const { orderId } = await paidOrder();
-    const stripeError = new Error("insufficient balance");
+    const stripeError = new Stripe.errors.StripeInvalidRequestError({
+      message: "insufficient balance",
+      type: "invalid_request_error",
+      statusCode: 400,
+    });
     api.refunds.create.mockRejectedValueOnce(stripeError);
 
     await expect(refundOrder(orderId, 500, "x", owner)).rejects.toMatchObject({
@@ -310,6 +316,156 @@ describe("refundOrder", () => {
     expect(reported).toHaveBeenCalledWith(stripeError);
     expect(await AuditLog.countDocuments({ action: "refund.failed" })).toBe(1);
     expect(await statusOf(orderId)).toBe("picked_up");
+  });
+});
+
+describe("refundOrder: unknown outcome, retries, status and limits", () => {
+  it("keeps the Refund pending when the Stripe call times out, and a retry resends it with the same key", async () => {
+    const { orderId } = await paidOrder();
+    const timeout = new Stripe.errors.StripeConnectionError({
+      message: "timed out",
+    });
+    api.refunds.create.mockRejectedValueOnce(timeout);
+
+    const first = await refundOrder(orderId, 1000, "Ice", owner, {
+      requestKey: "k".repeat(64),
+    });
+    const retry = await refundOrder(orderId, 1000, "Ice", owner, {
+      requestKey: "k".repeat(64),
+    });
+
+    expect(first).toMatchObject({ amountHuf: 1000, status: "pending" });
+    expect(retry.refundId).toBe(first.refundId);
+    const refund = await Refund.findById(first.refundId).lean();
+    expect(refund?.status).toBe("pending");
+    expect(refund?.stripeRefundId).toBe(`re_${first.refundId}`);
+    expect(reported).toHaveBeenCalledWith(timeout);
+    expect(
+      api.refunds.create.mock.calls.map((c) => c[1].idempotencyKey),
+    ).toEqual([first.refundId, first.refundId]);
+    // Pending counts as refunded, so the rest is 1490.
+    await expect(refundOrder(orderId, 1491, "x", owner)).rejects.toMatchObject({
+      code: "refund_exceeds_remaining",
+    });
+  });
+
+  it("keeps the Refund pending on a Stripe 5xx", async () => {
+    const { orderId } = await paidOrder();
+    api.refunds.create.mockRejectedValueOnce(
+      new Stripe.errors.StripeAPIError({
+        message: "server error",
+        type: "api_error",
+        statusCode: 500,
+      }),
+    );
+
+    const result = await refundOrder(orderId, 500, "x", owner);
+
+    expect(result.status).toBe("pending");
+    expect((await Refund.findById(result.refundId).lean())?.status).toBe(
+      "pending",
+    );
+  });
+
+  it("returns the existing Refund for a repeated request key after a failure after the commit", async () => {
+    const { orderId } = await paidOrder();
+    // Stripe's own idempotency: the same key gives the same refund.
+    const stripeRefunds = new Map<string, { id: string; status: string }>();
+    api.refunds.create.mockImplementation(
+      async (_p: unknown, opts: { idempotencyKey: string }) => {
+        const refund = stripeRefunds.get(opts.idempotencyKey) ?? {
+          id: `re_${stripeRefunds.size + 1}`,
+          status: "pending",
+        };
+        stripeRefunds.set(opts.idempotencyKey, refund);
+        return refund;
+      },
+    );
+    const crash = vi
+      .spyOn(Refund, "updateOne")
+      .mockRejectedValueOnce(new Error("connection reset"));
+
+    await expect(
+      refundOrder(orderId, "full", "Wrong drink", owner, {
+        requestKey: "r".repeat(64),
+      }),
+    ).rejects.toThrow("connection reset");
+    crash.mockRestore();
+    const retry = await refundOrder(orderId, "full", "Wrong drink", owner, {
+      requestKey: "r".repeat(64),
+    });
+
+    expect(await Refund.countDocuments()).toBe(1);
+    expect(stripeRefunds.size).toBe(1);
+    expect(retry).toMatchObject({ amountHuf: 2490, status: "pending" });
+    expect((await Refund.findById(retry.refundId).lean())?.stripeRefundId).toBe(
+      "re_1",
+    );
+  });
+
+  it("refuses a request key reused for another order", async () => {
+    const a = await paidOrder();
+    const b = await paidOrder();
+    await refundOrder(a.orderId, 100, "x", owner, {
+      requestKey: "z".repeat(64),
+    });
+
+    await expect(
+      refundOrder(b.orderId, 100, "x", owner, { requestKey: "z".repeat(64) }),
+    ).rejects.toMatchObject({ status: 409, code: "idempotency_key_reused" });
+  });
+
+  it.each([
+    "awaiting_payment",
+    "new",
+    "preparing",
+    "ready",
+    "rejected",
+    "cancelled",
+    "refunded",
+  ] as const)(
+    "refuses a staff refund while the order is %s (409)",
+    async (status) => {
+      const { orderId } = await paidOrder(status);
+
+      await expect(refundOrder(orderId, 100, "x", owner)).rejects.toMatchObject(
+        {
+          status: 409,
+          code: "refund_not_allowed_in_status",
+        },
+      );
+      expect(api.refunds.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it("lets only confirmed HQ support refund a cancelled order that was paid late", async () => {
+    const { orderId } = await paidOrder("cancelled");
+
+    await expect(refundOrder(orderId, 100, "x", manager)).rejects.toMatchObject(
+      { code: "refund_not_allowed_in_status" },
+    );
+    await expect(
+      refundOrder(orderId, 100, "x", support(false)),
+    ).rejects.toBeInstanceOf(Forbidden);
+
+    await expect(
+      refundOrder(orderId, 100, "Late payment", support(true)),
+    ).resolves.toMatchObject({ amountHuf: 100 });
+  });
+
+  it("checks a manager's limit against the manager refunds of the order together", async () => {
+    const { orderId } = await paidOrder();
+    const limit = { managerRefundLimitHuf: 1000 };
+
+    await refundOrder(orderId, 600, "Ice", manager, limit);
+    await refundOrder(orderId, 500, "Owner call", owner, limit);
+
+    await expect(
+      refundOrder(orderId, 500, "Lime", member("manager"), limit),
+    ).rejects.toBeInstanceOf(Forbidden);
+    await expect(
+      refundOrder(orderId, 400, "Lime", manager, limit),
+    ).resolves.toMatchObject({ amountHuf: 400 });
   });
 });
 
@@ -331,6 +487,40 @@ describe("refundOrderInFull", () => {
       initiatedBy: { type: "system" },
     });
     expect(await statusOf(orderId)).toBe("rejected");
+  });
+
+  it("refunds a late payment of a cancelled order once", async () => {
+    const { orderId } = await paidOrder("cancelled");
+
+    await refundOrderInFull(orderId, "late_payment");
+    await refundOrderInFull(orderId, "late_payment");
+
+    expect(api.refunds.create).toHaveBeenCalledTimes(1);
+    expect(await Refund.findOne().lean()).toMatchObject({
+      amountHuf: 2490,
+      reason: "late_payment",
+    });
+    expect(await statusOf(orderId)).toBe("cancelled");
+  });
+
+  it("does not refund twice after the webhook moved the expired order to Refunded", async () => {
+    const { orderId, payment } = await paidOrder("refunded");
+    await Payment.updateOne({}, { $set: { status: "refunded" } });
+    await Refund.create({
+      venueId,
+      paymentId: payment._id,
+      orderId,
+      amountHuf: 2490,
+      reason: "expired",
+      initiatedBy: { type: "system", kind: "system", source: "inngest" },
+      stripeRefundId: "re_done",
+      status: "succeeded",
+    });
+
+    await expect(
+      refundOrderInFull(orderId, "expired"),
+    ).resolves.toBeUndefined();
+    expect(api.refunds.create).not.toHaveBeenCalled();
   });
 
   it("resends a Refund committed before a crash with the same idempotency key", async () => {
@@ -376,27 +566,30 @@ describe("refund webhooks", () => {
       paymentIntent?: string;
     },
     account = accountId,
-  ) => ({
-    id,
-    object: "event",
-    type,
-    account,
-    api_version: "2026-10-28.endive",
-    created: 1_794_000_000,
-    livemode: false,
-    pending_webhooks: 1,
-    request: { id: null, idempotency_key: null },
-    data: {
-      object: {
-        id: refund.id,
-        object: "refund",
-        status: refund.status,
-        amount: refund.amount ?? 100_000,
-        payment_intent: refund.paymentIntent ?? "pi_1",
-        metadata: { refundId: refund.refundId },
-      },
-    },
-  });
+  ) => {
+    const object = {
+      id: refund.id,
+      object: "refund",
+      status: refund.status,
+      amount: refund.amount ?? 100_000,
+      payment_intent: refund.paymentIntent ?? "pi_1",
+      metadata: { refundId: refund.refundId },
+    };
+    // Stripe's current state of the refund; a test may override it to model an out-of-order event.
+    api.refunds.retrieve.mockResolvedValue(object);
+    return {
+      id,
+      object: "event",
+      type,
+      account,
+      api_version: "2026-10-28.endive",
+      created: 1_794_000_000,
+      livemode: false,
+      pending_webhooks: 1,
+      request: { id: null, idempotency_key: null },
+      data: { object },
+    };
+  };
 
   it("marks the Refund succeeded, the Payment refunded and tries the order transition (charge.refunded)", async () => {
     const { orderId } = await paidOrder("expired");
@@ -496,6 +689,145 @@ describe("refund webhooks", () => {
       1,
     );
     expect(await StripeEvent.countDocuments({ eventId: "evt_dup" })).toBe(1);
+  });
+
+  it("moves a fully refunded order to Refunded only when Stripe confirms, as the staff member who refunded", async () => {
+    const { orderId } = await paidOrder();
+    const { refundId } = await refundOrder(
+      orderId,
+      "full",
+      "Wrong drink",
+      owner,
+    );
+    expect(await statusOf(orderId)).toBe("picked_up");
+
+    await processConnectWebhook(
+      ...signed(
+        refundEvent("evt_full", "refund.updated", {
+          id: `re_${refundId}`,
+          status: "succeeded",
+          refundId,
+          amount: 249_000,
+        }),
+      ),
+    );
+
+    expect(api.refunds.retrieve).toHaveBeenCalledWith(
+      `re_${refundId}`,
+      {},
+      { stripeAccount: accountId },
+    );
+    expect(await statusOf(orderId)).toBe("refunded");
+    const log = await AuditLog.findOne({ action: "order.refund" }).lean();
+    expect(String(log?.actor?.id)).toBe((owner as { userId: string }).userId);
+  });
+
+  it("leaves the order Picked up and reports it when the full refund fails", async () => {
+    const { orderId } = await paidOrder();
+    const { refundId } = await refundOrder(
+      orderId,
+      "full",
+      "Wrong drink",
+      owner,
+    );
+
+    await processConnectWebhook(
+      ...signed(
+        refundEvent("evt_full_fail", "refund.failed", {
+          id: `re_${refundId}`,
+          status: "failed",
+          refundId,
+          amount: 249_000,
+        }),
+      ),
+    );
+
+    expect(await statusOf(orderId)).toBe("picked_up");
+    expect((await Refund.findById(refundId).lean())?.status).toBe("failed");
+    expect(reported).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining(refundId) }),
+    );
+  });
+
+  it("finishes the Refunded transition on a redelivery after it failed", async () => {
+    const { orderId } = await paidOrder();
+    const { refundId } = await refundOrder(
+      orderId,
+      "full",
+      "Wrong drink",
+      owner,
+    );
+    const event = signed(
+      refundEvent("evt_retry", "refund.updated", {
+        id: `re_${refundId}`,
+        status: "succeeded",
+        refundId,
+        amount: 249_000,
+      }),
+    );
+    const blip = vi
+      .spyOn(Order, "findOneAndUpdate")
+      .mockImplementationOnce(() => {
+        throw new Error("primary stepped down");
+      });
+
+    await expect(processConnectWebhook(...event)).rejects.toThrow(
+      "primary stepped down",
+    );
+    blip.mockRestore();
+    expect(await statusOf(orderId)).toBe("picked_up");
+    await processConnectWebhook(...event);
+
+    expect(await statusOf(orderId)).toBe("refunded");
+    expect(await StripeEvent.countDocuments({ eventId: "evt_retry" })).toBe(1);
+  });
+
+  it("trusts Stripe's current refund over an older event that arrives late", async () => {
+    const { orderId } = await paidOrder();
+    const { refundId } = await refundOrder(orderId, 1000, "Ice", owner);
+    await processConnectWebhook(
+      ...signed(
+        refundEvent("evt_failed_first", "refund.failed", {
+          id: `re_${refundId}`,
+          status: "failed",
+          refundId,
+        }),
+      ),
+    );
+    const stale = refundEvent("evt_old_success", "refund.updated", {
+      id: `re_${refundId}`,
+      status: "succeeded",
+      refundId,
+    });
+    api.refunds.retrieve.mockResolvedValue({
+      ...stale.data.object,
+      status: "failed",
+    });
+
+    await processConnectWebhook(...signed(stale));
+
+    expect((await Refund.findById(refundId).lean())?.status).toBe("failed");
+    expect((await Payment.findOne().lean())?.status).toBe("succeeded");
+  });
+
+  it("reports a Stripe refund made outside the app", async () => {
+    await paidOrder();
+
+    await processConnectWebhook(
+      ...signed(
+        refundEvent("evt_dashboard", "refund.updated", {
+          id: "re_dashboard",
+          status: "succeeded",
+          refundId: "",
+        }),
+      ),
+    );
+
+    expect(reported).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("re_dashboard"),
+      }),
+    );
   });
 
   it("ignores a refund we did not create", async () => {

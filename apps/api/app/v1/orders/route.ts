@@ -30,17 +30,21 @@ export const POST = handler(
     permission: "none",
     input: createOrderInputSchema,
     rateLimit: { limit: 10, windowSeconds: 60 },
-    // Only the order id is stored; a replay re-issues the guest token and the client secret.
+    // Only the order id is stored; a replay re-issues the guest token and the client secret while the
+    // order awaits payment, and answers with the order id alone after that.
     idempotent: {
       toReplay: (body) => ({
         orderId: (body as { data: { orderId: string } }).data.orderId,
       }),
-      fromReplay: async (stored) => {
+      fromReplay: async (stored, { input }) => {
         const guest = createGuestToken();
         const order = await reissueOrderPayment(
           (stored as { orderId: string }).orderId,
           guest.hash,
+          input.posthogId,
         );
+        if (!("clientSecret" in order))
+          return { data: { orderId: order.orderId } };
         return {
           data: {
             orderId: order.orderId,

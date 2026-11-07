@@ -7,6 +7,7 @@ import {
   Item,
   Order,
   Payment,
+  Refund,
   StripeEvent,
   Venue,
 } from "@namitiszunk/db";
@@ -31,6 +32,7 @@ vi.mock("server-only", () => ({}));
 // Stripe and Ably are the boundaries; signatures use the real SDK.
 const api = vi.hoisted(() => ({
   paymentIntents: { create: vi.fn(), retrieve: vi.fn() },
+  refunds: { create: vi.fn() },
 }));
 vi.mock("./stripe-client", () => ({ stripe: () => api }));
 vi.mock("ably", () => ({
@@ -60,7 +62,7 @@ beforeAll(async () => {
   replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   mongoose = await connectDb(replSet.getUri("namitiszunk_payments_test"));
   await Promise.all(
-    [Order, Payment, Counter, StripeEvent, AuditLog].map((m) =>
+    [Order, Payment, Refund, Counter, StripeEvent, AuditLog].map((m) =>
       m.syncIndexes(),
     ),
   );
@@ -169,7 +171,13 @@ const create = (overrides: Partial<CreateOrderInput> = {}) =>
 function intentEvent(
   id: string,
   type: "payment_intent.succeeded" | "payment_intent.payment_failed",
-  intent: { id: string; amount: number; orderId: string; currency?: string },
+  intent: {
+    id: string;
+    amount: number;
+    orderId: string;
+    currency?: string;
+    applicationFee?: number;
+  },
   account = accountId,
 ) {
   const body = JSON.stringify({
@@ -188,6 +196,7 @@ function intentEvent(
         object: "payment_intent",
         amount: intent.amount,
         currency: intent.currency ?? "huf",
+        application_fee_amount: intent.applicationFee ?? null,
         status:
           type === "payment_intent.succeeded"
             ? "succeeded"
@@ -212,6 +221,7 @@ async function paidEvent(id = "evt_paid_1") {
       id: payment!.stripePaymentIntentId,
       amount: payment!.amountHuf * 100,
       orderId,
+      applicationFee: payment!.applicationFeeHuf * 100,
     }),
   };
 }
@@ -344,6 +354,39 @@ describe("createOrder", () => {
       .lean();
     expect(order!.guestTokenHash).toBe("b".repeat(64));
   });
+
+  it("creates the PaymentIntent again on replay when a crash left no Payment, with the same key and parameters", async () => {
+    const { orderId, clientSecret } = await create({ posthogId: "ph_1" });
+    await Payment.deleteMany({ orderId });
+
+    const replay = await reissueOrderPayment(orderId, "b".repeat(64), "ph_1");
+
+    expect(api.paymentIntents.create).toHaveBeenCalledTimes(2);
+    const [first, again] = api.paymentIntents.create.mock.calls;
+    expect(again).toEqual(first);
+    expect(replay).toEqual({ orderId, clientSecret });
+    expect(await Payment.findOne({ orderId }).lean()).toMatchObject({
+      status: "requires_payment",
+      amountHuf: 7764,
+    });
+  });
+
+  it("does not rotate the guest token on replay once the order left awaiting payment", async () => {
+    const { orderId } = await create();
+    await Order.updateOne({ _id: orderId }, { $set: { status: "new" } });
+    const before = await Order.findById(orderId)
+      .select("+guestTokenHash")
+      .lean();
+
+    const replay = await reissueOrderPayment(orderId, "b".repeat(64));
+
+    expect(replay).toEqual({ orderId });
+    const after = await Order.findById(orderId)
+      .select("+guestTokenHash")
+      .lean();
+    expect(after!.guestTokenHash).toBe(before!.guestTokenHash);
+    expect(api.paymentIntents.retrieve).not.toHaveBeenCalled();
+  });
 });
 
 describe("payment_intent webhooks", () => {
@@ -397,13 +440,14 @@ describe("payment_intent webhooks", () => {
     expect(await status(orderId)).toBe("new");
   });
 
-  it("does not resurrect an order the timeout cancelled: it reports it for a refund", async () => {
+  it("does not resurrect an order the timeout cancelled: it refunds the late payment in full, once", async () => {
     const { orderId, event } = await paidEvent();
     const { transition } = await import("../orders/transition");
     await transition(orderId, "payment_timeout", {
       kind: "system",
       source: "inngest",
     });
+    api.refunds.create.mockResolvedValue({ id: "re_late", status: "pending" });
 
     await processConnectWebhook(...event);
     await processConnectWebhook(...event);
@@ -412,10 +456,65 @@ describe("payment_intent webhooks", () => {
     expect((await Payment.findOne({ orderId }).lean())!.status).toBe(
       "succeeded",
     );
-    expect(reported).toHaveBeenCalledTimes(1);
-    expect(String(reported.mock.calls[0]![0])).toMatch(
-      /after order .* was cancelled/,
+    expect(api.refunds.create).toHaveBeenCalledTimes(1);
+    expect(api.refunds.create.mock.calls[0]![0]).toMatchObject({
+      amount: 776_400,
+      refund_application_fee: true,
+    });
+    expect(await Refund.findOne({ orderId }).lean()).toMatchObject({
+      amountHuf: 7764,
+      reason: "late_payment",
+      initiatedBy: { type: "system" },
+    });
+  });
+
+  it("does not pay the order when the application fee does not match", async () => {
+    const { orderId } = await create();
+    const payment = await Payment.findOne({ orderId }).lean();
+
+    await processConnectWebhook(
+      ...intentEvent("evt_fee", "payment_intent.succeeded", {
+        id: payment!.stripePaymentIntentId,
+        amount: payment!.amountHuf * 100,
+        orderId,
+        applicationFee: 0,
+      }),
     );
+
+    expect(await status(orderId)).toBe("awaiting_payment");
+    expect(reported).toHaveBeenCalledTimes(1);
+  });
+
+  it("acknowledges and reports a PaymentIntent with no Payment whose order does not exist", async () => {
+    const event = intentEvent("evt_orphan", "payment_intent.succeeded", {
+      id: "pi_orphan",
+      amount: 100_000,
+      orderId: new Types.ObjectId().toHexString(),
+    });
+
+    await expect(processConnectWebhook(...event)).resolves.toBeUndefined();
+
+    expect(await StripeEvent.countDocuments({ eventId: "evt_orphan" })).toBe(1);
+    expect(reported).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("pi_orphan"),
+      }),
+    );
+  });
+
+  it("asks Stripe to retry a PaymentIntent whose Payment is not stored yet", async () => {
+    const { orderId } = await create();
+    const payment = await Payment.findOne({ orderId }).lean();
+    await Payment.deleteMany({ orderId });
+    const event = intentEvent("evt_race", "payment_intent.succeeded", {
+      id: payment!.stripePaymentIntentId,
+      amount: payment!.amountHuf * 100,
+      orderId,
+    });
+
+    await expect(processConnectWebhook(...event)).rejects.toThrow(/no Payment/);
+
+    expect(await StripeEvent.countDocuments({ eventId: "evt_race" })).toBe(0);
   });
 
   it("does not pay the order when the amount or the account does not match", async () => {

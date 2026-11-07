@@ -61,6 +61,8 @@ type Operation = {
   request?: ComponentName;
   response: ComponentName;
   status: 200 | 201;
+  /** "staff": a signed-in admin or HQ session; adds 401, 403 and 409. */
+  auth?: "staff";
 };
 
 // Endpoints that exist in the spec today; every new route (T-029 onwards) adds its line here.
@@ -85,6 +87,7 @@ const operations: Operation[] = [
     request: "RefundOrderInput",
     response: "RefundResponse",
     status: 200,
+    auth: "staff",
   },
   {
     method: "get",
@@ -182,14 +185,25 @@ function buildPaths() {
           },
         ],
       }),
-      // shortcut: all listed endpoints are public; T-029/T-030 add security schemes for staff routes.
-      security: [],
+      // shortcut: only the refund route declares its staff session so far; the other staff routes still list none.
+      security:
+        op.auth === "staff"
+          ? [{ adminSession: [] }, { hqSession: [] }, { bearerAuth: [] }]
+          : [],
       ...(op.request && {
         requestBody: { required: true, ...json(op.request) },
       }),
       responses: {
         [op.status]: { description: "Success", ...json(op.response) },
         400: { description: "Invalid input", ...json("ErrorResponse") },
+        ...(op.auth === "staff" && {
+          401: { description: "Not signed in", ...json("ErrorResponse") },
+          403: { description: "Not allowed", ...json("ErrorResponse") },
+          409: {
+            description: "Conflicts with the current state",
+            ...json("ErrorResponse"),
+          },
+        }),
         429: { description: "Rate limited", ...json("ErrorResponse") },
         500: { description: "Unexpected error", ...json("ErrorResponse") },
       },
@@ -227,6 +241,24 @@ export function buildOpenApiDocument() {
       { name: "meta", description: "API health and description" },
     ],
     paths: buildPaths(),
-    components: { schemas },
+    components: {
+      schemas,
+      // Better Auth sessions (T-030): each web app has its own cookie; the mobile app sends a Bearer token.
+      securitySchemes: {
+        adminSession: {
+          type: "apiKey",
+          in: "cookie",
+          name: "nmi-admin.session_token",
+          description: "Over HTTPS the cookie carries the __Secure- prefix.",
+        },
+        hqSession: {
+          type: "apiKey",
+          in: "cookie",
+          name: "nmi-hq.session_token",
+          description: "Over HTTPS the cookie carries the __Secure- prefix.",
+        },
+        bearerAuth: { type: "http", scheme: "bearer" },
+      },
+    },
   };
 }

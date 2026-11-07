@@ -118,8 +118,19 @@ describe("POST /v1/orders", () => {
     expect(core.reissueOrderPayment).toHaveBeenCalledWith(
       orderId,
       hashGuestToken(b.guestToken),
+      undefined,
     );
     expect(b.guestToken).not.toBe(a.guestToken);
+  });
+
+  it("answers a replay after payment with the order id only, without a new token or secret", async () => {
+    core.reissueOrderPayment.mockResolvedValue({ orderId });
+
+    await POST(post(body), route);
+    const second = await POST(post(body), route);
+
+    expect(second.status).toBe(201);
+    expect((await second.json()).data).toEqual({ orderId });
   });
 
   it("requires an Idempotency-Key", async () => {

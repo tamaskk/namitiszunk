@@ -80,6 +80,26 @@ function percentOf(baseHuf: number, rateBps: number): number {
  * Prices an order in the fixed order of docs/fejlesztesi-terv.md #22, rounding after every step.
  * Always run on the server from fresh prices; a client-side total is display only.
  */
+/** The platform's commission and application fee for an order's stored totals (T-022). */
+export function applicationFeeOf(order: {
+  totalHuf: number;
+  tipHuf: number;
+  commissionBps: number;
+  smsRequested: boolean;
+}): { commissionHuf: number; applicationFeeHuf: number } {
+  // Commission base excludes the tip but includes the service fee.
+  const commissionHuf = percentOf(
+    order.totalHuf - order.tipHuf,
+    bps(order.commissionBps, "commissionBps"),
+  );
+  // Stripe rejects an application fee above the charge.
+  const applicationFeeHuf = Math.min(
+    order.totalHuf,
+    commissionHuf + (order.smsRequested ? SMS_FEE_HUF : 0),
+  );
+  return { commissionHuf, applicationFeeHuf };
+}
+
 export function calculateOrder(input: OrderCalculationInput): OrderCalculation {
   if (input.items.length === 0) {
     throw new RangeError("items must not be empty");
@@ -124,16 +144,12 @@ export function calculateOrder(input: OrderCalculationInput): OrderCalculation {
     throw new RangeError("smsRequested needs a payable order");
   }
 
-  // Commission base excludes the tip but includes the service fee.
-  const commissionHuf = percentOf(
-    totalHuf - tipHuf,
-    bps(input.commissionBps, "commissionBps"),
-  );
-  // Stripe rejects an application fee above the charge.
-  const applicationFeeHuf = Math.min(
+  const { commissionHuf, applicationFeeHuf } = applicationFeeOf({
     totalHuf,
-    commissionHuf + (input.smsRequested ? SMS_FEE_HUF : 0),
-  );
+    tipHuf,
+    commissionBps: input.commissionBps,
+    smsRequested: input.smsRequested,
+  });
 
   return {
     subtotalHuf,

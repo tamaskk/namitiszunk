@@ -17,7 +17,7 @@ import type { Types } from "mongoose";
 
 import { businessDate } from "../orders/business-date";
 import { allocateShortNumber } from "../orders/short-number";
-import { calculateOrder } from "../pricing/calculate-order";
+import { applicationFeeOf, calculateOrder } from "../pricing/calculate-order";
 import { AppError, ConflictError, NotFoundError } from "../errors";
 import { assertVenueCanCharge } from "./connect";
 import { stripe } from "./stripe-client";
@@ -265,56 +265,111 @@ export async function createOrder(
   // Before Stripe: an order whose timeout cannot start must never get a PaymentIntent.
   await options.onOrderCreated({ orderId, venueId });
 
+  const clientSecret = await openPaymentIntent({
+    orderId,
+    venueId: venue._id,
+    stripeAccountId: venue.stripeAccountId!,
+    totalHuf: calc.totalHuf,
+    applicationFeeHuf: calc.applicationFeeHuf,
+    posthogId: input.posthogId,
+  });
+  return { orderId, clientSecret };
+}
+
+/**
+ * The order's one PaymentIntent and its Payment. The idempotency key makes Stripe return the same
+ * intent for the same order, so the replay after a crash between the two recreates nothing.
+ */
+async function openPaymentIntent(order: {
+  orderId: string;
+  venueId: Types.ObjectId;
+  stripeAccountId: string;
+  totalHuf: number;
+  applicationFeeHuf: number;
+  posthogId?: string;
+}): Promise<string | null> {
+  const venueId = String(order.venueId);
   const intent = await stripe().paymentIntents.create(
     {
-      amount: calc.stripeAmount,
+      amount: order.totalHuf * 100,
       currency: "huf",
-      application_fee_amount: calc.stripeApplicationFeeAmount,
+      application_fee_amount: order.applicationFeeHuf * 100,
       automatic_payment_methods: { enabled: true },
       metadata: {
-        orderId,
+        orderId: order.orderId,
         venueId,
-        ...(input.posthogId ? { posthogId: input.posthogId } : {}),
+        ...(order.posthogId ? { posthogId: order.posthogId } : {}),
       },
     },
     // One PaymentIntent per order, however often this runs for it.
     {
-      stripeAccount: venue.stripeAccountId!,
-      idempotencyKey: `order-${orderId}-payment-intent`,
+      stripeAccount: order.stripeAccountId,
+      idempotencyKey: `order-${order.orderId}-payment-intent`,
     },
   );
-  await Payment.create({
-    venueId: venue._id,
-    orderId,
-    stripePaymentIntentId: intent.id,
-    amountHuf: calc.totalHuf,
-    applicationFeeHuf: calc.applicationFeeHuf,
-  });
-  return { orderId, clientSecret: intent.client_secret };
+  await Payment.updateOne(
+    { stripePaymentIntentId: intent.id },
+    {
+      $setOnInsert: {
+        venueId: order.venueId,
+        orderId: order.orderId,
+        amountHuf: order.totalHuf,
+        applicationFeeHuf: order.applicationFeeHuf,
+      },
+    },
+    { upsert: true },
+  );
+  return intent.client_secret;
 }
 
 /**
- * An idempotent replay of order creation: the raw token was never stored, so the order gets a new
- * one (the previous token stops working) and the PaymentIntent's client secret is fetched again.
+ * An idempotent replay of order creation. While the order awaits payment it gets a new guest token
+ * (the raw one was never stored; the previous one stops working) and the PaymentIntent's client
+ * secret again. Once paid or closed it answers with the order id only: the first tab keeps its token.
  */
 export async function reissueOrderPayment(
   orderId: string,
   guestTokenHash: string,
-): Promise<CreatedOrder> {
-  const updated = await Order.updateOne(
-    { _id: orderId },
-    { $set: { guestTokenHash } },
-  );
-  if (updated.matchedCount === 0) throw new NotFoundError();
-  const payment = await Payment.findOne({ orderId })
-    .sort({ createdAt: -1 })
-    .select("venueId stripePaymentIntentId")
+  posthogId?: string,
+): Promise<CreatedOrder | { orderId: string }> {
+  // Only the token changes; the status is the filter, so a paid order keeps its first token.
+  const awaitingPayment = { _id: orderId, status: "awaiting_payment" as const };
+  const order = await Order.findOneAndUpdate(awaitingPayment, {
+    $set: { guestTokenHash },
+  })
+    .select("venueId totalHuf tipHuf smsRequested createdAt")
     .lean();
-  if (!payment) return { orderId, clientSecret: null };
-  const venue = await Venue.findById(payment.venueId)
+  if (!order) {
+    if (!(await Order.exists({ _id: orderId }))) throw new NotFoundError();
+    return { orderId };
+  }
+  const venue = await Venue.findById(order.venueId)
     .select("stripeAccountId")
     .lean();
   if (!venue?.stripeAccountId) throw new NotFoundError();
+  const payment = await Payment.findOne({ orderId })
+    .sort({ createdAt: -1 })
+    .select("stripePaymentIntentId")
+    .lean();
+  if (!payment) {
+    // A crash between Stripe and Payment.create: the same parameters and key give back the same intent.
+    // shortcut: the commission is read at the order's createdAt, not the instant createOrder priced it; a FeeRule starting in between would differ (Stripe then refuses the key).
+    const { applicationFeeHuf } = applicationFeeOf({
+      totalHuf: order.totalHuf,
+      tipHuf: order.tipHuf ?? 0,
+      commissionBps: await commissionBpsAt(order.venueId, order.createdAt),
+      smsRequested: order.smsRequested ?? false,
+    });
+    const clientSecret = await openPaymentIntent({
+      orderId,
+      venueId: order.venueId,
+      stripeAccountId: venue.stripeAccountId,
+      totalHuf: order.totalHuf,
+      applicationFeeHuf,
+      posthogId,
+    });
+    return { orderId, clientSecret };
+  }
   const intent = await stripe().paymentIntents.retrieve(
     payment.stripePaymentIntentId,
     {},

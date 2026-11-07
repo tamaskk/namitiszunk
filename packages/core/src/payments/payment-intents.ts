@@ -1,6 +1,7 @@
 import "server-only";
 
-import { type ClientSession, Payment, Venue } from "@namitiszunk/db";
+import { type ClientSession, Order, Payment, Venue } from "@namitiszunk/db";
+import { isValidObjectId } from "mongoose";
 import type Stripe from "stripe";
 
 import type { Actor } from "../auth/permissions";
@@ -8,6 +9,7 @@ import { InvalidTransition } from "../orders/state-machine";
 import { transition } from "../orders/transition";
 import { reportError } from "../report-error";
 import { claimStripeEvent } from "./connect";
+import { refundOrderInFull } from "./refund";
 
 const systemStripe: Actor = { kind: "system", source: "stripe" };
 
@@ -22,24 +24,50 @@ async function inTransaction(
   }
 }
 
+/**
+ * No Payment for the intent. Only a crash between Stripe and Payment.create leaves one missing while
+ * its order still awaits payment (the replay stores it): a 500 makes Stripe retry. Anything else
+ * (unknown account or order) is not ours to settle and is acknowledged.
+ */
+async function assertNotARace(
+  event: Stripe.PaymentIntentSucceededEvent,
+): Promise<void> {
+  const intent = event.data.object;
+  const venue = event.account
+    ? await Venue.findOne({ stripeAccountId: event.account })
+        .select("_id")
+        .lean()
+    : null;
+  const orderId = intent.metadata.orderId;
+  const order =
+    venue && isValidObjectId(orderId)
+      ? await Order.findOne({ _id: orderId, venueId: venue._id })
+          .select("status")
+          .lean()
+      : null;
+  if (order?.status === "awaiting_payment") {
+    throw new Error(`succeeded PaymentIntent ${intent.id} has no Payment yet`);
+  }
+}
+
 /** Our Payment for the intent, after checking that Stripe charged what and where we asked. */
 async function matchingPayment(
   event: Stripe.PaymentIntentSucceededEvent,
-): Promise<{ id: unknown; orderId: string } | "mismatch"> {
+): Promise<{ id: unknown; orderId: string } | "mismatch" | "unknown"> {
   const intent = event.data.object;
   const payment = await Payment.findOne({ stripePaymentIntentId: intent.id })
-    .select("venueId orderId amountHuf")
+    .select("venueId orderId amountHuf applicationFeeHuf")
     .lean();
-  // createOrder stores the Payment before the client secret leaves the server, so this is not a race:
-  // a 500 makes Stripe retry and alerts us while it lasts.
   if (!payment) {
-    throw new Error(`succeeded PaymentIntent ${intent.id} has no Payment`);
+    await assertNotARace(event);
+    return "unknown";
   }
   const venue = await Venue.findById(payment.venueId)
     .select("stripeAccountId")
     .lean();
   const matches =
     intent.amount === payment.amountHuf * 100 &&
+    intent.application_fee_amount === payment.applicationFeeHuf * 100 &&
     intent.currency === "huf" &&
     event.account !== undefined &&
     event.account === venue?.stripeAccountId;
@@ -62,7 +90,7 @@ export async function handlePaymentSucceeded(
   const payment = await matchingPayment(event);
 
   let late = false;
-  if (payment !== "mismatch") {
+  if (typeof payment === "object") {
     try {
       await transition(payment.orderId, "payment_succeeded", systemStripe);
     } catch (error) {
@@ -74,10 +102,18 @@ export async function handlePaymentSucceeded(
 
   await inTransaction(async (session) => {
     if (!(await claimStripeEvent(session, event))) return;
+    if (payment === "unknown") {
+      reportError(
+        new Error(
+          `PaymentIntent ${intent.id} succeeded with no Payment and no order awaiting it (account ${event.account ?? "none"}); check it in Stripe`,
+        ),
+      );
+      return;
+    }
     if (payment === "mismatch") {
       reportError(
         new Error(
-          `PaymentIntent ${intent.id} does not match its Payment (amount, currency or account); order left unpaid`,
+          `PaymentIntent ${intent.id} does not match its Payment (amount, fee, currency or account); order left unpaid`,
         ),
       );
       return;
@@ -88,15 +124,12 @@ export async function handlePaymentSucceeded(
       { $set: { status: "succeeded" } },
       { session },
     );
-    if (late) {
-      // Never resurrected silently: the guest paid for an order the timeout cancelled; support refunds it (T-034).
-      reportError(
-        new Error(
-          `PaymentIntent ${intent.id} succeeded after order ${payment.orderId} was cancelled; refund it`,
-        ),
-      );
-    }
   });
+  // The guest paid for an order the timeout cancelled: never resurrected, refunded in full. After the
+  // commit (the Payment must read succeeded) and on every delivery: refundOrderInFull is idempotent per order.
+  if (late && typeof payment === "object") {
+    await refundOrderInFull(payment.orderId, "late_payment");
+  }
   // shortcut: the receipt e-mail (intent.receipt_email / the charge's billing_details.email) has no field on Order or Payment yet, so it is not stored.
 }
 

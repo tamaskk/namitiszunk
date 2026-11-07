@@ -10,7 +10,9 @@ import {
   refundExpiredOrder,
   sendPickupReminder,
 } from "@namitiszunk/core/jobs";
+import { AppError } from "@namitiszunk/core/errors";
 import * as Sentry from "@sentry/nextjs";
+import { RetryAfterError } from "inngest";
 
 import { connectJobsDb } from "./db";
 import {
@@ -111,7 +113,17 @@ export const rejectRefund = inngest.createFunction(
   async ({ event, step }) =>
     step.run("refund", async () => {
       await connectJobsDb();
-      await deps.refundRejected(event.data.orderId);
+      try {
+        await deps.refundRejected(event.data.orderId);
+      } catch (error) {
+        // Rejected before the payment webhook stored the Payment as paid: retry once it has.
+        if (error instanceof AppError && error.code === "order_not_paid") {
+          throw new RetryAfterError("payment not recorded yet", "30s", {
+            cause: error,
+          });
+        }
+        throw error;
+      }
       return "refunded";
     }),
 );

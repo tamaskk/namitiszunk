@@ -199,6 +199,33 @@ describe("order/expire", () => {
     ]);
   });
 
+  it("retries the rejection refund later while the payment is not recorded yet", async () => {
+    const { ConflictError } = await import("@namitiszunk/core/errors");
+    vi.spyOn(deps, "refundRejected").mockRejectedValueOnce(
+      new ConflictError("order_not_paid"),
+    );
+    const t = new InngestTestEngine({ function: rejectRefund });
+
+    const { error } = await t.execute({
+      events: [
+        {
+          name: "order/status.changed",
+          data: {
+            ...readyEvent.data,
+            event: "reject",
+            from: "new",
+            to: "rejected",
+          },
+        },
+      ],
+    });
+
+    expect(error).toMatchObject({
+      name: "RetryAfterError",
+      message: "payment not recorded yet",
+    });
+  });
+
   it("does not wait for an order no longer Ready", async () => {
     vi.mocked(jobs.pickupDeadline).mockResolvedValueOnce(null);
     const t = new InngestTestEngine({
