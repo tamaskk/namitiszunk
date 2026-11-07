@@ -33,3 +33,31 @@ export async function hitRateLimit(
   if (doc.count <= rule.limit) return null;
   return { retryAfterSeconds: Math.ceil((windowEnd - now) / 1000) };
 }
+
+const lockKey = (bucket: string) =>
+  createHash("sha256").update(`lock|${bucket}`).digest("hex");
+
+/** Locks a bucket for exactly `seconds` from `now` (a PIN lockout), extending any running lock. */
+export async function lockRateLimit(
+  bucket: string,
+  seconds: number,
+  now = Date.now(),
+): Promise<void> {
+  await RateLimit.updateOne(
+    { key: lockKey(bucket) },
+    { $set: { count: 1, expiresAt: new Date(now + seconds * 1000) } },
+    { upsert: true },
+  );
+}
+
+/** Seconds left on a lock set by `lockRateLimit`, or null. The TTL monitor lags, so expiry is checked here. */
+export async function rateLimitLockedFor(
+  bucket: string,
+  now = Date.now(),
+): Promise<number | null> {
+  const doc = await RateLimit.findOne(
+    { key: lockKey(bucket), expiresAt: { $gt: new Date(now) } },
+    { expiresAt: 1 },
+  ).lean();
+  return doc ? Math.ceil((doc.expiresAt.getTime() - now) / 1000) : null;
+}

@@ -20,7 +20,13 @@
     "client_unknown": "A kérést nem sikerült azonosítani. Próbáld újra.",
     "stripe_account_missing": "Előbb kösd be a Stripe-fiókot.",
     "payments_not_enabled": "Ez a hely még nem fogadhat fizetést.",
-    "invalid_signature": "A kérés aláírása érvénytelen."
+    "invalid_signature": "A kérés aláírása érvénytelen.",
+    "pin_invalid": "Hibás PIN. Próbáld újra.",
+    "pin_locked": "Túl sok hibás PIN. Az eszköz 5 percre zárolva.",
+    "two_factor_required": "Add meg a hitelesítő alkalmazásod kódját.",
+    "two_factor_setup_required": "A folytatáshoz állítsd be a kétlépcsős azonosítást.",
+    "invite_invalid": "Ez a meghívó lejárt vagy már felhasználták.",
+    "invite_conflict": "Már tag vagy ebben a klubban, vagy ez a név foglalt."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon"

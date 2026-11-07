@@ -112,6 +112,10 @@ State:
 Auth:
 - Sessions are checked at the route or action. Services receive an actor (user id + role + venue) and never read the session themselves.
 - Guests use a per-order guest token; staff on the bar view use a PIN on a signed-in device.
+- `packages/auth` builds the actor: `userActorFromRequest(app, request)`, `staffActorFromRequest`, `guestActorFromToken`. Request data never yields a `system` actor; a platform role comes only from an active PlatformMember in a 2FA-verified HQ session.
+- order, admin and hq each run their own Better Auth instance (`/api/auth/[...all]`) with their own host-only cookie (`nmi-<app>.*`); every session records the app that created it and is refused by the others. Venue memberships count only in admin, the platform role only in HQ.
+- 2FA (TOTP) is enforced by us, not only by the plugin: OAuth and e-mail link sign-ins skip the plugin's challenge, so a session is marked `twoFactorVerified` only by a TOTP or backup-code check. HQ requires it; venue users once they turn 2FA on.
+- Staff device and PIN sessions are HMAC-signed cookies (`nmi-device`, 30 days; `nmi-staff`, 8 hours); invites are hashed one-time tokens in Better Auth's `verification` collection (no extra collection).
 
 Errors:
 - Validation errors return to the form with a message.
@@ -177,12 +181,15 @@ Environment variables (names only; values live in Vercel and `.env.local`), vali
 | Name | Used by | Server-only |
 | --- | --- | --- |
 | MONGODB_URI | packages/db | yes |
-| BETTER_AUTH_SECRET | packages/auth | yes |
+| BETTER_AUTH_SECRET | packages/auth (sessions, staff device and PIN cookies) | yes |
+| BETTER_AUTH_URL | packages/auth; each of apps/order, admin, hq sets its own URL (separate sessions per app) | yes |
+| GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET | packages/auth Google sign-in (order, admin, hq) | yes |
+| APPLE_CLIENT_ID, APPLE_CLIENT_SECRET | packages/auth Apple sign-in: Services ID and the client secret JWT (renew within 6 months) | yes |
 | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET | packages/core payments, apps/api webhooks | yes |
 | NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY | apps/order checkout | no |
 | ABLY_API_KEY | packages/core realtime, token route | yes |
 | TWILIO_* | packages/core notify | yes |
-| RESEND_API_KEY | packages/emails | yes |
+| RESEND_API_KEY | packages/emails (apps/api; apps/order, admin, hq for the sign-in e-mail link) | yes |
 | BLOB_READ_WRITE_TOKEN | apps/api uploads | yes |
 | INNGEST_* | apps/api inngest | yes |
 | SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN | all apps (server, browser); one Sentry project per app (`namitiszunk-<app>`), events also tagged `app` | no (DSN is public) |

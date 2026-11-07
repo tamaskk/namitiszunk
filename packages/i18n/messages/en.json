@@ -20,7 +20,13 @@
     "client_unknown": "The request could not be identified. Try again.",
     "stripe_account_missing": "Connect a Stripe account first.",
     "payments_not_enabled": "This venue cannot take payments yet.",
-    "invalid_signature": "The request signature is not valid."
+    "invalid_signature": "The request signature is not valid.",
+    "pin_invalid": "Wrong PIN. Try again.",
+    "pin_locked": "Too many wrong PINs. This device is locked for 5 minutes.",
+    "two_factor_required": "Enter the code from your authenticator app.",
+    "two_factor_setup_required": "Set up two-step sign-in to continue.",
+    "invite_invalid": "This invite has expired or was already used.",
+    "invite_conflict": "You are already a member of this club, or this name is taken."
   },
   "landing": {
     "tagline": "Order and pay on your phone"
