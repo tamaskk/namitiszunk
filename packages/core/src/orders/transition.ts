@@ -51,7 +51,7 @@ function actorKindOf(actor: Actor): ActorKind {
   return actor.kind === "user" ? "staff" : actor.kind;
 }
 
-function auditActorOf(actor: Actor): AuditActor {
+export function auditActorOf(actor: Actor): AuditActor {
   switch (actor.kind) {
     case "staff":
       return { type: "venue_member", id: actor.memberId };

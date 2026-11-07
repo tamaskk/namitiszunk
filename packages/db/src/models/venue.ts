@@ -44,6 +44,11 @@ const venueSchema = new Schema(
       type: String,
       match: [/^acct_\w+$/, "{PATH} must be a Stripe account id"],
     },
+    // Mirrored from the connected account by the account.updated webhook (T-032).
+    chargesEnabled: { type: Boolean, default: false },
+    payoutsEnabled: { type: Boolean, default: false },
+    /** Stripe requirement keys still due (`requirements.currently_due`), shown to the Owner. */
+    stripeRequirementsDue: { type: [String], default: undefined },
     status: { type: String, enum: venueStatuses, default: "draft" },
     orderRules: { type: orderRulesSchema, default: () => ({}) },
   },

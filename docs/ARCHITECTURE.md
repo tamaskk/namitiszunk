@@ -143,6 +143,7 @@ The agent must not "fix" these.
 - Menu items are archived, never hard-deleted.
 - The bar never sees Awaiting payment orders; an order exists for the bar only after the webhook.
 - Direct charges on the venue's connected account: Stripe fees, refunds and chargebacks are the venue's, the platform only takes the application fee. Guests pay no platform fee.
+- The Stripe webhook lives at `apps/api/app/webhooks/stripe`, outside `/v1` and outside `handler()`: Stripe authenticates with the signature on the raw body, not a session, and its retries plus the `stripeEvents` unique event id replace rate limits and idempotency keys. With direct charges every event arrives on this one Connect endpoint, signed with `STRIPE_WEBHOOK_SECRET`.
 - The confirmation page deliberately does not look like a receipt; fiscal receipts come from the club's own till.
 - The Atlas network allowlist is `0.0.0.0/0` because Vercel functions have no fixed IPs; compensated by strong per-environment database users with minimal roles.
 - Tokens live in `tokens.json`, not in a shared Tailwind config (web Tailwind v4, mobile Tailwind v3).

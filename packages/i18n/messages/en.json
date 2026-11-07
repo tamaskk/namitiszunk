@@ -17,7 +17,10 @@
     "internal": "Something went wrong. Try again.",
     "invalid_transition": "This order cannot change like that now. Refresh and try again.",
     "reason_required": "Give a reason.",
-    "client_unknown": "The request could not be identified. Try again."
+    "client_unknown": "The request could not be identified. Try again.",
+    "stripe_account_missing": "Connect a Stripe account first.",
+    "payments_not_enabled": "This venue cannot take payments yet.",
+    "invalid_signature": "The request signature is not valid."
   },
   "landing": {
     "tagline": "Order and pay on your phone"

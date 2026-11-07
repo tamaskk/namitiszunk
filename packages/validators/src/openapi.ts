@@ -3,6 +3,7 @@ import { z } from "zod";
 import * as auth from "./auth";
 import * as menu from "./menu";
 import * as orders from "./orders";
+import * as payments from "./payments";
 import * as promos from "./promos";
 import { errorResponseSchema } from "./shared";
 import * as staff from "./staff";
@@ -37,6 +38,9 @@ const components = {
   SessionUserResponse: auth.sessionUserResponseSchema,
   UploadTokenInput: uploads.uploadTokenInputSchema,
   UploadTokenResponse: uploads.uploadTokenResponseSchema,
+  StripeConnectInput: payments.stripeConnectInputSchema,
+  ConnectAccountResponse: payments.connectAccountResponseSchema,
+  AccountLinkResponse: payments.accountLinkResponseSchema,
   PingResponse: pingResponseSchema,
   OpenApiDocument: openApiDocumentSchema,
 } satisfies Record<string, z.ZodType>;
@@ -73,6 +77,27 @@ const operations: Operation[] = [
     summary: "List public venues",
     tag: "venues",
     response: "VenueListResponse",
+    status: 200,
+  },
+  {
+    method: "post",
+    path: "/v1/stripe/connect/account",
+    operationId: "createConnectAccount",
+    summary: "Create the venue's Stripe Express account (Owner only)",
+    tag: "payments",
+    request: "StripeConnectInput",
+    response: "ConnectAccountResponse",
+    status: 200,
+  },
+  {
+    method: "post",
+    path: "/v1/stripe/connect/link",
+    operationId: "createConnectAccountLink",
+    summary:
+      "Create a Stripe onboarding link back to the Admin Payouts page (Owner only)",
+    tag: "payments",
+    request: "StripeConnectInput",
+    response: "AccountLinkResponse",
     status: 200,
   },
   {

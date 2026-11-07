@@ -6,6 +6,7 @@ export {
   pingResponseSchema,
 } from "./openapi";
 export * from "./orders";
+export * from "./payments";
 export * from "./promos";
 export * from "./shared";
 export * from "./staff";
