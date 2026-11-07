@@ -12,7 +12,11 @@ import { audit, type AuditEntry, auditActorOf } from "../audit/audit";
 import { type Actor, requirePermission } from "../auth/permissions";
 import { AppError, ConflictError, NotFoundError } from "../errors";
 import { reportError } from "../report-error";
-import { handleRefundEvent, type RefundEvent, refundEventTypes } from "./refund";
+import {
+  handleRefundEvent,
+  type RefundEvent,
+  refundEventTypes,
+} from "./refund";
 import { stripe } from "./stripe-client";
 
 /** The guest ordering site; Apple Pay and Google Pay need it registered on every connected account. */
