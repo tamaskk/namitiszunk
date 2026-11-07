@@ -26,7 +26,10 @@
     "two_factor_required": "Enter the code from your authenticator app.",
     "two_factor_setup_required": "Set up two-step sign-in to continue.",
     "invite_invalid": "This invite has expired or was already used.",
-    "invite_conflict": "You are already a member of this club, or this name is taken."
+    "invite_conflict": "You are already a member of this club, or this name is taken.",
+    "order_not_paid": "This order has no payment to refund.",
+    "refund_exceeds_remaining": "The amount is more than what is left to refund.",
+    "refund_failed": "The refund did not go through. Try again or contact support."
   },
   "landing": {
     "tagline": "Order and pay on your phone"

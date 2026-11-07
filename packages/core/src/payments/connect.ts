@@ -12,6 +12,7 @@ import { audit, type AuditEntry, auditActorOf } from "../audit/audit";
 import { type Actor, requirePermission } from "../auth/permissions";
 import { AppError, ConflictError, NotFoundError } from "../errors";
 import { reportError } from "../report-error";
+import { handleRefundEvent, type RefundEvent, refundEventTypes } from "./refund";
 import { stripe } from "./stripe-client";
 
 /** The guest ordering site; Apple Pay and Google Pay need it registered on every connected account. */
@@ -250,6 +251,8 @@ export async function processConnectWebhook(
   // A test-mode event never changes production data, nor a live one a preview or local database.
   if (event.livemode !== (process.env.VERCEL_ENV === "production")) return;
   if (event.type === "account.updated") await handleAccountUpdated(event);
+  if (refundEventTypes.has(event.type))
+    await handleRefundEvent(event as RefundEvent);
 }
 
 /** Order creation (T-033) calls this: only a venue whose connected account can charge takes orders. */

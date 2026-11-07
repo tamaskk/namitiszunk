@@ -10,6 +10,7 @@ import {
   notify,
   paymentTimeout,
   pickupReminder,
+  rejectRefund,
   stripeReconcile,
 } from "./functions";
 
@@ -169,6 +170,33 @@ describe("order/expire", () => {
       orderId,
       deps.refundPayment,
     );
+  });
+
+  it("refunds a rejected order in full", async () => {
+    const refundRejected = vi
+      .spyOn(deps, "refundRejected")
+      .mockResolvedValueOnce(undefined);
+    const t = new InngestTestEngine({ function: rejectRefund });
+
+    const { result } = await t.execute({
+      events: [
+        {
+          name: "order/status.changed",
+          data: {
+            ...readyEvent.data,
+            event: "reject",
+            from: "new",
+            to: "rejected",
+          },
+        },
+      ],
+    });
+
+    expect(refundRejected).toHaveBeenCalledWith(orderId);
+    expect(result).toBe("refunded");
+    expect(rejectRefund.opts.triggers).toEqual([
+      expect.objectContaining({ if: 'event.data.event == "reject"' }),
+    ]);
   });
 
   it("does not wait for an order no longer Ready", async () => {

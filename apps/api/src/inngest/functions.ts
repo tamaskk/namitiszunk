@@ -99,6 +99,23 @@ export const expire = inngest.createFunction(
   },
 );
 
+// A rejection (staff, or the guest before acceptance) refunds the full amount and the platform fee.
+export const rejectRefund = inngest.createFunction(
+  {
+    id: "order-reject-refund",
+    triggers: [
+      { event: orderStatusChanged, if: 'event.data.event == "reject"' },
+    ],
+    onFailure: reportFailure,
+  },
+  async ({ event, step }) =>
+    step.run("refund", async () => {
+      await connectJobsDb();
+      await deps.refundRejected(event.data.orderId);
+      return "refunded";
+    }),
+);
+
 export const notify = inngest.createFunction(
   {
     id: "order-notify",
@@ -171,6 +188,7 @@ export const functions = [
   paymentTimeout,
   pickupReminder,
   expire,
+  rejectRefund,
   notify,
   stripeReconcile,
   retentionDaily,

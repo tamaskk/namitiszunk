@@ -53,7 +53,12 @@ type Options<A extends Actor | null, S extends z.ZodType | undefined> = {
   auth: "public" | ((request: Request) => Promise<A | null>);
   /** Required: "none", or throws (`requirePermission` from @namitiszunk/core/auth throws Forbidden) for 403. */
   permission:
-    "none" | ((ctx: { actor: A; input: Input<S> }) => void | Promise<void>);
+    | "none"
+    | ((ctx: {
+        actor: A;
+        input: Input<S>;
+        params: Params;
+      }) => void | Promise<void>);
   /** Validates the JSON body, or the query string for GET, HEAD and DELETE. */
   input?: S;
   /** Counted per client IP, per signed-in caller and per `rateLimitKey`, each in its own bucket. */
@@ -211,7 +216,7 @@ export function handler<
       }
 
       if (options.permission !== "none") {
-        await options.permission({ actor, input });
+        await options.permission({ actor, input, params });
       }
 
       const ctx: Context<A, Input<S>> = {

@@ -26,7 +26,10 @@
     "two_factor_required": "Add meg a hitelesítő alkalmazásod kódját.",
     "two_factor_setup_required": "A folytatáshoz állítsd be a kétlépcsős azonosítást.",
     "invite_invalid": "Ez a meghívó lejárt vagy már felhasználták.",
-    "invite_conflict": "Már tag vagy ebben a klubban, vagy ez a név foglalt."
+    "invite_conflict": "Már tag vagy ebben a klubban, vagy ez a név foglalt.",
+    "order_not_paid": "Ehhez a rendeléshez nincs visszatéríthető fizetés.",
+    "refund_exceeds_remaining": "Az összeg több, mint ami még visszatéríthető.",
+    "refund_failed": "A visszatérítés nem sikerült. Próbáld újra, vagy írj a supportnak."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon"
