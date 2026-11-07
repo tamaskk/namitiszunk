@@ -42,6 +42,8 @@ const components = {
   StripeConnectInput: payments.stripeConnectInputSchema,
   ConnectAccountResponse: payments.connectAccountResponseSchema,
   AccountLinkResponse: payments.accountLinkResponseSchema,
+  RefundOrderInput: payments.refundOrderInputSchema,
+  RefundResponse: payments.refundResponseSchema,
   RealtimeTokenInput: realtime.realtimeTokenInputSchema,
   RealtimeTokenResponse: realtime.realtimeTokenResponseSchema,
   PingResponse: pingResponseSchema,
@@ -72,6 +74,17 @@ const operations: Operation[] = [
     request: "CreateOrderInput",
     response: "CreateOrderResponse",
     status: 201,
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/refunds",
+    operationId: "refundOrder",
+    summary:
+      "Refund a paid order in full or in part (Manager, Owner, or HQ support with write confirmation)",
+    tag: "orders",
+    request: "RefundOrderInput",
+    response: "RefundResponse",
+    status: 200,
   },
   {
     method: "get",
@@ -159,6 +172,11 @@ function buildPaths() {
       operationId: op.operationId,
       summary: op.summary,
       tags: [op.tag],
+      ...(op.path.includes("{id}") && {
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+      }),
       // shortcut: all listed endpoints are public; T-029/T-030 add security schemes for staff routes.
       security: [],
       ...(op.request && {

@@ -10,6 +10,8 @@ import {
   pingResponseSchema,
   realtimeTokenInputSchema,
   realtimeTokenResponseSchema,
+  refundOrderInputSchema,
+  refundResponseSchema,
 } from "@namitiszunk/validators";
 import { z } from "zod";
 
@@ -47,7 +49,7 @@ const clientError = (
   fields: Record<string, string> = {},
 ) => new ApiError(status, code, `apiErrors.${code}`, fields, requestId);
 
-const ORDER_CREATE_RETRIES = 3;
+const POST_RETRIES = 3;
 
 function isRetryable(error: unknown): boolean {
   return (
@@ -128,6 +130,27 @@ export function createApiClient(options: ApiClientOptions) {
     return parsed.data as z.output<S>;
   }
 
+  /** One Idempotency-Key for every attempt, so the server runs the request at most once. */
+  async function postWithRetries<S extends z.ZodType>(
+    path: string,
+    responseSchema: S,
+    body: unknown,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<z.output<S>> {
+    const headers = {
+      ...extraHeaders,
+      "idempotency-key": crypto.randomUUID(),
+    };
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await request("POST", path, responseSchema, { body, headers });
+      } catch (error) {
+        if (attempt >= POST_RETRIES || !isRetryable(error)) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** attempt));
+      }
+    }
+  }
+
   const id = (value: string) =>
     encodeURIComponent(parseInput(objectIdSchema, value));
 
@@ -140,28 +163,25 @@ export function createApiClient(options: ApiClientOptions) {
       async create(input: z.input<typeof createOrderInputSchema>) {
         const body = parseInput(createOrderInputSchema, input);
         const sessionId = await options.getSessionId?.();
-        const headers: Record<string, string> = {
-          "idempotency-key": crypto.randomUUID(),
-        };
+        const headers: Record<string, string> = {};
         if (sessionId) headers["x-session-id"] = sessionId;
-
-        for (let attempt = 0; ; attempt++) {
-          try {
-            return await request(
-              "POST",
-              "/v1/orders",
-              createOrderResponseSchema,
-              { body, headers },
-            );
-          } catch (error) {
-            if (attempt >= ORDER_CREATE_RETRIES || !isRetryable(error)) {
-              throw error;
-            }
-            await new Promise((resolve) =>
-              setTimeout(resolve, 100 * 2 ** attempt),
-            );
-          }
-        }
+        return postWithRetries(
+          "/v1/orders",
+          createOrderResponseSchema,
+          body,
+          headers,
+        );
+      },
+      /** POST /v1/orders/{id}/refunds (staff session). Retries like `create`, so a retry never starts a second refund. */
+      async refund(
+        orderId: string,
+        input: z.input<typeof refundOrderInputSchema>,
+      ) {
+        return postWithRetries(
+          `/v1/orders/${id(orderId)}/refunds`,
+          refundResponseSchema,
+          parseInput(refundOrderInputSchema, input),
+        );
       },
       /** GET /v1/orders/{id}. Not on the server yet (guest order status, T-043). */
       get: async (orderId: string) =>

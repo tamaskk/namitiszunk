@@ -17,3 +17,10 @@ export {
   type CreateOrderOptions,
   reissueOrderPayment,
 } from "./create-order";
+export {
+  assertMayRefund,
+  type RefundAmount,
+  refundOrder,
+  refundOrderInFull,
+  type RefundResult,
+} from "./refund";

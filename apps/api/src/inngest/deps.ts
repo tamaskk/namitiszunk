@@ -4,20 +4,17 @@ import type { NotifyDeps, StripeCharge } from "@namitiszunk/core/jobs";
 import {
   cancelOrderPaymentIntents,
   listSucceededCharges,
+  refundOrderInFull,
 } from "@namitiszunk/core/payments";
 import { sendEmail } from "@namitiszunk/emails";
-import { NonRetriableError } from "inngest";
 
 /** Integrations other wave-2 tasks own; each shortcut says what replaces it. */
 export const deps = {
   // Throws when Stripe already captured, so the job keeps the order for the webhook.
   cancelPaymentIntent: cancelOrderPaymentIntents,
-  // shortcut: refunds land with T-034; until then an enabled refund-on-expiry fails loudly (Sentry) instead of marking an unpaid refund.
-  refundPayment: async (orderId: string): Promise<void> => {
-    throw new NonRetriableError(
-      `refund on expiry for order ${orderId} needs T-034`,
-    );
-  },
+  // Both refund whatever is left, idempotent per order, so a retried step never refunds twice (T-034).
+  refundPayment: (orderId: string) => refundOrderInFull(orderId, "expired"),
+  refundRejected: (orderId: string) => refundOrderInFull(orderId, "rejected"),
   // Nullable so tests can switch reconciliation off.
   listStripeCharges: listSucceededCharges as
     ((range: { from: Date; to: Date }) => Promise<StripeCharge[]>) | null,

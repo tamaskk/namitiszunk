@@ -35,7 +35,10 @@
     "promo_invalid": "This promo code is not valid.",
     "below_minimum_order": "Your order is below this venue's minimum.",
     "below_minimum_charge": "The total is below the smallest amount a card can be charged.",
-    "nothing_to_charge": "This order has nothing to pay for."
+    "nothing_to_charge": "This order has nothing to pay for.",
+    "order_not_paid": "This order has no payment to refund.",
+    "refund_exceeds_remaining": "The amount is more than what is left to refund.",
+    "refund_failed": "The refund did not go through. Try again or contact support."
   },
   "landing": {
     "tagline": "Order and pay on your phone"
