@@ -89,6 +89,28 @@ describe("SMS texts", () => {
     );
   });
 
+  it.each([
+    ["Űrbár", "az Urbar"],
+    ["Ötös", "az Otos"],
+    ["1-es pult", "az 1-es pult"],
+    ["5-ös pult", "az 5-os pult"],
+    ["1000 Bar", "az 1000 Bar"],
+    ["10-es pult", "a 10-es pult"],
+    ["2-es pult", "a 2-es pult"],
+  ])("picks the hu article by sound for %s", (barName, expected) => {
+    const text = reminderSmsText("hu", { barName });
+
+    expect(text).toBe(`Meg var rad az italod ${expected} pultnal.`);
+  });
+
+  it("makes a typed bar name GSM-7 safe instead of failing", () => {
+    const barName = "Rock–n’Roll “Bar” €🍻";
+
+    const text = reminderSmsText("en", { barName });
+
+    expect(text).toBe(`Your drink is still waiting at Rock-n'Roll "Bar".`);
+  });
+
   it.each(["hu", "en"] as const)(
     "keeps every %s text GSM-7 and within 160 with the longest name and a long link",
     (locale) => {
@@ -121,12 +143,17 @@ describe("normalizeHuPhone", () => {
     expect(normalizeHuPhone(input)).toBe(expected);
   });
 
-  it.each(["+43 664 1234567", "+44 7911 123456", "+1 202 555 0143", "12", ""])(
-    "rejects %s",
-    (input) => {
-      expect(normalizeHuPhone(input)).toBeNull();
-    },
-  );
+  it.each([
+    "+43 664 1234567",
+    "+44 7911 123456",
+    "+1 202 555 0143",
+    "12",
+    "",
+    // Budapest landline: valid, but it cannot receive an SMS.
+    "+36 1 234 5678",
+  ])("rejects %s", (input) => {
+    expect(normalizeHuPhone(input)).toBeNull();
+  });
 });
 
 describe("shouldSendSms", () => {

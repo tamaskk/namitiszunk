@@ -15,7 +15,8 @@ vi.mock("server-only", () => ({}));
 const captureException = vi.hoisted(() => vi.fn());
 vi.mock("@sentry/nextjs", () => ({ captureException }));
 
-const { connectDb } = await import("@namitiszunk/core/api");
+const { connectDb, claimIdempotencyKey } =
+  await import("@namitiszunk/core/api");
 const { ConflictError, NotFoundError } =
   await import("@namitiszunk/core/errors");
 const { Forbidden } = await import("@namitiszunk/core/auth");
@@ -243,6 +244,85 @@ describe("rate limit", () => {
     expect(otherClient.status).toBe(200);
     expect(nextWindow.status).toBe(200);
   });
+
+  it("shares one bucket across the ids of a dynamic route", async () => {
+    const endpoint = handler(
+      { ...open, rateLimit: { limit: 1, windowSeconds: 60 } },
+      async () => "ok",
+    );
+    const get = (id: string) =>
+      endpoint(new Request(`https://api.namitiszunk.hu/v1/orders/${id}`), {
+        params: Promise.resolve({ id }),
+      });
+
+    const first = await get("a1");
+    const otherId = await get("b2");
+
+    expect(first.status).toBe(200);
+    expect(otherId.status).toBe(429);
+  });
+
+  it("limits a signed-in caller across client addresses", async () => {
+    const endpoint = handler(
+      {
+        auth: async () => ({ id: "u1" }),
+        permission: "none",
+        rateLimit: { limit: 1, windowSeconds: 60 },
+      },
+      async () => "ok",
+    );
+    const from = (ip: string) =>
+      new Request(url, { headers: { "x-forwarded-for": ip } });
+
+    const first = await endpoint(from("1.2.3.4"), route);
+    const otherIp = await endpoint(from("5.6.7.8"), route);
+
+    expect(first.status).toBe(200);
+    expect(otherIp.status).toBe(429);
+  });
+
+  it("limits by the rateLimitKey target after validation", async () => {
+    const endpoint = handler(
+      {
+        ...open,
+        input: z.object({ phone: z.string() }),
+        rateLimit: { limit: 1, windowSeconds: 60 },
+        rateLimitKey: (input) => input.phone,
+      },
+      async () => "ok",
+    );
+    const send = (ip: string, phone: string) =>
+      endpoint(
+        new Request(url, {
+          method: "POST",
+          body: JSON.stringify({ phone }),
+          headers: { "x-forwarded-for": ip },
+        }),
+        route,
+      );
+
+    const first = await send("1.1.1.1", "+36301234567");
+    const samePhone = await send("2.2.2.2", "+36301234567");
+    const otherPhone = await send("3.3.3.3", "+36307654321");
+
+    expect([first, samePhone, otherPhone].map((r) => r.status)).toEqual([
+      200, 429, 200,
+    ]);
+  });
+
+  it("refuses a request without a client address in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const endpoint = handler(
+      { ...open, rateLimit: { limit: 5, windowSeconds: 60 } },
+      async () => "ok",
+    );
+
+    const res = await endpoint(new Request(url), route);
+
+    vi.unstubAllEnvs();
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("client_unknown");
+  });
 });
 
 describe("idempotency", () => {
@@ -381,6 +461,33 @@ describe("idempotency", () => {
 
     expect(res.status).toBe(500);
     expect(created).toBe(2);
+  });
+
+  it("rejects a malformed key before touching the database", async () => {
+    const uri = process.env.MONGODB_URI;
+    delete process.env.MONGODB_URI;
+
+    const res = await createOrder(
+      post({ qty: 1 }, { "idempotency-key": "has space", ...caller }),
+      route,
+    );
+
+    process.env.MONGODB_URI = uri;
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.fields).toEqual({
+      "Idempotency-Key": "invalid",
+    });
+  });
+
+  it("lets a key whose lease ran out be claimed again", async () => {
+    const now = Date.parse("2026-11-07T22:00:00Z");
+    await claimIdempotencyKey("crashed", "hash", now);
+
+    const during = await claimIdempotencyKey("crashed", "hash", now + 60_000);
+    const after = await claimIdempotencyKey("crashed", "hash", now + 121_000);
+
+    expect(during.kind).toBe("in_progress");
+    expect(after.kind).toBe("new");
   });
 
   it("runs every request without a key", async () => {

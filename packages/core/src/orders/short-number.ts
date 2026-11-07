@@ -12,12 +12,29 @@ export async function allocateShortNumber(
   businessDate: string,
   session?: ClientSession,
 ): Promise<number> {
-  const counter = await Counter.findOneAndUpdate(
-    { venueId, businessDate },
-    { $inc: { seq: 1 } },
-    { upsert: true, returnDocument: "after", session },
-  ).lean();
-  return counter.seq;
+  const increment = () =>
+    Counter.findOneAndUpdate(
+      { venueId, businessDate },
+      { $inc: { seq: 1 } },
+      { upsert: true, returnDocument: "after", session },
+    ).lean();
+  try {
+    return (await increment()).seq;
+  } catch (error) {
+    // Two first calls of the day may both insert; the loser retries once and increments.
+    // Inside a transaction the duplicate key aborted it, so the caller's withTransaction decides.
+    if (session?.inTransaction() || !isDuplicateKey(error)) throw error;
+    return (await increment()).seq;
+  }
+}
+
+function isDuplicateKey(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === 11000
+  );
 }
 
 export function formatShortNumber(shortNumber: number): string {

@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { blobUrlSchema } from "./shared";
+import { blobUrlSchema, nameSchema } from "./shared";
+
+describe("nameSchema", () => {
+  it("accepts a Hungarian name with spaces and punctuation", () => {
+    expect(nameSchema.safeParse("Örvény Bár – Fő pult").success).toBe(true);
+  });
+
+  it.each(["Bar\r\nBcc: x@evil.example", "Bar\nName", "Bar\u0000", "Bar\t"])(
+    "rejects control characters in %j",
+    (name) => {
+      expect(nameSchema.safeParse(name).success).toBe(false);
+    },
+  );
+});
 
 describe("blobUrlSchema", () => {
   it("accepts an https URL on the Vercel Blob public host", () => {

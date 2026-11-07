@@ -1,6 +1,7 @@
 import "server-only";
 
-import { parsePhoneNumberFromString } from "libphonenumber-js";
+// The max metadata: the default (min) cannot tell a mobile number from a landline.
+import { parsePhoneNumberFromString } from "libphonenumber-js/max";
 import { type Locale, messages } from "@namitiszunk/i18n";
 import twilio from "twilio";
 import { createTranslator } from "use-intl/core";
@@ -15,10 +16,34 @@ const GSM7_BASIC = new Set(
     "¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà",
 );
 
-/** E.164 for a valid Hungarian (+36) number, otherwise null: other countries are an SMS fraud risk. */
+/**
+ * E.164 for a valid Hungarian (+36) mobile number, otherwise null: other countries are an SMS
+ * fraud risk, and a landline cannot receive the SMS.
+ */
 export function normalizeHuPhone(input: string): string | null {
   const phone = parsePhoneNumberFromString(input, "HU");
-  return phone?.isValid() && phone.country === "HU" ? phone.number : null;
+  const type = phone?.getType();
+  return phone?.isValid() &&
+    phone.country === "HU" &&
+    (type === "MOBILE" || type === "FIXED_LINE_OR_MOBILE")
+    ? phone.number
+    : null;
+}
+
+/** A venue-typed bar name made GSM-7 safe: accents stripped, dashes and quotes plain, anything else dropped. */
+export function sanitizeBarName(name: string): string {
+  return [
+    ...name
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .replace(/[‐-―−]/g, "-")
+      .replace(/[‘’‚‛′]/g, "'")
+      .replace(/[“”„‟″]/g, '"')
+      .replace(/\s+/g, " "),
+  ]
+    .filter((char) => GSM7_BASIC.has(char) && char !== "\n" && char !== "\r")
+    .join("")
+    .trim();
 }
 
 /** Strips accents so one Hungarian letter cannot switch the message to UCS-2; throws if it still is not one GSM-7 segment. */
@@ -38,9 +63,17 @@ export function toGsm7(text: string): string {
   return plain;
 }
 
-// Hungarian article: "az" before a vowel ("az Aurora pultnal"), "a" otherwise; en ignores it.
+// Hungarian article: "az" before a vowel sound ("az Aurora pultnal", "az 5-os pultnal"), "a" otherwise; en ignores it.
 function article(barName: string): string {
-  return /^[aeiou]/i.test(toGsm7(barName)) ? "az" : "a";
+  const digits = /^\d+/.exec(barName)?.[0];
+  if (digits) {
+    // Spoken: 1 egy, 5 öt, 1xxx ezer start with a vowel; 10 tíz, 100 száz do not.
+    const vowelSound =
+      digits[0] === "5" ||
+      (digits[0] === "1" && (digits.length === 1 || digits.length === 4));
+    return vowelSound ? "az" : "a";
+  }
+  return /^[aeiou]/i.test(barName) ? "az" : "a";
 }
 
 function smsTranslator(locale: Locale) {
@@ -55,7 +88,8 @@ export function readySmsText(
   locale: Locale,
   input: { shortNumber: number; barName: string; link: string },
 ): string {
-  const { shortNumber, barName, link } = input;
+  const { shortNumber, link } = input;
+  const barName = sanitizeBarName(input.barName);
   return toGsm7(
     smsTranslator(locale)("ready", {
       // A string, so ICU does not group 9999 as "9 999" with a non GSM-7 space.
@@ -71,13 +105,14 @@ export function reminderSmsText(
   locale: Locale,
   input: { barName: string },
 ): string {
-  const { barName } = input;
+  const barName = sanitizeBarName(input.barName);
   return toGsm7(
     smsTranslator(locale)("reminder", { article: article(barName), barName }),
   );
 }
 
 /** Push wins over SMS; the venue can switch SMS off; at most two per order (ready and one reminder). */
+// shortcut: the count is read, then the SMS sent, so two parallel jobs may both send; an atomic per-order claim needs an Order field, add it with T-043/T-035.
 export function shouldSendSms(input: {
   hasPushToken: boolean;
   smsRequested: boolean;

@@ -54,6 +54,44 @@ describe("allocateShortNumber", () => {
     );
   });
 
+  it("gives concurrent first calls on many new days distinct numbers", async () => {
+    const venueId = new Types.ObjectId();
+    const days = ["2026-11-08", "2026-11-09", "2026-11-10"];
+
+    const numbers = await Promise.all(
+      days.flatMap((day) =>
+        Array.from({ length: 5 }, async () => [
+          day,
+          await allocateShortNumber(venueId, day),
+        ]),
+      ),
+    );
+
+    for (const day of days) {
+      const ofDay = numbers.filter(([d]) => d === day).map(([, n]) => n);
+      expect(ofDay.sort()).toEqual([1, 2, 3, 4, 5]);
+    }
+  });
+
+  it("retries once when two first calls race on the insert", async () => {
+    const venueId = new Types.ObjectId();
+    const original = Counter.findOneAndUpdate.bind(Counter);
+    const spy = vi
+      .spyOn(Counter, "findOneAndUpdate")
+      .mockImplementationOnce(() => {
+        throw Object.assign(new Error("E11000 duplicate key"), {
+          code: 11000,
+        });
+      })
+      .mockImplementation(original);
+
+    const number = await allocateShortNumber(venueId, "2026-11-07");
+
+    expect(number).toBe(1);
+    expect(spy).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
+  });
+
   it("restarts per venue and per business day", async () => {
     const a = new Types.ObjectId();
     const b = new Types.ObjectId();

@@ -27,6 +27,8 @@ export const huPhoneSchema = z
 export const nameSchema = z
   .string()
   .regex(/\S/, { error: "validation.name.required" })
+  // Names reach SMS, e-mail headers and logs: no CR/LF or other control characters.
+  .regex(/^[^\p{Cc}]*$/u, { error: "validation.name.invalid" })
   .max(100, { error: "validation.name.max" });
 
 export const timeOfDaySchema = z

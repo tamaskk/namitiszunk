@@ -59,6 +59,29 @@ describe("CORS", () => {
       isAllowedOrigin("https://namitiszunk.hu.evil.example", "production"),
     ];
 
+    expect(results).toEqual([true, false, true, false]);
+  });
+
+  it("allows the API's own origin", () => {
+    expect(isAllowedOrigin("https://api.namitiszunk.hu", "production")).toBe(
+      true,
+    );
+  });
+
+  it("allows our Vercel preview origins only on a preview deployment", () => {
+    const preview = "https://namitiszunk-order-git-feat-x-team.vercel.app";
+
+    const results = [
+      isAllowedOrigin(preview, "production", "preview"),
+      isAllowedOrigin(preview, "production", "production"),
+      isAllowedOrigin("https://evil.vercel.app", "production", "preview"),
+      isAllowedOrigin(
+        "https://namitiszunk-order-x.vercel.app.evil.example",
+        "production",
+        "preview",
+      ),
+    ];
+
     expect(results).toEqual([true, false, false, false]);
   });
 });

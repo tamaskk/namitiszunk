@@ -16,7 +16,8 @@
     "rate_limited": "Too many requests. Wait a moment and try again.",
     "internal": "Something went wrong. Try again.",
     "invalid_transition": "This order cannot change like that now. Refresh and try again.",
-    "reason_required": "Give a reason."
+    "reason_required": "Give a reason.",
+    "client_unknown": "The request could not be identified. Try again."
   },
   "landing": {
     "tagline": "Order and pay on your phone"
