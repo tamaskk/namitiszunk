@@ -76,7 +76,68 @@
     "title": "Na, mit iszunk?"
   },
   "emails": {
-    "receiptSubject": "Nyugta a rendelésedről"
+    "footer": "A levelet a Na, mit iszunk? küldte · namitiszunk.hu",
+    "ignoreIfNotYou": "Ha nem te kérted, hagyd figyelmen kívül ezt a levelet.",
+    "total": "Összesen",
+    "refundTiming": "A visszatérítés néhány munkanap alatt ér a számládra.",
+    "signIn": {
+      "subject": "Belépési linked",
+      "heading": "Belépés",
+      "body": "A gombbal tudsz belépni. A link csak rövid ideig érvényes.",
+      "button": "Belépek"
+    },
+    "staffInvite": {
+      "subject": "Meghívó: {venueName}",
+      "heading": "Meghívást kaptál",
+      "body": "{venueName}: meghívtak {role, select, owner {Tulaj} other {Manager}} szerepkörrel.",
+      "button": "Meghívó elfogadása"
+    },
+    "orderConfirmation": {
+      "subject": "Rendelés visszaigazolása ({shortNumber})",
+      "heading": "Megkaptuk a rendelésed",
+      "body": "{venueName}: már készítik. Szólunk, amikor átveheted a pultnál.",
+      "orderNumber": "Rendelésszám",
+      "notReceipt": "Ez nem nyugta"
+    },
+    "orderRejected": {
+      "subject": "Elutasították a rendelésed ({shortNumber})",
+      "heading": "Elutasított rendelés",
+      "body": "{venueName}: a rendelésed nem tudják elkészíteni. A teljes összeget, {amount}, visszatérítjük a kártyára, amellyel fizettél."
+    },
+    "orderRefunded": {
+      "subject": "Visszatérítés ({shortNumber})",
+      "heading": "Elindítottuk a visszatérítést",
+      "body": "{amount} visszatérítést indítottunk a kártyára, amellyel fizettél."
+    },
+    "problemReport": {
+      "subject": "Problémajelzés: {shortNumber}",
+      "heading": "Problémajelzés",
+      "body": "Egy vendég problémát jelzett. Hely: {venueName}, rendelés: {shortNumber}.",
+      "message": "Üzenet",
+      "guestEmail": "A vendég e-mail-címe"
+    },
+    "newLead": {
+      "subject": "Új lead: {venueName}",
+      "heading": "Új érdeklődő",
+      "name": "Név",
+      "venue": "Hely",
+      "email": "E-mail",
+      "phone": "Telefon",
+      "message": "Üzenet"
+    },
+    "onboardingReminder": {
+      "subject": "Fejezd be a beállítást: {venueName}",
+      "heading": "Még néhány lépés",
+      "body": "{venueName}: fejezd be a beállítást, és a vendégeid rendelhetnek.",
+      "button": "Beállítás folytatása"
+    },
+    "weeklyReport": {
+      "subject": "Heti riport: {venueName}",
+      "heading": "Az elmúlt hét: {venueName}",
+      "orders": "Rendelések",
+      "revenue": "Bevétel",
+      "button": "Riport megnyitása"
+    }
   },
   "sms": {
     "ready": "Na mit iszunk: #{shortNumber} kesz! Vedd fel {article} {barName} pultnal. {link}",
