@@ -26,7 +26,16 @@
     "two_factor_required": "Enter the code from your authenticator app.",
     "two_factor_setup_required": "Set up two-step sign-in to continue.",
     "invite_invalid": "This invite has expired or was already used.",
-    "invite_conflict": "You are already a member of this club, or this name is taken."
+    "invite_conflict": "You are already a member of this club, or this name is taken.",
+    "venue_closed": "This venue is not taking orders right now.",
+    "bar_closed": "This bar is closed. Try another bar.",
+    "bar_paused": "This bar has paused orders for a few minutes. Try again soon.",
+    "items_unavailable": "Some items just sold out. Your cart was updated.",
+    "too_many_items": "Too many items in one order. Remove some and try again.",
+    "promo_invalid": "This promo code is not valid.",
+    "below_minimum_order": "Your order is below this venue's minimum.",
+    "below_minimum_charge": "The total is below the smallest amount a card can be charged.",
+    "nothing_to_charge": "This order has nothing to pay for."
   },
   "landing": {
     "tagline": "Order and pay on your phone"
