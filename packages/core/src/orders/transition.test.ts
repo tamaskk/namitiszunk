@@ -391,15 +391,13 @@ describe("transition", () => {
       role: "owner",
     };
 
-    const missing = transition(
-      new Types.ObjectId(),
-      "start_preparing",
-      bartender,
-    );
-    const elsewhere = transition(order._id, "start_preparing", otherVenue);
-
-    await expect(missing).rejects.toBeInstanceOf(NotFoundError);
-    await expect(elsewhere).rejects.toBeInstanceOf(NotFoundError);
+    // Await each call before starting the next, so the second rejection is never unhandled.
+    await expect(
+      transition(new Types.ObjectId(), "start_preparing", bartender),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      transition(order._id, "start_preparing", otherVenue),
+    ).rejects.toBeInstanceOf(NotFoundError);
     expect((await Order.findById(order._id).lean())?.status).toBe("new");
   });
 
