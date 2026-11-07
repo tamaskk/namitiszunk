@@ -304,6 +304,43 @@ const refundStatusOf = (
       ? "failed"
       : null;
 
+/**
+ * The Stripe refund is the one we sent for this Refund: same connected account as the venue,
+ * same PaymentIntent and amount, and no other Stripe refund already recorded on it.
+ */
+async function belongsTo(
+  refund: Pick<
+    RefundDoc,
+    "venueId" | "paymentId" | "amountHuf" | "stripeRefundId"
+  >,
+  stripeRefund: Stripe.Refund,
+  account: string | undefined,
+  session: ClientSession,
+): Promise<boolean> {
+  if (refund.stripeRefundId && refund.stripeRefundId !== stripeRefund.id)
+    return false;
+  if (stripeRefund.amount !== refund.amountHuf * 100) return false;
+  // Sequential: operations in one transaction session must not run in parallel.
+  const venue = await Venue.findById(refund.venueId)
+    .select("stripeAccountId")
+    .session(session)
+    .lean();
+  const payment = await Payment.findById(refund.paymentId)
+    .select("stripePaymentIntentId")
+    .session(session)
+    .lean();
+  const intent =
+    typeof stripeRefund.payment_intent === "string"
+      ? stripeRefund.payment_intent
+      : stripeRefund.payment_intent?.id;
+  return (
+    !!account &&
+    venue?.stripeAccountId === account &&
+    !!payment &&
+    intent === payment.stripePaymentIntentId
+  );
+}
+
 export type RefundEvent =
   | Stripe.ChargeRefundedEvent
   | Stripe.ChargeRefundUpdatedEvent
@@ -339,9 +376,11 @@ export async function handleRefundEvent(event: RefundEvent): Promise<void> {
 
   let failed: SentRefund[] = [];
   let fullyRefunded: string[] = [];
+  let mismatched: string[] = [];
   await inTransaction(async (session) => {
     failed = [];
     fullyRefunded = [];
+    mismatched = [];
     if (!(await claimStripeEvent(session, event))) return;
     const paymentIds = new Set<string>();
     for (const stripeRefund of stripeRefunds) {
@@ -349,7 +388,13 @@ export async function handleRefundEvent(event: RefundEvent): Promise<void> {
       const refundId = stripeRefund.metadata?.refundId;
       if (!status || !refundId || !isValidObjectId(refundId)) continue;
       const refund = await Refund.findById(refundId).session(session).lean();
-      if (!refund || refund.status === status) continue;
+      if (!refund) continue;
+      // Every connected account posts to this one endpoint: metadata alone is not proof the refund is ours.
+      if (!(await belongsTo(refund, stripeRefund, event.account, session))) {
+        mismatched.push(`${stripeRefund.id} -> refund ${refundId}`);
+        continue;
+      }
+      if (refund.status === status) continue;
       await Refund.updateOne(
         { _id: refund._id },
         { $set: { status, stripeRefundId: stripeRefund.id } },
@@ -394,6 +439,13 @@ export async function handleRefundEvent(event: RefundEvent): Promise<void> {
     }
   });
 
+  for (const pair of mismatched) {
+    reportError(
+      new Error(
+        `Stripe refund event ${event.id} does not match its Refund: ${pair}`,
+      ),
+    );
+  }
   // After the commit: the admin sees the failed Refund; Sentry alerts.
   for (const refund of failed) {
     reportError(

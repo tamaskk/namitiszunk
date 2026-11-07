@@ -368,12 +368,19 @@ describe("refund webhooks", () => {
   const refundEvent = (
     id: string,
     type: "refund.updated" | "refund.failed" | "charge.refund.updated",
-    refund: { id: string; status: string; refundId: string },
+    refund: {
+      id: string;
+      status: string;
+      refundId: string;
+      amount?: number;
+      paymentIntent?: string;
+    },
+    account = accountId,
   ) => ({
     id,
     object: "event",
     type,
-    account: accountId,
+    account,
     api_version: "2026-10-28.endive",
     created: 1_794_000_000,
     livemode: false,
@@ -384,6 +391,8 @@ describe("refund webhooks", () => {
         id: refund.id,
         object: "refund",
         status: refund.status,
+        amount: refund.amount ?? 100_000,
+        payment_intent: refund.paymentIntent ?? "pi_1",
         metadata: { refundId: refund.refundId },
       },
     },
@@ -396,7 +405,13 @@ describe("refund webhooks", () => {
     );
     api.refunds.list.mockResolvedValue({
       data: [
-        { id: `re_${refundId}`, status: "succeeded", metadata: { refundId } },
+        {
+          id: `re_${refundId}`,
+          status: "succeeded",
+          amount: 249_000,
+          payment_intent: "pi_1",
+          metadata: { refundId },
+        },
       ],
     });
     const event = {
@@ -495,5 +510,49 @@ describe("refund webhooks", () => {
       ),
     );
     expect((await Payment.findOne().lean())?.status).toBe("succeeded");
+  });
+
+  it("ignores a valid refundId sent from another venue's connected account", async () => {
+    const { orderId } = await paidOrder();
+    const { refundId } = await refundOrder(orderId, 1000, "Ice", owner);
+
+    await processConnectWebhook(
+      ...signed(
+        refundEvent(
+          "evt_foreign",
+          "refund.updated",
+          { id: "re_foreign", status: "succeeded", refundId },
+          "acct_1OtherVenue",
+        ),
+      ),
+    );
+
+    expect((await Refund.findById(refundId).lean())?.status).toBe("pending");
+    expect((await Payment.findOne().lean())?.status).toBe("succeeded");
+    expect(reported).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining(refundId) }),
+    );
+  });
+
+  it("ignores a refund of another PaymentIntent, another amount or another Stripe refund id", async () => {
+    const { orderId } = await paidOrder();
+    const { refundId } = await refundOrder(orderId, 1000, "Ice", owner);
+    const ok = { status: "succeeded", refundId };
+
+    for (const [i, refund] of [
+      { ...ok, id: `re_${refundId}`, paymentIntent: "pi_other" },
+      { ...ok, id: `re_${refundId}`, amount: 249_000 },
+      { ...ok, id: "re_another" },
+    ].entries()) {
+      await processConnectWebhook(
+        ...signed(refundEvent(`evt_mismatch_${i}`, "refund.updated", refund)),
+      );
+    }
+
+    expect((await Refund.findById(refundId).lean())?.status).toBe("pending");
+    expect(await AuditLog.countDocuments({ action: "refund.succeeded" })).toBe(
+      0,
+    );
+    expect(reported).toHaveBeenCalledTimes(3);
   });
 });
