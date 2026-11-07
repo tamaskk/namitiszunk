@@ -40,3 +40,22 @@ export const IdempotencyKey = defineModel(
   "idempotencyKeys",
 );
 export type IdempotencyKeyDoc = InferSchemaType<typeof idempotencyKeySchema>;
+
+// Processed Stripe webhook events (T-032, T-033): the unique id makes every handler run once.
+const stripeEventSchema = new Schema({
+  eventId: { type: String, required: true },
+  type: { type: String, required: true },
+  processedAt: { type: Date, required: true, default: () => new Date() },
+});
+stripeEventSchema.index({ eventId: 1 }, { unique: true });
+// Stripe retries a delivery for 3 days, so 30 days of ids is plenty.
+stripeEventSchema.index(
+  { processedAt: 1 },
+  { expireAfterSeconds: 30 * 24 * 60 * 60 },
+);
+export const StripeEvent = defineModel(
+  "StripeEvent",
+  stripeEventSchema,
+  "stripeEvents",
+);
+export type StripeEventDoc = InferSchemaType<typeof stripeEventSchema>;

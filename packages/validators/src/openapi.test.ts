@@ -22,6 +22,8 @@ describe("buildOpenApiDocument", () => {
     expect(Object.keys(paths)).toEqual([
       "/v1/orders",
       "/v1/venues",
+      "/v1/stripe/connect/account",
+      "/v1/stripe/connect/link",
       "/v1/ping",
       "/v1/openapi.json",
     ]);

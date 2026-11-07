@@ -17,7 +17,10 @@
     "internal": "Valami hiba történt. Próbáld újra.",
     "invalid_transition": "Ez a rendelés most nem módosítható így. Frissíts, és próbáld újra.",
     "reason_required": "Adj meg egy indokot.",
-    "client_unknown": "A kérést nem sikerült azonosítani. Próbáld újra."
+    "client_unknown": "A kérést nem sikerült azonosítani. Próbáld újra.",
+    "stripe_account_missing": "Előbb kösd be a Stripe-fiókot.",
+    "payments_not_enabled": "Ez a hely még nem fogadhat fizetést.",
+    "invalid_signature": "A kérés aláírása érvénytelen."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon"

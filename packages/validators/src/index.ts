@@ -2,6 +2,7 @@ export * from "./auth";
 export * from "./menu";
 export { buildOpenApiDocument } from "./openapi";
 export * from "./orders";
+export * from "./payments";
 export * from "./promos";
 export * from "./shared";
 export * from "./staff";

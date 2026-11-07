@@ -11,7 +11,8 @@
     "./api": "./src/api/index.ts",
     "./errors": "./src/errors.ts",
     "./orders": "./src/orders/index.ts",
-    "./notify": "./src/notify/sms.ts"
+    "./notify": "./src/notify/sms.ts",
+    "./payments": "./src/payments/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -35,6 +36,7 @@
     "@namitiszunk/validators": "workspace:*",
     "libphonenumber-js": "^1.13.15",
     "server-only": "^0.0.1",
+    "stripe": "^23.1.0",
     "twilio": "^6.3.0",
     "use-intl": "4.14.9"
   }
