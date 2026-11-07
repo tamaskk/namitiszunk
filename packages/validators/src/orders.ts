@@ -61,6 +61,8 @@ export const createOrderInputSchema = z
     acceptedTermsVersion: z
       .string()
       .min(1, { error: "validation.terms.required" }),
+    /** PostHog distinct id, copied into the PaymentIntent metadata. */
+    posthogId: z.string().max(200).optional(),
   })
   .refine((order) => !order.smsRequested || order.guestPhone !== undefined, {
     path: ["guestPhone"],
