@@ -51,8 +51,13 @@ export function percentAtMost100(value: {
   return value.type !== "percent" || value.value <= 10_000;
 }
 
+/** The one /v1 error shape (T-029, apps/api/lib/error-response.ts): `messageKey` is an i18n key, `fields` maps input paths to reasons. */
 export const errorResponseSchema = z.object({
-  error: z.object({ code: z.string(), message: z.string() }),
+  error: z.object({
+    code: z.string(),
+    messageKey: z.string(),
+    fields: z.record(z.string(), z.string()),
+  }),
 });
 
 /** Field path to i18n key, for a 400 response; Zod's own messages map to `validation.<issue code>`. */

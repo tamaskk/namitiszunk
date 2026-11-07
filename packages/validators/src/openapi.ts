@@ -8,6 +8,9 @@ import { errorResponseSchema } from "./shared";
 import * as staff from "./staff";
 import * as venues from "./venues";
 
+export const pingResponseSchema = z.object({ pong: z.literal(true) });
+export const openApiDocumentSchema = z.looseObject({ openapi: z.string() });
+
 const components = {
   ErrorResponse: errorResponseSchema,
   CreateOrderInput: orders.createOrderInputSchema,
@@ -31,8 +34,8 @@ const components = {
   EmailOtpVerifyInput: auth.emailOtpVerifyInputSchema,
   PinSignInInput: auth.pinSignInInputSchema,
   SessionUserResponse: auth.sessionUserResponseSchema,
-  PingResponse: z.object({ pong: z.literal(true) }),
-  OpenApiDocument: z.looseObject({ openapi: z.string() }),
+  PingResponse: pingResponseSchema,
+  OpenApiDocument: openApiDocumentSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ComponentName = keyof typeof components;

@@ -1,6 +1,10 @@
 export * from "./auth";
 export * from "./menu";
-export { buildOpenApiDocument } from "./openapi";
+export {
+  buildOpenApiDocument,
+  openApiDocumentSchema,
+  pingResponseSchema,
+} from "./openapi";
 export * from "./orders";
 export * from "./promos";
 export * from "./shared";

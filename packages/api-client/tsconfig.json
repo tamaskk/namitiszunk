@@ -1,4 +1,9 @@
 {
   "extends": "@namitiszunk/config/tsconfig/base.json",
+  "compilerOptions": {
+    // DOM globals (fetch, crypto.randomUUID) and no @types/node: Node-only APIs fail to type-check, so the client stays usable in browsers and React Native.
+    "lib": ["ES2022", "DOM"],
+    "types": []
+  },
   "include": ["src"]
 }
