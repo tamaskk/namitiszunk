@@ -1,6 +1,6 @@
-import {
+// mongoose.models, not a named import: plain node (the seed script) only sees the CJS exports it detects.
+import mongoose, {
   model,
-  models,
   Schema,
   type InferSchemaType,
   type Model,
@@ -29,7 +29,7 @@ export function defineModel<TSchema extends Schema>(
   collection?: string,
 ): Model<InferSchemaType<TSchema>> {
   return (
-    (models[name] as Model<InferSchemaType<TSchema>> | undefined) ??
+    (mongoose.models[name] as Model<InferSchemaType<TSchema>> | undefined) ??
     model<InferSchemaType<TSchema>>(name, schema, collection)
   );
 }
