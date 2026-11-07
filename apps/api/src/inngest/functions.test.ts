@@ -43,7 +43,8 @@ const readyEvent = {
 } as const;
 
 // The test engine stops at a sleep; a mocked sleep step simulates the time passing.
-const slept = (...ids: string[]) => ids.map((id) => ({ id, handler: () => null }));
+const slept = (...ids: string[]) =>
+  ids.map((id) => ({ id, handler: () => null }));
 
 beforeEach(() => {
   vi.clearAllMocks();
