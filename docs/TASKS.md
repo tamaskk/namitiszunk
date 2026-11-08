@@ -23,10 +23,13 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 ## Deferred parts
 - [ ] T-045 "Order more" and "Order again" buttons on the thanks page: need the menu (T-040) and the cart (T-041). "Order again" skips sold-out items and says so.
 
+- [ ] T-042 checkout, the parts code cannot prove: a Stripe test-mode run with a real card, 3D Secure and a declined card (`stripe listen`), the terms link (T-003), and Apple Pay / Google Pay on real devices in the closed test (T-008).
+
 ## Later (after these)
 - [ ] Remaining v1 tasks in `docs/fejlesztesi-terv.md` sections C–I (#17–#83)
 
 ## Done
+- [x] T-042 Checkout and payment (`apps/order/app/[locale]/v/[slug]/checkout`): server-priced quote, tip, SMS phone, 18+ and terms, Stripe Payment Element (deferred intent), one order per double tap; promo field hidden until T-060
 - [x] T-040 Guest menu page (`apps/order/app/[locale]/v/[slug]`); JS budget redefined as framework baseline + 50 KB gzip; LCP with images measured in T-049
 - [x] T-041 Product sheet and cart (`apps/order/components/product-sheet`, `cart`); item note hidden until T-047
 - [x] T-043 Live order status page (`apps/order/app/[locale]/o/[orderId]`); on-device checks (Ready within 2 s, sound, vibration, lock and unlock, motion) still to do on a real phone

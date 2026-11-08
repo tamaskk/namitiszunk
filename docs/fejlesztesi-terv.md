@@ -1452,12 +1452,12 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] A borravaló alapból 0, a végösszeg minden kombinációban egyezik a 22. feladat képletével.
+- [x] A borravaló alapból 0, a végösszeg minden kombinációban egyezik a 22. feladat képletével.
 - [ ] Kártyafizetés, 3D Secure teszt kártya és elutasított kártya teszt módban helyes üzenettel lefut.
-- [ ] Dupla koppintás a fizetés gombon egy rendelést és egy terhelést ad.
-- [ ] Megadott magyar telefonszámnál az application fee 35 Ft-tal nagyobb; külföldi számot a mező nem fogad el.
-- [ ] Szünetelő pultnál a fizetés gomb letiltva.
-- [ ] A rendelésen ott van az elfogadott ÁSZF-verzió.
+- [x] Dupla koppintás a fizetés gombon egy rendelést és egy terhelést ad.
+- [x] Megadott magyar telefonszámnál az application fee 35 Ft-tal nagyobb; külföldi számot a mező nem fogad el.
+- [x] Szünetelő pultnál a fizetés gomb letiltva.
+- [x] A rendelésen ott van az elfogadott ÁSZF-verzió.
 - [ ] Apple Pay iPhone-on Safariban, Google Pay Androidon Chrome-ban megjelenik és fizet (a zárt teszten, 8.).
 
 **Tesztelés.** Vitest a `createOrder` újraellenőrzéseire; Playwright helyben, Stripe teszt módban, Stripe CLI-webhooktovábbítással (a preview-ban nincs Stripe webhook, 14.): sikeres, 3D Secure és elutasított kártya, promóciós kód, dupla koppintás. Apple Pay és Google Pay valódi eszközön, a zárt teszten (8.) éles módban, utána visszatérítéssel.
