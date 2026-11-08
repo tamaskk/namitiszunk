@@ -896,9 +896,9 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 **Elfogadási feltételek.**
 
 - [x] A mátrix minden cellája automatikus tesztként létezik.
-- [ ] Másik helyszín erőforrására minden szerepkör 403-at kap.
+- [x] Másik helyszín erőforrására minden szerepkör 403-at kap.
 - [x] Pultos PIN-nel a visszatérítés végpontja 403-at ad.
-- [ ] Nincs route handler `requirePermission()` nélkül (CI-ellenőrzés a nyilvános végpontok listáján kívül).
+- [x] Nincs route handler `requirePermission()` nélkül (CI-ellenőrzés a nyilvános végpontok listáján kívül).
 
 **Tesztelés.** Vitest: a mátrix egy fixture-ből, szerepkör × művelet × elvárt eredmény. API-szintű tesztek a legkritikusabb végpontokra (visszatérítés, menüár, személyzet, kifizetés) másik klub tokenjével.
 
