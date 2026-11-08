@@ -17,7 +17,13 @@ const fill = (template: string, values: Record<string, string | number>) =>
     template,
   );
 
-const { menu, product, cart, checkout } = messages.hu.order;
+const { checkout } = messages.hu.order;
+type Locale = "hu" | "en";
+/** The fixed part of a message before its first placeholder, as a "starts with" pattern. */
+const startsWith = (template: string) =>
+  new RegExp(
+    `^${template.split("{")[0]!.replace(/[.*+?^$()|[\]\\]/g, "\\$&")}`,
+  );
 const bar = seedId("bar:main");
 const zone = seedId("zone:dancefloor");
 const orderId = "6a0f1c2b3d4e5f6a7b8c9d0e";
@@ -105,7 +111,9 @@ async function cartToCheckout(
   page: Page,
   answer: () => Promise<void>,
   stripeFails?: "load" | "confirm",
+  locale: Locale = "hu",
 ) {
+  const { menu, product, cart, checkout } = messages[locale].order;
   if (stripeFails)
     await page.addInitScript((fails) => {
       (window as unknown as { __stripeFails: string }).__stripeFails = fails;
@@ -119,7 +127,7 @@ async function cartToCheckout(
       document.head.append(style);
     });
   });
-  await page.goto(`/hu/v/demo?bar=${bar}&zone=${zone}`);
+  await page.goto(`/${locale}/v/demo?bar=${bar}&zone=${zone}`);
   await page.getByRole("button", { name: menu.ageGate.yes }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page
@@ -130,10 +138,10 @@ async function cartToCheckout(
     .click();
   await page
     .getByRole("dialog")
-    .getByRole("button", { name: /^Kosárba/ })
+    .getByRole("button", { name: startsWith(product.toCart) })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByRole("button", { name: /^Kosár · / }).click();
+  await page.getByRole("button", { name: startsWith(cart.open) }).click();
   await answer();
   await page.getByRole("button", { name: cart.continue }).click();
   await expect(
@@ -141,9 +149,11 @@ async function cartToCheckout(
   ).toBeVisible();
 }
 
-const payButton = (page: Page, totalHuf: number) =>
+const payButton = (page: Page, totalHuf: number, locale: Locale = "hu") =>
   page.getByRole("button", {
-    name: fill(checkout.pay, { total: formatHuf(totalHuf) }),
+    name: fill(messages[locale].order.checkout.pay, {
+      total: formatHuf(totalHuf),
+    }),
   });
 
 test("prices on the server with no tip by default, and a 10% tip changes the total", async ({
@@ -167,43 +177,52 @@ test("prices on the server with no tip by default, and a 10% tip changes the tot
   expect(violations.map((v) => v.id)).toEqual([]);
 });
 
-test("asks for 18+ and the terms, then a double tap makes one order and opens the live page", async ({
-  page,
-}) => {
-  let created = 0;
-  let sent: { acceptedTermsVersion?: string; smsRequested?: boolean } = {};
-  await cartToCheckout(page, async () => {
-    await answerQuote(page);
-    await page.route("**/v1/orders", async (route) => {
-      created++;
-      sent = route.request().postDataJSON() as typeof sent;
-      await json(route, 201, {
-        data: { orderId, clientSecret: "pi_1_secret_x", guestToken },
-      });
+// T-048 cases 9 (double tap) and, below, 4 (failed payment) run in both languages.
+for (const locale of ["hu", "en"] as const) {
+  test(`asks for 18+ and the terms, then a double tap makes one order and opens the live page (${locale})`, async ({
+    page,
+  }) => {
+    let created = 0;
+    let sent: { acceptedTermsVersion?: string; smsRequested?: boolean } = {};
+    await cartToCheckout(
+      page,
+      async () => {
+        await answerQuote(page);
+        await page.route("**/v1/orders", async (route) => {
+          created++;
+          sent = route.request().postDataJSON() as typeof sent;
+          await json(route, 201, {
+            data: { orderId, clientSecret: "pi_1_secret_x", guestToken },
+          });
+        });
+      },
+      undefined,
+      locale,
+    );
+    const { checkout } = messages[locale].order;
+    const pay = payButton(page, colaHuf, locale);
+    await expect(pay).toBeEnabled();
+
+    await pay.click();
+    await expect(page.getByText(checkout.adultRequired)).toBeVisible();
+    await expect(page.getByText(checkout.termsRequired)).toBeVisible();
+    expect(created).toBe(0);
+
+    await page.getByLabel(checkout.adult).check();
+    await page.getByLabel(checkout.terms).check();
+    await pay.dblclick();
+
+    // The live page may compile on first use in dev.
+    await expect(page).toHaveURL(new RegExp(`/${locale}/o/${orderId}$`), {
+      timeout: 20_000,
+    });
+    expect(created).toBe(1);
+    expect(sent).toMatchObject({
+      acceptedTermsVersion: "draft-2026-11",
+      smsRequested: false,
     });
   });
-  const pay = payButton(page, colaHuf);
-  await expect(pay).toBeEnabled();
-
-  await pay.click();
-  await expect(page.getByText(checkout.adultRequired)).toBeVisible();
-  await expect(page.getByText(checkout.termsRequired)).toBeVisible();
-  expect(created).toBe(0);
-
-  await page.getByLabel(checkout.adult).check();
-  await page.getByLabel(checkout.terms).check();
-  await pay.dblclick();
-
-  // The live page may compile on first use in dev.
-  await expect(page).toHaveURL(new RegExp(`/hu/o/${orderId}$`), {
-    timeout: 20_000,
-  });
-  expect(created).toBe(1);
-  expect(sent).toMatchObject({
-    acceptedTermsVersion: "draft-2026-11",
-    smsRequested: false,
-  });
-});
+}
 
 test("takes only a Hungarian mobile number for the SMS", async ({ page }) => {
   let sent: { guestPhone?: string } = {};
@@ -279,27 +298,35 @@ test("says the payment form did not load and offers a retry", async ({
   await expect(payButton(page, colaHuf)).toBeDisabled();
 });
 
-test("a declined payment without a message stays on the checkout and keeps the cart", async ({
-  page,
-}) => {
-  await cartToCheckout(
+for (const locale of ["hu", "en"] as const) {
+  test(`a declined payment without a message stays on the checkout, keeps the cart and offers another method (${locale})`, async ({
     page,
-    async () => {
-      await answerQuote(page);
-      await page.route("**/v1/orders", (route) =>
-        json(route, 201, {
-          data: { orderId, clientSecret: "pi_1_secret_x", guestToken },
-        }),
-      );
-    },
-    "confirm",
-  );
-  await page.getByLabel(checkout.adult).check();
-  await page.getByLabel(checkout.terms).check();
+  }) => {
+    await cartToCheckout(
+      page,
+      async () => {
+        await answerQuote(page);
+        await page.route("**/v1/orders", (route) =>
+          json(route, 201, {
+            data: { orderId, clientSecret: "pi_1_secret_x", guestToken },
+          }),
+        );
+      },
+      "confirm",
+      locale,
+    );
+    const { checkout } = messages[locale].order;
+    await page.getByLabel(checkout.adult).check();
+    await page.getByLabel(checkout.terms).check();
 
-  await payButton(page, colaHuf).click();
+    await payButton(page, colaHuf, locale).click();
 
-  await expect(page.getByText(checkout.payFailed)).toBeVisible();
-  await expect(page).toHaveURL(/\/checkout/);
-  await expect(payButton(page, colaHuf)).toBeEnabled();
-});
+    await expect(page.getByText(checkout.payFailed)).toBeVisible();
+    await expect(page).toHaveURL(/\/checkout/);
+    await page.getByRole("button", { name: checkout.otherMethod }).click();
+    await expect(
+      page.getByRole("heading", { name: checkout.payment }),
+    ).toBeFocused();
+    await expect(payButton(page, colaHuf, locale)).toBeEnabled();
+  });
+}
