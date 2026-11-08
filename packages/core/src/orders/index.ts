@@ -1,5 +1,12 @@
 export * from "./state-machine";
 export {
+  buildConfirmation,
+  CONFIRMATION_EMAIL_LIMIT,
+  type Confirmation,
+  getGuestConfirmation,
+  requestConfirmationEmail,
+} from "./confirmation";
+export {
   cancelGuestOrder,
   getGuestOrder,
   type GuestOrderView,

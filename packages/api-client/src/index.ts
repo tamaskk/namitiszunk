@@ -6,6 +6,8 @@ import {
   menuResponseSchema,
   objectIdSchema,
   openApiDocumentSchema,
+  confirmationEmailInputSchema,
+  confirmationEmailResponseSchema,
   orderResponseSchema,
   pingResponseSchema,
   realtimeTokenInputSchema,
@@ -188,6 +190,21 @@ export function createApiClient(options: ApiClientOptions) {
         request("GET", `/v1/orders/${id(orderId)}`, orderResponseSchema, {
           headers: { "x-guest-token": guestToken },
         }),
+      /** POST /v1/orders/{id}/confirmation-email: at most 3 per order; not retried, a repeat would count twice. */
+      sendConfirmationEmail: async (
+        orderId: string,
+        guestToken: string,
+        input: z.input<typeof confirmationEmailInputSchema>,
+      ) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/confirmation-email`,
+          confirmationEmailResponseSchema,
+          {
+            body: parseInput(confirmationEmailInputSchema, input),
+            headers: { "x-guest-token": guestToken },
+          },
+        ),
       /** POST /v1/orders/{id}/cancel: the guest cancels before acceptance. Not retried: a repeat answers 409. */
       cancel: async (orderId: string, guestToken: string) =>
         request(

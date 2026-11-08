@@ -98,8 +98,22 @@ export const orderResponseSchema = z.object({
   refundedHuf: hufSchema,
 });
 
+/** POST /v1/orders/{id}/confirmation-email: the guest sends the confirmation to an address (T-044). */
+export const confirmationEmailInputSchema = z.object({
+  email: z.email({ error: "validation.email.invalid" }),
+  // Same literals as @namitiszunk/i18n locales; validators stays free of the i18n package.
+  locale: z.enum(["hu", "en"]),
+});
+
+export const confirmationEmailResponseSchema = z.object({
+  sent: z.literal(true),
+});
+
 export type CartLine = z.infer<typeof cartLineSchema>;
 export type TipChoiceInput = z.infer<typeof tipChoiceSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
 export type CreateOrderResponse = z.infer<typeof createOrderResponseSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
+export type ConfirmationEmailInput = z.infer<
+  typeof confirmationEmailInputSchema
+>;

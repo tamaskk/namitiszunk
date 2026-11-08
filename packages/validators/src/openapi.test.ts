@@ -23,6 +23,7 @@ describe("buildOpenApiDocument", () => {
       "/v1/orders",
       "/v1/orders/{id}",
       "/v1/orders/{id}/cancel",
+      "/v1/orders/{id}/confirmation-email",
       "/v1/orders/{id}/refunds",
       "/v1/venues",
       "/v1/stripe/connect/account",

@@ -29,6 +29,8 @@ export interface EmailData {
     shortNumber: string;
     items: { name: string; quantity: number; amountHuf: number }[];
     totalHuf: number;
+    /** Link to the guest's confirmation page (T-044). */
+    confirmationUrl?: string;
   }>;
   orderRejected: WithLocale<{
     venueName: string;
@@ -140,6 +142,11 @@ export const templates: { [N in keyof EmailData]: Template<EmailData[N]> } = {
           {t("total")}:{" "}
           <span style={styles.amount}>{formatHuf(data.totalHuf)}</span>
         </Text>
+        {data.confirmationUrl && (
+          <EmailButton href={data.confirmationUrl}>
+            {t("orderConfirmation.open")}
+          </EmailButton>
+        )}
       </>
     ),
   },
