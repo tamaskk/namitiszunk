@@ -452,8 +452,9 @@ function buildOrder(order: SeedOrder, index: number, now: Date): Fields {
     venueId,
     barId: order.barId,
     zoneId: seedId(`zone:${order.zoneKey}`),
-    // shortcut: plain sequential numbers; T-024 allocates them through Counter in production.
-    shortNumber: index + 1,
+    // shortcut: plain sequential numbers; production allocates them through Counter at payment (T-024),
+    // so an unpaid order has none.
+    shortNumber: paid ? index + 1 : undefined,
     // From the order's own time: an order placed before 06:00 belongs to the previous business day.
     businessDate: businessDateOf(createdAt),
     status: order.status,
@@ -635,7 +636,8 @@ export async function seedDemo(now = new Date()): Promise<void> {
   const maxShortNumber = new Map<string, number>();
   for (const order of orders) {
     const date = order.businessDate as string;
-    const shortNumber = order.shortNumber as number;
+    const shortNumber = order.shortNumber as number | undefined;
+    if (shortNumber === undefined) continue;
     maxShortNumber.set(
       date,
       Math.max(maxShortNumber.get(date) ?? 0, shortNumber),
