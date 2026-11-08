@@ -289,6 +289,29 @@ describe("rate limit", () => {
     expect(otherIp.status).toBe(429);
   });
 
+  it("lets many callers share one address up to ipRateLimit", async () => {
+    let caller = 0;
+    const endpoint = handler(
+      {
+        auth: async () => ({ ...u1, id: `guest:${++caller}` }),
+        permission: "none",
+        rateLimit: { limit: 1, windowSeconds: 60 },
+        ipRateLimit: { limit: 2, windowSeconds: 60 },
+      },
+      async () => "ok",
+    );
+    const sameIp = () =>
+      new Request(url, { headers: { "x-forwarded-for": "1.2.3.4" } });
+
+    const first = await endpoint(sameIp(), route);
+    const second = await endpoint(sameIp(), route);
+    const third = await endpoint(sameIp(), route);
+
+    expect([first.status, second.status, third.status]).toEqual([
+      200, 200, 429,
+    ]);
+  });
+
   it("limits by the rateLimitKey target after validation", async () => {
     const endpoint = handler(
       {
