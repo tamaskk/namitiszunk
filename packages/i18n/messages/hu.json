@@ -77,6 +77,49 @@
       },
       "offline": "Nincs kapcsolat, az állapot elavult lehet.",
       "clearSearch": "Keresés törlése"
+    },
+    "product": {
+      "add": "Hozzáadás",
+      "addLabel": "Hozzáadás: {name}",
+      "toCart": "Kosárba · {price}",
+      "quantity": "Mennyiség",
+      "increase": "Eggyel több",
+      "decrease": "Eggyel kevesebb",
+      "note": "Megjegyzés a pultnak",
+      "notePlaceholder": "Például kevés jéggel",
+      "noteCount": "{count}/{max} karakter",
+      "required": "Kötelező",
+      "pickOne": "Válassz egyet",
+      "pickUpTo": "Legfeljebb {max}",
+      "pickRange": "Válassz {min}–{max} között",
+      "missing": "Még válassz: {groups}",
+      "tooMany": "Túl sok választás: {groups}",
+      "closeLabel": "Bezárás"
+    },
+    "cart": {
+      "open": "Kosár · {count} tétel · {subtotal}",
+      "title": "Kosár",
+      "empty": "A kosár üres.",
+      "subtotal": "Részösszeg",
+      "continue": "Tovább",
+      "increase": "Még egy: {name}",
+      "decrease": "Eggyel kevesebb: {name}",
+      "remove": "Törlés: {name}",
+      "quantity": "{count} db",
+      "note": "Megjegyzés: {note}",
+      "limit": "Egy rendelésben legfeljebb {max} tétel lehet.",
+      "soldOut": "{name} közben elfogyott, kivettük a kosárból.",
+      "unavailable": "{name} már nem rendelhető, kivettük a kosárból.",
+      "priceChanged": "{name} ára közben változott, most {price}.",
+      "invalidOptions": "{name} opciói közben változtak, kivettük a kosárból. Add hozzá újra.",
+      "error": "Nem sikerült ellenőrizni a kosarat. Próbáld újra.",
+      "rateLimited": "Túl sok próbálkozás. Várj egy percet, aztán próbáld újra.",
+      "closeLabel": "Bezárás"
+    },
+    "checkout": {
+      "title": "Fizetés",
+      "placeholder": "A fizetés hamarosan itt lesz.",
+      "back": "Vissza a menübe"
     }
   },
   "admin": {
