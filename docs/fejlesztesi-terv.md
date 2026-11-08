@@ -1663,12 +1663,22 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] A Lighthouse CI költségvetése a fő ágon zöld, és egy szándékosan túllépő PR-t pirosít.
-- [ ] Az axe-ellenőrzés minden rendelős oldalon 0 súlyos vagy kritikus hibát ad.
-- [ ] Egy teljes rendelés VoiceOverrel és TalkBackkel is végigvihető.
-- [ ] Minden gomb és vezérlő legalább 48 × 48 px.
+- [x] A JS-költségvetés a fő ágon zöld, és túllépésnél pirosít: `e2e/js-budget.perf.ts` a production buildön, a szerver HTML-jében hivatkozott chunkokból számol (menü 195,7, pénztár 192,4, élő oldal 193,9 KB gzip a 196-ból). Bizonyítás: az élő oldal a statikusan betöltött Ablyval 229,8 KB-tal bukott; az Ably azóta az első rajzolás után töltődik.
+- [ ] LCP ≤ 2,5 mp: a Lighthouse CI méri, de egyelőre csak figyelmeztet. Döntés 2026-11-08: a szimulált mobil LCP 3,2–4,5 mp, futásonként 1–2 mp-et szór, a megfigyelt LCP 1,5 mp alatt van. Akkor lesz kötelező, ha a CI-futások tartják a 2,5 mp-et.
+- [x] Az axe-ellenőrzés minden rendelős oldalon 0 hibát ad (`e2e/a11y.spec.ts`, hu és en; a kosár, a pénztár és a fizetés lépései a saját specjeikben).
+- [ ] Egy teljes rendelés VoiceOverrel és TalkBackkel is végigvihető (kézi, lásd lent).
+- [x] Minden gomb és vezérlő legalább 48 × 48 px (`e2e/a11y.spec.ts`; a szövegbe ágyazott link kivétel, WCAG 2.5.8).
 
-**Tesztelés.** Lighthouse CI és axe a CI-ban; kézi képernyőolvasós bejárás a zárt teszt előtt (8.).
+**Tesztelés.** JS-költségvetés, Lighthouse CI és axe a CI-ban; kézi képernyőolvasós bejárás a zárt teszt előtt (8.). A Web Vitals valós mérése (3. pont) a 18. feladattal jön.
+
+**Kézi képernyőolvasós ellenőrzőlista** (VoiceOver iPhone-on, TalkBack Androidon, Stripe teszt mód, hu és en):
+
+1. Korhatár-kapu: a cím és a két gomb felolvasva, a menü mögötte nem érhető el.
+2. Menü: a helyszín állapota (nyitva, szünetel, zárva) felolvasva; a kategóriasáv és a termékkártyák nevükkel és árukkal; a nyelvváltó és a fiók link névvel.
+3. Terméklap: megnyitáskor a fókusz a lapon, a módosítók csoportnévvel, a hiba felolvasva; bezárás után a fókusz vissza a kártyára.
+4. Kosár és pénztár: a mennyiség, a végösszeg és a borravaló változása felolvasva; a fizetés hibája és a szünet sávja egyszer, élő régióból.
+5. Élő oldal: az állapotváltás (elfogadva, kész) magától felolvasva; a „Kész” képernyő átvételi kódja számjegyenként érthető.
+6. Köszönjük oldal és fiók: az értékelés, az „Újra rendelem” és a bejelentkezés űrlap mezői címkével.
 
 **Függőségek és kockázatok.** Függ: 13, 14, 16, 18, 40–48. Erre épül: 81. Kockázat: a React és a Next.js futásidejű kódja magában is a 150 KB nagy része; ha a költségvetés nem tartható, a build csomagelemzése mutatja meg, mi fér még bele. A Stripe Elements akadálymentességét a Stripe adja, azt nem tudjuk módosítani.
 

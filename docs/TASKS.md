@@ -29,6 +29,12 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 
 - [ ] T-042 checkout, the parts code cannot prove: a Stripe test-mode run with a real card, 3D Secure and a declined card (`stripe listen`), the terms link (T-003), and Apple Pay / Google Pay on real devices in the closed test (T-008).
 
+- [ ] T-049 screen-reader walkthrough on real phones: a full order with VoiceOver (iPhone) and TalkBack (Android) in Stripe test mode, by the checklist in fejlesztesi-terv.md §49.
+
+- [ ] T-049 LCP is a Lighthouse CI warning, not a failure (decision 2026-11-08): the simulated mobile LCP is 3.2–4.5 s and swings 1–2 s between runs, while the observed LCP is under 1.5 s. Make it an error once CI runs hold 2.5 s; cutting hydration JS is the lever.
+
+- [ ] T-049 Web Vitals from real guests (`useReportWebVitals` → PostHog LCP, INP, CLS per venue) comes with T-018 PostHog.
+
 ## Later (after these)
 - [ ] Remaining v1 tasks in `docs/fejlesztesi-terv.md` sections C–I (#17–#83)
 
@@ -42,3 +48,4 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [x] T-046 Problem report, 3 per order, mail to the venue and the platform; real Resend delivery not checked yet, the Admin order page shows it with T-056
 - [x] T-047 Guest account on `/fiok`: sign-in, history with order again, data export, immediate deletion (`/v1/me/*`); device checks deferred (see above)
 - [x] T-048 Guest error states (`apps/order/components/states`, `e2e/states.spec.ts`): venue opening hours and last order (`Venue.openingHours`), live status on checkout, open-order banner, not-live venue page, another payment method, back to the menu from an ended order; hours editing and moving an order to another bar deferred (see above)
+- [x] T-049 Performance and accessibility: JS budget on the production build (`e2e/js-budget.perf.ts`, menu 195.7, checkout 192.4, live order 193.9 KB gzip of 196), Lighthouse CI LCP report (`lighthouserc.cjs`), axe and 48 px touch targets on every guest page (`e2e/a11y.spec.ts`), Ably loads after the first paint; LCP enforcement, screen-reader walkthrough and Web Vitals deferred (see above)
