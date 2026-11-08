@@ -200,6 +200,10 @@ describe("refundOrder", () => {
     expect(api.refunds.create.mock.calls.map((c) => c[0].amount)).toEqual([
       100_000, 49_000,
     ]);
+    // Each part asks Stripe to return the platform fee; Stripe prorates it to the part (T-034).
+    expect(
+      api.refunds.create.mock.calls.map((c) => c[0].refund_application_fee),
+    ).toEqual([true, true]);
     await refundOrder(orderId, "full", "Rest", owner);
     expect(api.refunds.create.mock.calls.at(-1)?.[0].amount).toBe(100_000);
     expect(await statusOf(orderId)).toBe("picked_up");
