@@ -190,6 +190,7 @@ Environment variables (names only; values live in Vercel and `.env.local`), vali
 | APPLE_CLIENT_ID, APPLE_CLIENT_SECRET | packages/auth Apple sign-in: Services ID and the client secret JWT (renew within 6 months) | yes |
 | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET | packages/core payments, apps/api webhooks | yes |
 | NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY | apps/order checkout | no |
+| PLATFORM_ALERT_EMAIL | apps/api: the platform copy of guest problem reports (T-046) | no |
 | NEXT_PUBLIC_API_URL | apps/order browser: order status, guest cancel and the Ably token through apps/api | no |
 | ABLY_API_KEY | packages/core realtime, token route | yes |
 | TWILIO_* | packages/core notify | yes |

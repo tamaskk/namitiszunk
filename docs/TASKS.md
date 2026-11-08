@@ -20,6 +20,9 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 ## Open decisions
 - [ ] Guest cancel abuse (from the T-043 review): at a manual-acceptance venue a guest can pay and cancel repeatedly, and each refund leaves the Stripe fee with the venue. Decide whether to cap guest cancels per device or phone per business day.
 
+## Deferred parts
+- [ ] T-045 "Order more" and "Order again" buttons on the thanks page: need the menu (T-040) and the cart (T-041). "Order again" skips sold-out items and says so.
+
 ## Later (after these)
 - [ ] Remaining v1 tasks in `docs/fejlesztesi-terv.md` sections C–I (#17–#83)
 

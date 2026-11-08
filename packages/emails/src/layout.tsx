@@ -55,6 +55,12 @@ export const styles = {
     fontVariantNumeric: "tabular-nums",
     margin: "0 0 24px",
   },
+  untrusted: {
+    border: `1px solid ${color.border}`,
+    borderRadius: radius.md,
+    padding: "12px 16px",
+    margin: "0 0 16px",
+  },
   notice: {
     color: color.text,
     fontSize: text.h3.size,

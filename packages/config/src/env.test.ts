@@ -22,6 +22,7 @@ const liveApiEnv = {
   ...testApiEnv,
   VERCEL_ENV: "production",
   STRIPE_SECRET_KEY: "sk_live_abc123",
+  PLATFORM_ALERT_EMAIL: "ops@namitiszunk.hu",
   SENTRY_DSN: "https://key@o1.ingest.sentry.io/1",
   SENTRY_AUTH_TOKEN: "sntrys_abc",
   SENTRY_ORG: "namitiszunk",

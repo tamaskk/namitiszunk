@@ -60,6 +60,28 @@ export const orderApi = {
       token,
       input,
     ),
+  reportProblem: (
+    orderId: string,
+    token: string,
+    input: { category: string; message?: string; email?: string },
+  ) =>
+    call<{ reported: true }>(
+      "POST",
+      `/v1/orders/${encodeURIComponent(orderId)}/report`,
+      token,
+      input,
+    ),
+  review: (
+    orderId: string,
+    token: string,
+    input: { stars: number; text?: string },
+  ) =>
+    call<{ reviewed: true }>(
+      "POST",
+      `/v1/orders/${encodeURIComponent(orderId)}/review`,
+      token,
+      input,
+    ),
   realtimeToken: (token: string) =>
     call<TokenRequest>("POST", "/v1/realtime/token", token),
 };

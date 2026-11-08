@@ -16,6 +16,14 @@ export const orderStatuses = [
 ] as const;
 export type OrderStatus = (typeof orderStatuses)[number];
 
+export const problemCategories = [
+  "not_received",
+  "wrong_order",
+  "payment",
+  "other",
+] as const;
+export type ProblemCategory = (typeof problemCategories)[number];
+
 export const paymentStatuses = [
   "requires_payment",
   "succeeded",
@@ -91,6 +99,15 @@ const orderSchema = new Schema(
     acceptedAt: Date,
     readyAt: Date,
     pickedUpAt: Date,
+    // Guest problem reports (T-046), at most 3 per order; mailed to the venue and the platform.
+    problemReports: [
+      {
+        category: { type: String, enum: problemCategories, required: true },
+        message: { type: String, maxlength: 1000 },
+        email: String,
+        createdAt: { type: Date, required: true },
+      },
+    ],
     // Guest-requested confirmation e-mails (T-044), at most 3 per order.
     confirmationEmailCount: { type: Number, min: 0, default: 0 },
   },

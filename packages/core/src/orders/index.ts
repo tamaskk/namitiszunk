@@ -7,6 +7,14 @@ export {
   requestConfirmationEmail,
 } from "./confirmation";
 export {
+  PROBLEM_REPORT_LIMIT,
+  problemReportMails,
+  type ProblemReportInput,
+  type ProblemReportMail,
+  reportProblem,
+} from "./problem-report";
+export { getGuestThanks, submitReview } from "./review";
+export {
   cancelGuestOrder,
   getGuestOrder,
   type GuestOrderView,

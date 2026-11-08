@@ -6,6 +6,7 @@ import {
   listSucceededCharges,
   refundOrderInFull,
 } from "@namitiszunk/core/payments";
+import type { ProblemReportMail } from "@namitiszunk/core/orders";
 import { sendEmail } from "@namitiszunk/emails";
 
 /** Integrations other wave-2 tasks own; each shortcut says what replaces it. */
@@ -18,6 +19,19 @@ export const deps = {
   // Nullable so tests can switch reconciliation off.
   listStripeCharges: listSucceededCharges as
     ((range: { from: Date; to: Date }) => Promise<StripeCharge[]>) | null,
+  problems: {
+    sendMail: (mail: ProblemReportMail) =>
+      sendEmail(mail.template, mail.to, mail.data),
+    links: {
+      // Read per call, so tests and previews can set it; unset outside production sends to the venue only.
+      get platformEmail() {
+        return process.env.PLATFORM_ALERT_EMAIL ?? "";
+      },
+      // shortcut: the admin order page arrives with T-056; the link already points where it will live.
+      adminOrder: (orderId: string) =>
+        `https://admin.namitiszunk.hu/orders/${orderId}`,
+    },
+  },
   notify: {
     // shortcut: no push service before T-090 (Expo Push), so every guest falls back to the live page and SMS.
     sendPush: async () => false,

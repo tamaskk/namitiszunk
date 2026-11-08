@@ -36,6 +36,19 @@ export function statusChangedEvent(change: StatusChanged) {
   );
 }
 
+/** Sent by the report route (T-046) once the report is stored; `index` is its place in Order.problemReports. */
+export const problemReported = eventType("order/problem.reported", {
+  schema: staticSchema<{ orderId: string; index: number }>(),
+});
+
+// One stored report, one event: the id dedupes a retried send.
+export function problemReportedEvent(orderId: string, index: number) {
+  return problemReported.create(
+    { orderId, index },
+    { id: `order-${orderId}-problem-${index}` },
+  );
+}
+
 export function orderCreatedEvent(orderId: string, venueId: string) {
   return orderCreated.create(
     { orderId, venueId },

@@ -135,7 +135,7 @@
       "back": "Back to the menu"
     },
     "status": {
-      "pageTitle": "Order {number}",
+      "pageTitle": "Your order",
       "number": "Order number",
       "keepOpen": "Keep this page open, or we cannot let you know.",
       "soundOn": "Turn on sound",
@@ -235,6 +235,42 @@
         "invalid": "Enter a valid email address.",
         "failed": "Could not send it. Try again."
       }
+    },
+    "report": {
+      "button": "Report a problem",
+      "title": "What went wrong?",
+      "description": "The venue and the Na, mit iszunk? team both get it.",
+      "category": "Category",
+      "categories": {
+        "not_received": "I did not get it",
+        "wrong_order": "Wrong or incomplete order",
+        "payment": "Payment problem",
+        "other": "Other"
+      },
+      "message": "Details (optional)",
+      "email": "Your email (optional)",
+      "emailHint": "We reply here.",
+      "send": "Send",
+      "sent": "Received. The venue and our team can see it, and we will get back to you soon.",
+      "categoryRequired": "Choose a category.",
+      "invalid": "Check the fields.",
+      "limit": "You cannot send more reports for this order.",
+      "failed": "Could not send it. Try again.",
+      "close": "Close"
+    },
+    "thanks": {
+      "pageTitle": "Thank you",
+      "title": "Thank you",
+      "body": "Enjoy your night. If something was wrong, let us know below.",
+      "rateTitle": "How was it?",
+      "star": "{count, plural, one {# star} other {# stars}}",
+      "text": "Comment (optional)",
+      "send": "Send rating",
+      "sent": "Thanks for your rating.",
+      "already": "You have already rated this order.",
+      "chooseStars": "Choose between 1 and 5 stars.",
+      "failed": "Could not send it. Try again.",
+      "confirmationLink": "Payment confirmation"
     }
   },
   "admin": {
@@ -330,7 +366,28 @@
       "heading": "Problem report",
       "body": "A guest reported a problem with order {shortNumber} at {venueName}.",
       "message": "Message",
-      "guestEmail": "Guest email"
+      "guestEmail": "Guest email",
+      "bar": "Bar",
+      "status": "Status",
+      "category": "Category",
+      "open": "Open the order in admin",
+      "categories": {
+        "not_received": "I did not get it",
+        "wrong_order": "Wrong or incomplete order",
+        "payment": "Payment problem",
+        "other": "Other"
+      },
+      "statuses": {
+        "awaiting_payment": "Awaiting payment",
+        "new": "New",
+        "preparing": "In progress",
+        "ready": "Ready",
+        "picked_up": "Picked up",
+        "cancelled": "Cancelled",
+        "rejected": "Rejected",
+        "expired": "Expired",
+        "refunded": "Refunded"
+      }
     },
     "newLead": {
       "subject": "New lead: {venueName}",
@@ -353,7 +410,8 @@
       "orders": "Orders",
       "revenue": "Revenue",
       "button": "Open the report"
-    }
+    },
+    "untrustedText": "Written by the sender, not by us. Links in it are not from us."
   },
   "sms": {
     "ready": "Na mit iszunk: #{shortNumber} is ready. Pick it up at {barName}. {link}",
