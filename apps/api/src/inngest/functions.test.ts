@@ -11,6 +11,7 @@ import {
   notify,
   paymentTimeout,
   pickupReminder,
+  problemReportEmail,
   rejectRefund,
   retentionDaily,
   stripeReconcile,
@@ -30,6 +31,16 @@ vi.mock("@namitiszunk/core/retention", () => ({
     paymentsDeleted: 2,
     refundsDeleted: 0,
   })),
+}));
+const problemMail = {
+  template: "problemReport",
+  data: { shortNumber: "#214" },
+} as const;
+vi.mock("@namitiszunk/core/orders", () => ({
+  problemReportMails: vi.fn(async () => [
+    { ...problemMail, to: "bar@pilot.example" },
+    { ...problemMail, to: "ops@namitiszunk.hu" },
+  ]),
 }));
 vi.mock("@namitiszunk/core/jobs", () => ({
   cancelUnpaidOrder: vi.fn(async () => "cancelled"),
@@ -68,6 +79,25 @@ function cancelEvents(fn: { opts: { cancelOn?: unknown[] } }) {
     return { event: event.name, if: when };
   });
 }
+
+describe("order/problem-report-email", () => {
+  it("mails each recipient of the stored report in its own step", async () => {
+    const sendMail = vi
+      .spyOn(deps.problems, "sendMail")
+      .mockResolvedValue({ id: "email_1" });
+    const t = new InngestTestEngine({ function: problemReportEmail });
+
+    const { result } = await t.execute({
+      events: [{ name: "order/problem.reported", data: { orderId, index: 0 } }],
+    });
+
+    expect(result).toBe(2);
+    expect(sendMail.mock.calls.map(([mail]) => mail.to)).toEqual([
+      "bar@pilot.example",
+      "ops@namitiszunk.hu",
+    ]);
+  });
+});
 
 describe("order/payment-timeout", () => {
   it("waits 15 minutes, then cancels the unpaid order and its PaymentIntent", async () => {

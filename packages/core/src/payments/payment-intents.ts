@@ -10,6 +10,7 @@ import { transition } from "../orders/transition";
 import { reportError } from "../report-error";
 import { claimStripeEvent } from "./connect";
 import { refundOrderInFull } from "./refund";
+import { stripe } from "./stripe-client";
 
 const systemStripe: Actor = { kind: "system", source: "stripe" };
 
@@ -77,6 +78,39 @@ async function matchingPayment(
 }
 
 /**
+ * Card brand, last 4 digits and wallet for the guest confirmation (T-044). Best effort: the order is
+ * already paid, so a Stripe error is reported and the confirmation shows the payment without them.
+ */
+async function storeCardDetails(
+  event: Stripe.PaymentIntentSucceededEvent,
+  paymentId: unknown,
+): Promise<void> {
+  const chargeId = event.data.object.latest_charge;
+  if (typeof chargeId !== "string" || !event.account) return;
+  try {
+    const charge = await stripe().charges.retrieve(
+      chargeId,
+      {},
+      { stripeAccount: event.account },
+    );
+    const card = charge.payment_method_details?.card;
+    if (!card) return;
+    await Payment.updateOne(
+      { _id: paymentId },
+      {
+        $set: {
+          cardBrand: card.brand ?? undefined,
+          cardLast4: card.last4 ?? undefined,
+          wallet: card.wallet?.type ?? undefined,
+        },
+      },
+    );
+  } catch (error) {
+    reportError(error);
+  }
+}
+
+/**
  * payment_intent.succeeded: the only way an order reaches New. The transition runs first and is
  * idempotent by itself (a repeat throws InvalidTransition), so a crash before the event is claimed
  * still leaves a retry that finishes the Payment; three deliveries give one transition.
@@ -130,6 +164,7 @@ export async function handlePaymentSucceeded(
   if (late && typeof payment === "object") {
     await refundOrderInFull(payment.orderId, "late_payment");
   }
+  if (typeof payment === "object") await storeCardDetails(event, payment.id);
   // shortcut: the receipt e-mail (intent.receipt_email / the charge's billing_details.email) has no field on Order or Payment yet, so it is not stored.
 }
 

@@ -6,7 +6,13 @@ import {
   menuResponseSchema,
   objectIdSchema,
   openApiDocumentSchema,
+  confirmationEmailInputSchema,
+  confirmationEmailResponseSchema,
   orderResponseSchema,
+  reportProblemInputSchema,
+  reportProblemResponseSchema,
+  reviewInputSchema,
+  reviewResponseSchema,
   pingResponseSchema,
   realtimeTokenInputSchema,
   realtimeTokenResponseSchema,
@@ -188,6 +194,51 @@ export function createApiClient(options: ApiClientOptions) {
         request("GET", `/v1/orders/${id(orderId)}`, orderResponseSchema, {
           headers: { "x-guest-token": guestToken },
         }),
+      /** POST /v1/orders/{id}/confirmation-email: at most 3 per order; not retried, a repeat would count twice. */
+      sendConfirmationEmail: async (
+        orderId: string,
+        guestToken: string,
+        input: z.input<typeof confirmationEmailInputSchema>,
+      ) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/confirmation-email`,
+          confirmationEmailResponseSchema,
+          {
+            body: parseInput(confirmationEmailInputSchema, input),
+            headers: { "x-guest-token": guestToken },
+          },
+        ),
+      /** POST /v1/orders/{id}/review: once per picked-up order (409 after). */
+      review: async (
+        orderId: string,
+        guestToken: string,
+        input: z.input<typeof reviewInputSchema>,
+      ) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/review`,
+          reviewResponseSchema,
+          {
+            body: parseInput(reviewInputSchema, input),
+            headers: { "x-guest-token": guestToken },
+          },
+        ),
+      /** POST /v1/orders/{id}/report: at most 3 per order (429 after); not retried, a repeat would count twice. */
+      reportProblem: async (
+        orderId: string,
+        guestToken: string,
+        input: z.input<typeof reportProblemInputSchema>,
+      ) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/report`,
+          reportProblemResponseSchema,
+          {
+            body: parseInput(reportProblemInputSchema, input),
+            headers: { "x-guest-token": guestToken },
+          },
+        ),
       /** POST /v1/orders/{id}/cancel: the guest cancels before acceptance. Not retried: a repeat answers 409. */
       cancel: async (orderId: string, guestToken: string) =>
         request(

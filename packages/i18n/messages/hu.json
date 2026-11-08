@@ -135,7 +135,7 @@
       "back": "Vissza a menübe"
     },
     "status": {
-      "pageTitle": "Rendelés {number}",
+      "pageTitle": "Rendelésed",
       "number": "Rendelésszám",
       "keepOpen": "Hagyd nyitva az oldalt, különben nem tudunk szólni.",
       "soundOn": "Hang bekapcsolása",
@@ -196,7 +196,81 @@
           "title": "Megszakítva",
           "body": "A fizetés nem fejeződött be, nem vontunk le pénzt."
         }
+      },
+      "confirmationLink": "Fizetési visszaigazolás"
+    },
+    "confirmation": {
+      "pageTitle": "Fizetési visszaigazolás",
+      "notReceipt": "Ez nem nyugta. A hivatalos nyugtát a klub pénztárgépe adja.",
+      "title": "Fizetési visszaigazolás",
+      "number": "Rendelésszám",
+      "orderedAt": "Rendelés ideje",
+      "items": "Tételek",
+      "subtotal": "Részösszeg",
+      "discount": "Kedvezmény",
+      "serviceFee": "Szervizdíj",
+      "tip": "Borravaló",
+      "total": "Végösszeg",
+      "paidAt": "Fizetés ideje",
+      "method": "Fizetés módja",
+      "methodCard": "{brand}, •••• {last4}",
+      "methodCardOnly": "{brand}",
+      "methodUnknown": "Bankkártya",
+      "wallet": {
+        "apple_pay": "Apple Pay",
+        "google_pay": "Google Pay",
+        "other": "Digitális tárca"
+      },
+      "venue": "Klub",
+      "taxNumber": "Adószám: {taxNumber}",
+      "refunds": "Visszatérítés",
+      "refundLine": "{amount}, {date}",
+      "print": "Nyomtatás / PDF",
+      "back": "Vissza a rendeléshez",
+      "email": {
+        "label": "E-mail-cím",
+        "send": "Küldd el e-mailben",
+        "sent": "Elküldtük a visszaigazolást.",
+        "limit": "Ehhez a rendeléshez már nem küldhetünk több e-mailt.",
+        "invalid": "Adj meg egy érvényes e-mail-címet.",
+        "failed": "Nem sikerült elküldeni. Próbáld újra."
       }
+    },
+    "report": {
+      "button": "Problémát jelzek",
+      "title": "Mi a probléma?",
+      "description": "A klub és a Na, mit iszunk? csapata is megkapja.",
+      "category": "Kategória",
+      "categories": {
+        "not_received": "Nem kaptam meg",
+        "wrong_order": "Rossz vagy hiányos rendelés",
+        "payment": "Fizetési probléma",
+        "other": "Egyéb"
+      },
+      "message": "Részletek (nem kötelező)",
+      "email": "E-mail-címed (nem kötelező)",
+      "emailHint": "Ide válaszolunk.",
+      "send": "Elküldöm",
+      "sent": "Megkaptuk. A klub és mi is látjuk, hamarosan jelentkezünk.",
+      "categoryRequired": "Válassz kategóriát.",
+      "invalid": "Nézd át a mezőket.",
+      "limit": "Ehhez a rendeléshez már nem küldhetsz több jelzést.",
+      "failed": "Nem sikerült elküldeni. Próbáld újra.",
+      "close": "Bezárás"
+    },
+    "thanks": {
+      "pageTitle": "Köszönjük",
+      "title": "Köszönjük",
+      "body": "Jó szórakozást. Ha valami nem stimmelt, jelezd lent.",
+      "rateTitle": "Milyen volt?",
+      "star": "{count, plural, one {# csillag} other {# csillag}}",
+      "text": "Megjegyzés (nem kötelező)",
+      "send": "Értékelés küldése",
+      "sent": "Köszönjük az értékelést.",
+      "already": "Ezt a rendelést már értékelted.",
+      "chooseStars": "Válassz 1 és 5 csillag között.",
+      "failed": "Nem sikerült elküldeni. Próbáld újra.",
+      "confirmationLink": "Fizetési visszaigazolás"
     }
   },
   "admin": {
@@ -274,7 +348,8 @@
       "heading": "Megkaptuk a rendelésed",
       "body": "{venueName}: már készítik. Szólunk, amikor átveheted a pultnál.",
       "orderNumber": "Rendelésszám",
-      "notReceipt": "Ez nem nyugta"
+      "notReceipt": "Ez nem nyugta",
+      "open": "Visszaigazolás megnyitása"
     },
     "orderRejected": {
       "subject": "Elutasították a rendelésed ({shortNumber})",
@@ -291,7 +366,28 @@
       "heading": "Problémajelzés",
       "body": "Egy vendég problémát jelzett. Hely: {venueName}, rendelés: {shortNumber}.",
       "message": "Üzenet",
-      "guestEmail": "A vendég e-mail-címe"
+      "guestEmail": "A vendég e-mail-címe",
+      "bar": "Pult",
+      "status": "Állapot",
+      "category": "Kategória",
+      "open": "Rendelés megnyitása az adminban",
+      "categories": {
+        "not_received": "Nem kaptam meg",
+        "wrong_order": "Rossz vagy hiányos rendelés",
+        "payment": "Fizetési probléma",
+        "other": "Egyéb"
+      },
+      "statuses": {
+        "awaiting_payment": "Fizetésre vár",
+        "new": "Új",
+        "preparing": "Készül",
+        "ready": "Kész",
+        "picked_up": "Átvéve",
+        "cancelled": "Megszakítva",
+        "rejected": "Elutasítva",
+        "expired": "Lejárt",
+        "refunded": "Visszatérítve"
+      }
     },
     "newLead": {
       "subject": "Új lead: {venueName}",
@@ -314,7 +410,8 @@
       "orders": "Rendelések",
       "revenue": "Bevétel",
       "button": "Riport megnyitása"
-    }
+    },
+    "untrustedText": "A feladó írta, nem mi. A benne lévő linkeket nem mi küldtük."
   },
   "sms": {
     "ready": "Na mit iszunk: #{shortNumber} kesz! Vedd fel {article} {barName} pultnal. {link}",

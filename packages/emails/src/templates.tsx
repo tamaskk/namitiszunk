@@ -15,6 +15,18 @@ type T = ReturnType<typeof emailTranslator>;
 
 type WithLocale<D> = D & { locale: Locale };
 
+// Same literals as packages/db; emails stays free of the db package.
+type OrderStatus =
+  | "awaiting_payment"
+  | "new"
+  | "preparing"
+  | "ready"
+  | "picked_up"
+  | "cancelled"
+  | "rejected"
+  | "expired"
+  | "refunded";
+
 /** Template name → the data its caller must pass. Amounts are integer forints. */
 export interface EmailData {
   signIn: WithLocale<{ url: string }>;
@@ -29,6 +41,8 @@ export interface EmailData {
     shortNumber: string;
     items: { name: string; quantity: number; amountHuf: number }[];
     totalHuf: number;
+    /** Link to the guest's confirmation page (T-044). */
+    confirmationUrl?: string;
   }>;
   orderRejected: WithLocale<{
     venueName: string;
@@ -45,9 +59,14 @@ export interface EmailData {
   /** Same template to the venue and to the platform. */
   problemReport: WithLocale<{
     venueName: string;
+    barName: string;
     shortNumber: string;
+    status: OrderStatus;
+    totalHuf: number;
+    category: "not_received" | "wrong_order" | "payment" | "other";
     message: string;
     guestEmail?: string;
+    adminUrl: string;
     platformEmail: string;
   }>;
   newLead: WithLocale<{
@@ -81,6 +100,33 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <Text style={styles.label}>{label}</Text>
       <Text style={{ ...styles.text, margin: 0, whiteSpace: "pre-line" }}>
         {children}
+      </Text>
+    </Section>
+  );
+}
+
+/** Breaks "https://" so mail clients do not turn a link the sender typed into something to click. */
+const defang = (value: string) => value.replaceAll("://", "[:]//");
+
+/**
+ * Free text from a guest or a visitor, sent from our domain: boxed and labelled as theirs, with links
+ * broken, so it cannot pass for a message from us (phishing).
+ */
+function UntrustedField({
+  label,
+  note,
+  children,
+}: {
+  label: string;
+  note: string;
+  children: string;
+}) {
+  return (
+    <Section style={styles.untrusted}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={{ ...styles.muted, margin: "0 0 8px" }}>{note}</Text>
+      <Text style={{ ...styles.text, margin: 0, whiteSpace: "pre-line" }}>
+        {defang(children)}
       </Text>
     </Section>
   );
@@ -140,6 +186,11 @@ export const templates: { [N in keyof EmailData]: Template<EmailData[N]> } = {
           {t("total")}:{" "}
           <span style={styles.amount}>{formatHuf(data.totalHuf)}</span>
         </Text>
+        {data.confirmationUrl && (
+          <EmailButton href={data.confirmationUrl}>
+            {t("orderConfirmation.open")}
+          </EmailButton>
+        )}
       </>
     ),
   },
@@ -187,10 +238,28 @@ export const templates: { [N in keyof EmailData]: Template<EmailData[N]> } = {
             shortNumber: data.shortNumber,
           })}
         </Text>
-        <Field label={t("problemReport.message")}>{data.message}</Field>
+        <Field label={t("problemReport.category")}>
+          {t(`problemReport.categories.${data.category}`)}
+        </Field>
+        <Field label={t("problemReport.bar")}>{data.barName}</Field>
+        <Field label={t("problemReport.status")}>
+          {t(`problemReport.statuses.${data.status}`)}
+        </Field>
+        <Field label={t("total")}>{formatHuf(data.totalHuf)}</Field>
+        {data.message && (
+          <UntrustedField
+            label={t("problemReport.message")}
+            note={t("untrustedText")}
+          >
+            {data.message}
+          </UntrustedField>
+        )}
         {data.guestEmail && (
           <Field label={t("problemReport.guestEmail")}>{data.guestEmail}</Field>
         )}
+        <EmailButton href={data.adminUrl}>
+          {t("problemReport.open")}
+        </EmailButton>
       </>
     ),
   },
@@ -209,7 +278,12 @@ export const templates: { [N in keyof EmailData]: Template<EmailData[N]> } = {
         </Field>
         {data.phone && <Field label={t("newLead.phone")}>{data.phone}</Field>}
         {data.message && (
-          <Field label={t("newLead.message")}>{data.message}</Field>
+          <UntrustedField
+            label={t("newLead.message")}
+            note={t("untrustedText")}
+          >
+            {data.message}
+          </UntrustedField>
         )}
       </>
     ),

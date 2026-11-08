@@ -46,9 +46,14 @@ const fixtures: { [N in EmailTemplate]: Omit<EmailData[N], "locale"> } = {
   },
   problemReport: {
     venueName: "Pilot Club",
+    barName: "Főpult",
     shortNumber: "A42",
+    status: "ready",
+    totalHuf: 4980,
+    category: "not_received",
     message: "Nem kaptam meg az italt.\n<script>x</script>",
     guestEmail: "guest@example.com",
+    adminUrl: "https://admin.namitiszunk.hu/orders/abc",
     platformEmail: "hello@platform.example",
   },
   newLead: {
@@ -117,6 +122,19 @@ describe("renderEmail", () => {
 
     expect(email.html).not.toContain("<script>");
     expect(email.html).toContain("&lt;script&gt;");
+  });
+
+  it("labels guest-written text as theirs and breaks its links", async () => {
+    const data = {
+      ...dataFor("problemReport", "hu"),
+      message: "Visszatérítés itt: https://evil.example/refund",
+    };
+
+    const email = await renderEmail("problemReport", data);
+
+    expect(email.html).toContain("A feladó írta, nem mi.");
+    expect(email.html).toContain("https[:]//evil.example/refund");
+    expect(email.html).not.toContain("https://evil.example");
   });
 
   it("replies to the venue on order mail and to the platform on problem and lead mail", async () => {

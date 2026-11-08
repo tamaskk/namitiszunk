@@ -40,6 +40,8 @@ export type OrderEmail =
       data: OrderMailData & {
         items: { name: string; quantity: number; amountHuf: number }[];
         totalHuf: number;
+        /** The guest's confirmation page (T-044), when the guest asked for this mail and holds the token. */
+        confirmationUrl?: string;
       };
     }
   | {
