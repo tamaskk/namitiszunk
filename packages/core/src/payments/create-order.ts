@@ -164,7 +164,6 @@ export async function createOrder(
     throw new AppError(409, "items_unavailable", unavailable);
   }
 
-  // shortcut: the line note (T-041) is not stored, Order items have no note field yet; add it with the bar card (T-047).
   const lines = input.items.map((line, index) => {
     const item = byId.get(line.itemId)!;
     const opts = chosenOptions(

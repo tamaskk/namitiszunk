@@ -189,6 +189,22 @@ describe("validateCart", () => {
     ]);
   });
 
+  it("reports an archived VIP item outside a VIP zone as unavailable, not archived", async () => {
+    await Item.updateOne(
+      { _id: ids.bottle },
+      { $set: { archivedAt: new Date("2026-11-01") } },
+    );
+    const bottle = {
+      itemId: hex(ids.bottle),
+      quantity: 1,
+      unitPriceHuf: 49900,
+    };
+
+    const dance = await check([bottle], { zoneId: hex(ids.dance) });
+
+    expect(dance.problems).toMatchObject([{ code: "unavailable" }]);
+  });
+
   it("allows a VIP item only from a VIP zone", async () => {
     const bottle = {
       itemId: hex(ids.bottle),

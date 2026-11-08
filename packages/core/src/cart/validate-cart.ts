@@ -63,12 +63,13 @@ export async function validateCart(
     const item = byId.get(line.itemId);
     const at = { index, itemId: line.itemId };
     if (!item) return [{ ...at, code: "unavailable" }];
-    if (item.archivedAt) return [{ ...at, code: "archived" }];
     const servedHere =
       (!item.vipOnly || context.isVip) &&
       (!item.barIds?.length ||
         item.barIds.some((id) => String(id) === context.barId));
+    // Access first: a guest never learns whether an item hidden from them is archived.
     if (!servedHere) return [{ ...at, code: "unavailable" }];
+    if (item.archivedAt) return [{ ...at, code: "archived" }];
     if (item.isAvailable === false) return [{ ...at, code: "sold_out" }];
 
     const groups = publicModifierGroups(item.modifierGroups, "hu");
