@@ -9,6 +9,8 @@ import {
   confirmationEmailInputSchema,
   confirmationEmailResponseSchema,
   orderResponseSchema,
+  reportProblemInputSchema,
+  reportProblemResponseSchema,
   pingResponseSchema,
   realtimeTokenInputSchema,
   realtimeTokenResponseSchema,
@@ -202,6 +204,21 @@ export function createApiClient(options: ApiClientOptions) {
           confirmationEmailResponseSchema,
           {
             body: parseInput(confirmationEmailInputSchema, input),
+            headers: { "x-guest-token": guestToken },
+          },
+        ),
+      /** POST /v1/orders/{id}/report: at most 3 per order (429 after); not retried, a repeat would count twice. */
+      reportProblem: async (
+        orderId: string,
+        guestToken: string,
+        input: z.input<typeof reportProblemInputSchema>,
+      ) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/report`,
+          reportProblemResponseSchema,
+          {
+            body: parseInput(reportProblemInputSchema, input),
             headers: { "x-guest-token": guestToken },
           },
         ),

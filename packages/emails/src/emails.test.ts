@@ -46,9 +46,14 @@ const fixtures: { [N in EmailTemplate]: Omit<EmailData[N], "locale"> } = {
   },
   problemReport: {
     venueName: "Pilot Club",
+    barName: "Főpult",
     shortNumber: "A42",
+    status: "ready",
+    totalHuf: 4980,
+    category: "not_received",
     message: "Nem kaptam meg az italt.\n<script>x</script>",
     guestEmail: "guest@example.com",
+    adminUrl: "https://admin.namitiszunk.hu/orders/abc",
     platformEmail: "hello@platform.example",
   },
   newLead: {

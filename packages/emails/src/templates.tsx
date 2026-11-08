@@ -15,6 +15,18 @@ type T = ReturnType<typeof emailTranslator>;
 
 type WithLocale<D> = D & { locale: Locale };
 
+// Same literals as packages/db; emails stays free of the db package.
+type OrderStatus =
+  | "awaiting_payment"
+  | "new"
+  | "preparing"
+  | "ready"
+  | "picked_up"
+  | "cancelled"
+  | "rejected"
+  | "expired"
+  | "refunded";
+
 /** Template name → the data its caller must pass. Amounts are integer forints. */
 export interface EmailData {
   signIn: WithLocale<{ url: string }>;
@@ -47,9 +59,14 @@ export interface EmailData {
   /** Same template to the venue and to the platform. */
   problemReport: WithLocale<{
     venueName: string;
+    barName: string;
     shortNumber: string;
+    status: OrderStatus;
+    totalHuf: number;
+    category: "not_received" | "wrong_order" | "payment" | "other";
     message: string;
     guestEmail?: string;
+    adminUrl: string;
     platformEmail: string;
   }>;
   newLead: WithLocale<{
@@ -194,10 +211,23 @@ export const templates: { [N in keyof EmailData]: Template<EmailData[N]> } = {
             shortNumber: data.shortNumber,
           })}
         </Text>
-        <Field label={t("problemReport.message")}>{data.message}</Field>
+        <Field label={t("problemReport.category")}>
+          {t(`problemReport.categories.${data.category}`)}
+        </Field>
+        <Field label={t("problemReport.bar")}>{data.barName}</Field>
+        <Field label={t("problemReport.status")}>
+          {t(`problemReport.statuses.${data.status}`)}
+        </Field>
+        <Field label={t("total")}>{formatHuf(data.totalHuf)}</Field>
+        {data.message && (
+          <Field label={t("problemReport.message")}>{data.message}</Field>
+        )}
         {data.guestEmail && (
           <Field label={t("problemReport.guestEmail")}>{data.guestEmail}</Field>
         )}
+        <EmailButton href={data.adminUrl}>
+          {t("problemReport.open")}
+        </EmailButton>
       </>
     ),
   },
