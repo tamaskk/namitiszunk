@@ -162,11 +162,12 @@ describe("getGuestConfirmation", () => {
     const { order } = await createPaidOrder();
     await Order.updateOne({ _id: order._id }, { $unset: { paidAt: 1 } });
 
-    const forStranger = getGuestConfirmation(stranger, String(order._id));
-    const unpaid = getGuestConfirmation(guest, String(order._id));
-
-    await expect(forStranger).rejects.toThrow(NotFoundError);
-    await expect(unpaid).rejects.toThrow(NotFoundError);
+    await expect(
+      getGuestConfirmation(stranger, String(order._id)),
+    ).rejects.toThrow(NotFoundError);
+    await expect(
+      getGuestConfirmation(guest, String(order._id)),
+    ).rejects.toThrow(NotFoundError);
   });
 });
 

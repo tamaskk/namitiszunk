@@ -134,15 +134,16 @@ describe("reportProblem", () => {
       status: "awaiting_payment",
     });
 
-    const forStranger = reportProblem(stranger, String(order._id), {
-      category: "other",
-    });
-    const unpaid = reportProblem(guest, String(order._id), {
-      category: "other",
-    });
-
-    await expect(forStranger).rejects.toThrow(NotFoundError);
-    await expect(unpaid).rejects.toThrow(NotFoundError);
+    await expect(
+      reportProblem(stranger, String(order._id), {
+        category: "other",
+      }),
+    ).rejects.toThrow(NotFoundError);
+    await expect(
+      reportProblem(guest, String(order._id), {
+        category: "other",
+      }),
+    ).rejects.toThrow(NotFoundError);
   });
 });
 
