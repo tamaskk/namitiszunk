@@ -389,6 +389,28 @@ describe("createOrder", () => {
     expect(api.paymentIntents.create).not.toHaveBeenCalled();
   });
 
+  it("refuses an order after the venue's last order, and takes one before it", async () => {
+    // `now` is Saturday 23:00 in Budapest; the last order is 15 minutes before the close.
+    const closingAt = (close: string) =>
+      Venue.updateOne(
+        { _id: venueId },
+        {
+          $set: {
+            openingHours: [{ day: 6, open: "22:00", close }],
+            "orderRules.lastOrderMinutesBeforeClose": 15,
+          },
+        },
+      );
+
+    await closingAt("23:10");
+    await expect(create()).rejects.toMatchObject({ code: "bar_closed" });
+    await closingAt("04:00");
+
+    await expect(create()).resolves.toMatchObject({
+      orderId: expect.any(String),
+    });
+  });
+
   it("refuses terms other than the current version with 409 terms_outdated", async () => {
     const stale = create({ acceptedTermsVersion: "2026-11-01" });
 

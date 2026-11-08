@@ -2,9 +2,9 @@ import { clientIp, hitRateLimit } from "@namitiszunk/core/api";
 import { getVenueStatus } from "@namitiszunk/core/menu";
 import {
   fieldErrorKeys,
+  toVenueStatusResponse,
   venueSlugSchema,
   venueStatusQuerySchema,
-  type VenueStatusResponse,
 } from "@namitiszunk/validators";
 
 import { ensureDb } from "@/lib/db";
@@ -63,10 +63,7 @@ export async function GET(
   const status = await getVenueStatus({ slug, barId: query.data.bar });
   if (!status) return fail(404, "not_found");
 
-  const data: VenueStatusResponse = {
-    ...status,
-    pausedUntil: status.pausedUntil?.toISOString() ?? null,
-  };
+  const data = toVenueStatusResponse(status);
   // The same for every guest of a bar, so the CDN may share it; shorter than the 30 s poll.
   return Response.json(
     { data },

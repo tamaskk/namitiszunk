@@ -1,3 +1,4 @@
+import { TZDate } from "@date-fns/tz";
 import {
   Bar,
   Category,
@@ -275,7 +276,36 @@ describe("getVenueStatus", () => {
       pausedUntil: null,
       estimatedWaitMinutes: null,
       soldOutItemIds: [ids.beer.toString()],
+      lastOrderAt: null,
+      nextOpenAt: null,
     });
+  });
+
+  it("reads as closed outside the opening hours and names the next opening", async () => {
+    // One opening, starting an hour after `now` (in the venue's zone, so any weekday works).
+    const start = new Date(now.getTime() + 60 * 60_000);
+    const local = new TZDate(start, "Europe/Budapest");
+    const hhmm = (d: TZDate) =>
+      `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    await Venue.updateOne(
+      { _id: ids.venue },
+      {
+        openingHours: [
+          {
+            day: local.getDay() === 0 ? 7 : local.getDay(),
+            open: hhmm(local),
+            close: hhmm(
+              new TZDate(start.getTime() + 2 * 60 * 60_000, "Europe/Budapest"),
+            ),
+          },
+        ],
+      },
+    );
+
+    const status = await getVenueStatus({ slug: "demo", now });
+    await Venue.updateOne({ _id: ids.venue }, { $unset: { openingHours: 1 } });
+
+    expect(status).toMatchObject({ status: "closed", nextOpenAt: start });
   });
 
   it("estimates the wait from orders made ready in the last 30 minutes", async () => {

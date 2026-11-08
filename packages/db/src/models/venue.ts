@@ -8,8 +8,21 @@ export const zoneTypes = ["bar_area", "vip_table"] as const;
 
 const timeOfDay = {
   type: String,
-  match: [/^([01]\d|2[0-3]):[0-5]\d$/, "{PATH} must be HH:mm"],
+  match: [/^([01]\d|2[0-3]):[0-5]\d$/, "{PATH} must be HH:mm"] as [
+    RegExp,
+    string,
+  ],
 };
+
+// One opening of the week (T-048): ISO day, local times; a close at or before the open is the next morning.
+const openingHoursSchema = new Schema(
+  {
+    day: { type: Number, min: 1, max: 7, required: true },
+    open: { ...timeOfDay, required: true },
+    close: { ...timeOfDay, required: true },
+  },
+  { _id: false },
+);
 
 const orderRulesSchema = new Schema(
   {
@@ -18,7 +31,12 @@ const orderRulesSchema = new Schema(
     refundOnExpiry: { type: Boolean, default: false },
     maxItemsPerOrder: { type: Number, min: 1 },
     minimumOrderHuf: huf({ default: 0 }),
-    lastOrderMinutesBeforeClose: { type: Number, min: 0, default: 0 },
+    lastOrderMinutesBeforeClose: {
+      type: Number,
+      min: 0,
+      max: 120,
+      default: 15,
+    },
     serviceFee: {
       type: { type: String, enum: serviceFeeTypes, default: "none" },
       // percent: basis points (1250 = 12.5%); fixed: forints. Integers either way.
@@ -41,6 +59,8 @@ const venueSchema = new Schema(
     timezone: { type: String, default: "Europe/Budapest" },
     currency: { type: String, enum: ["HUF"], default: "HUF" },
     businessDayStart: { ...timeOfDay, default: "06:00" },
+    // Empty: the bars' open/closed switch alone decides when guests can order.
+    openingHours: { type: [openingHoursSchema], default: undefined },
     branding: { logoUrl: String, coverUrl: String },
     stripeAccountId: {
       type: String,

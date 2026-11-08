@@ -119,7 +119,30 @@ export const venueStatusResponseSchema = z.object({
   /** Median paid → ready minutes of the bar's last 30 minutes; null below 3 orders. */
   estimatedWaitMinutes: z.int().min(1).nullable(),
   soldOutItemIds: z.array(objectIdSchema),
+  /** Last order of tonight's opening (T-048); null outside opening hours or without hours. */
+  lastOrderAt: dateTimeSchema.nullable(),
+  /** Next opening when closed by the hours; null when open or without hours. */
+  nextOpenAt: dateTimeSchema.nullable(),
 });
 
 export type BarState = (typeof barStates)[number];
 export type VenueStatusResponse = z.infer<typeof venueStatusResponseSchema>;
+
+type Instant = Date | null;
+
+/** The live status as JSON for the guest app: the service's dates as ISO strings. */
+export const toVenueStatusResponse = (
+  status: Omit<
+    VenueStatusResponse,
+    "pausedUntil" | "lastOrderAt" | "nextOpenAt"
+  > & {
+    pausedUntil: Instant;
+    lastOrderAt: Instant;
+    nextOpenAt: Instant;
+  },
+): VenueStatusResponse => ({
+  ...status,
+  pausedUntil: status.pausedUntil?.toISOString() ?? null,
+  lastOrderAt: status.lastOrderAt?.toISOString() ?? null,
+  nextOpenAt: status.nextOpenAt?.toISOString() ?? null,
+});

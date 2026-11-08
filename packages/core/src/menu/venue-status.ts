@@ -4,6 +4,7 @@ import { Item, Order } from "@namitiszunk/db";
 import type { BarState } from "@namitiszunk/validators";
 
 import { businessDate } from "../orders/business-date";
+import { openingState } from "./opening-hours";
 import { findPublicVenue, resolveBar } from "./public-menu";
 
 const WAIT_WINDOW_MS = 30 * 60 * 1000;
@@ -16,6 +17,8 @@ export type VenueStatus = {
   pausedUntil: Date | null;
   estimatedWaitMinutes: number | null;
   soldOutItemIds: string[];
+  lastOrderAt: Date | null;
+  nextOpenAt: Date | null;
 };
 
 /** Median of durations in ms, as whole minutes (at least 1); null below three samples. */
@@ -77,11 +80,18 @@ export async function getVenueStatus({
 
   const pausedUntil =
     bar?.pausedUntil && bar.pausedUntil > now ? bar.pausedUntil : null;
-  const status: BarState = !bar?.isOpen
-    ? "closed"
-    : pausedUntil
-      ? "paused"
-      : "open";
+  const hours = openingState(
+    venue.openingHours ?? undefined,
+    venue.orderRules?.lastOrderMinutesBeforeClose ?? 0,
+    venue.timezone,
+    now,
+  );
+  const status: BarState =
+    !bar?.isOpen || !hours.orderable
+      ? "closed"
+      : pausedUntil
+        ? "paused"
+        : "open";
 
   return {
     status,
@@ -90,5 +100,7 @@ export async function getVenueStatus({
       readyOrders.map((o) => o.readyAt!.getTime() - o.paidAt!.getTime()),
     ),
     soldOutItemIds: soldOut.map((item) => item._id.toString()),
+    lastOrderAt: hours.lastOrderAt,
+    nextOpenAt: hours.nextOpenAt,
   };
 }

@@ -22,6 +22,7 @@ import {
   DEFAULT_MAX_ITEMS_PER_ORDER,
   validateSelection,
 } from "../cart/selection";
+import { openingState } from "../menu/opening-hours";
 import { publicModifierGroups } from "../menu/public-menu";
 import { businessDate } from "../orders/business-date";
 import { allocateShortNumber } from "../orders/short-number";
@@ -113,16 +114,22 @@ async function priceCart(input: CartToPrice, now: Date) {
   if (!bar) throw new NotFoundError();
   const venue = await Venue.findById(bar.venueId)
     .select(
-      "status timezone businessDayStart stripeAccountId chargesEnabled orderRules",
+      "status timezone businessDayStart openingHours stripeAccountId chargesEnabled orderRules",
     )
     .lean();
   if (!venue) throw new NotFoundError();
   if (venue.status !== "active") throw new ConflictError("venue_closed");
-  if (!bar.isOpen) throw new ConflictError("bar_closed");
+  const hours = openingState(
+    venue.openingHours ?? undefined,
+    venue.orderRules?.lastOrderMinutesBeforeClose ?? 0,
+    venue.timezone,
+    now,
+  );
+  // Outside opening hours or after the last order reads as a closed bar to the guest.
+  if (!bar.isOpen || !hours.orderable) throw new ConflictError("bar_closed");
   if (bar.pausedUntil && bar.pausedUntil > now) {
     throw new ConflictError("bar_paused");
   }
-  // shortcut: lastOrderMinutesBeforeClose needs a closing time, which neither Venue nor Bar stores yet; the open/closed bar switch stands in for it.
   assertVenueCanCharge(venue);
 
   let isVip = false;

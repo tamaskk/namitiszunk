@@ -3,8 +3,8 @@ import type { Locale } from "@namitiszunk/i18n";
 import { cn, focusRing } from "@namitiszunk/ui";
 import {
   objectIdSchema,
+  toVenueStatusResponse,
   venueSlugSchema,
-  type VenueStatusResponse,
 } from "@namitiszunk/validators";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { UserIcon } from "lucide-react";
@@ -34,11 +34,7 @@ async function loadLiveStatus(slug: string, barId?: string) {
   const now = new Date();
   const status = await getVenueStatus({ slug, barId, now });
   if (!status) return null;
-  const response: VenueStatusResponse = {
-    ...status,
-    pausedUntil: status.pausedUntil?.toISOString() ?? null,
-  };
-  return { status: response, at: now.getTime() };
+  return { status: toVenueStatusResponse(status), at: now.getTime() };
 }
 
 export async function generateMetadata({
