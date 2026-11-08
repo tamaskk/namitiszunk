@@ -923,9 +923,9 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] 100 párhuzamos fizetés 1-től 100-ig egyedi számokat kap.
+- [x] 100 párhuzamos fizetés 1-től 100-ig egyedi számokat kap.
 - [ ] 5:59-kor fizetett rendelés az előző üzleti naphoz tartozik, 6:00-kor fizetett az újhoz.
-- [ ] A nyári és téli időszámítás váltásának éjszakáján is helyes az üzleti nap.
+- [x] A nyári és téli időszámítás váltásának éjszakáján is helyes az üzleti nap.
 
 **Tesztelés.** Vitest rögzített órával a határesetekre (5:59, 6:00, március és október utolsó vasárnapja), párhuzamossági teszt `MongoMemoryReplSet`-en.
 
@@ -951,7 +951,7 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 **Elfogadási feltételek.**
 
 - [ ] Minden API-végpont bemenete sémán megy át; hibás bemenetre 400 és mezőnkénti hibakulcsok.
-- [ ] Az `openapi.json` érvényes (Redocly lint a CI-ban).
+- [x] Az `openapi.json` érvényes (Redocly lint a CI-ban).
 - [ ] A rendelős oldal űrlapjai ugyanazt a sémát használják, mint a szerver.
 
 **Tesztelés.** Vitest a sémák határeseteire (mennyiség 0 és 11, üres kosár, érvénytelen telefonszám); CI-lépés: OpenAPI generálás és lint.
@@ -978,9 +978,9 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] Minden állapotváltás és visszatérítés után van audit bejegyzés a szereplővel.
+- [x] Minden állapotváltás és visszatérítés után van audit bejegyzés a szereplővel.
 - [ ] A klub nevében végzett műveletnél az `impersonatedBy` ki van töltve.
-- [ ] Ha az audit írása elbukik, a módosítás sem marad meg.
+- [x] Ha az audit írása elbukik, a módosítás sem marad meg.
 
 **Tesztelés.** Vitest: tranzakciós visszagörgetés szimulált audit-hibával; snapshot-teszt, hogy a `before` / `after` nem tartalmaz tiltott mezőt.
 
@@ -1006,9 +1006,9 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] Az újrafuttatás nem dupláz adatot.
-- [ ] Az éles URI-ra a fejlesztői seed hibával leáll.
-- [ ] Az E2E seed után minden azonosító futtatásról futtatásra azonos.
+- [x] Az újrafuttatás nem dupláz adatot.
+- [x] Az éles URI-ra a fejlesztői seed hibával leáll.
+- [x] Az E2E seed után minden azonosító futtatásról futtatásra azonos.
 
 **Tesztelés.** Vitest: kétszeri futtatás után azonos dokumentumszámok; az éles URI-védelem egységtesztje.
 
@@ -1033,9 +1033,9 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] A 31 napos teszt rendelésből eltűnik a telefonszám, a 29 naposból nem.
+- [x] A 31 napos teszt rendelésből eltűnik a telefonszám, a 29 naposból nem.
 - [ ] A törölt fiók rendelései megmaradnak a riportokban, személyes adat nélkül.
-- [ ] A feladat ismételt futtatása nem töröl többet és nem hibázik.
+- [x] A feladat ismételt futtatása nem töröl többet és nem hibázik.
 
 **Tesztelés.** Vitest rögzített órával és memóriabeli adatbázissal, határeseti fixture-ökkel (29, 30, 31 nap; 2 év ± 1 nap). Inngest dev szerverrel kézi indítás.
 
@@ -1064,10 +1064,10 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] Minden `/v1` végpont a közös burkon megy át (CI-ellenőrzés).
-- [ ] A rate limit túllépésekor 429 és `Retry-After` fejléc.
-- [ ] Ugyanazzal az `Idempotency-Key`-jel kétszer küldött rendelés egy rendelést hoz létre.
-- [ ] Idegen origin böngészős kérése CORS-hibát kap.
+- [x] Minden `/v1` végpont a közös burkon megy át (CI-ellenőrzés).
+- [x] A rate limit túllépésekor 429 és `Retry-After` fejléc.
+- [x] Ugyanazzal az `Idempotency-Key`-jel kétszer küldött rendelés egy rendelést hoz létre.
+- [x] Idegen origin böngészős kérése CORS-hibát kap.
 
 **Tesztelés.** Vitest a burokra (sorrend, hibakódok, idempotencia); integrációs teszt egy minta-végponton memóriabeli adatbázissal.
 
@@ -1095,10 +1095,10 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 **Elfogadási feltételek.**
 
 - [ ] Vendég Apple-lel, Google-lel és e-mail linkkel is be tud lépni a weben.
-- [ ] HQ-ba 2FA nélkül nem lehet belépni.
-- [ ] Az admin munkamenete nem érvényes a HQ-ban, és fordítva.
-- [ ] Hibás PIN ötször egy percen belül: az eszköz 5 percre tiltva.
-- [ ] Rendelés állapota token nélkül vagy rossz tokennel 404.
+- [x] HQ-ba 2FA nélkül nem lehet belépni.
+- [x] Az admin munkamenete nem érvényes a HQ-ban, és fordítva.
+- [x] Hibás PIN ötször egy percen belül: az eszköz 5 percre tiltva.
+- [x] Rendelés állapota token nélkül vagy rossz tokennel 404.
 
 **Tesztelés.** Vitest a PIN- és tokenlogikára; Playwright: magic link belépés (Resend teszt címre), HQ 2FA, admin–HQ munkamenet-elválasztás; kézi teszt Apple és Google belépésre a preview-ban.
 
@@ -1124,7 +1124,7 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 **Elfogadási feltételek.**
 
 - [ ] A webhooktól a Pult nézet kártyájáig 2 mp alatt (p95), éles környezetben mérve.
-- [ ] Vendégtoken csak a saját rendelésének csatornájára iratkozhat fel; publikálni senki nem tud a kliensről.
+- [x] Vendégtoken csak a saját rendelésének csatornájára iratkozhat fel; publikálni senki nem tud a kliensről.
 - [ ] Wi-Fi kikapcsolása majd visszakapcsolása után a Pult nézet a kiesés alatti rendeléseket is mutatja.
 
 **Tesztelés.** Vitest a token-jogosultságokra; Playwright: két böngésző (vendég és pult), állapotváltás, késleltetésmérés; hálózatkiesés szimulálása (Playwright offline mód).
@@ -1154,7 +1154,7 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 - [ ] Teszt módban egy új klub az onboardingot végigviszi, és az Admin „Aktív” állapotot mutat.
 - [ ] Hiányzó adatnál az Admin megmutatja, mi hiányzik, és új Account Linket ad.
-- [ ] Onboarding előtt a rendelős oldal nem enged fizetni.
+- [x] Onboarding előtt a rendelős oldal nem enged fizetni.
 - [ ] Az Apple Pay gomb megjelenik a kapcsolt fiók rendelős oldalán (Safari, iPhone).
 
 **Tesztelés.** Stripe CLI-vel `account.updated` események indítása; Vitest a webhook-feldolgozóra rögzített eseményekkel; kézi onboarding teszt módban a Stripe teszt adataival.
@@ -1180,11 +1180,11 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] Rendelés csak a webhook után kerül Új állapotba, a böngésző visszajelzése nem vált állapotot.
-- [ ] Ugyanaz a webhook-esemény háromszor küldve egy Payment rekordot és egy állapotváltást ad.
-- [ ] Dupla koppintás a fizetés gombon egy PaymentIntentet és egy terhelést ad.
+- [x] Rendelés csak a webhook után kerül Új állapotba, a böngésző visszajelzése nem vált állapotot.
+- [x] Ugyanaz a webhook-esemény háromszor küldve egy Payment rekordot és egy állapotváltást ad.
+- [x] Dupla koppintás a fizetés gombon egy PaymentIntentet és egy terhelést ad.
 - [ ] Az application fee a Stripe Dashboardon egyezik a 22. feladat számításával.
-- [ ] Elfogyott tétel esetén a PaymentIntent nem jön létre, a kosár frissül.
+- [x] Elfogyott tétel esetén a PaymentIntent nem jön létre, a kosár frissül.
 
 **Tesztelés.** Vitest a webhook-feldolgozóra rögzített eseményekkel (ismétlés, rossz sorrend, hibás aláírás). Playwright E2E teszt módban Stripe CLI-továbbítással: kártya, 3D Secure teszt kártya, elutasított kártya (78.).
 
@@ -1212,9 +1212,9 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 - [ ] Elutasításkor a teljes összeg és az application fee is visszajár (Dashboardon ellenőrizve).
 - [ ] Részleges visszatérítésnél az application fee arányos része jár vissza.
-- [ ] A vissza nem térített résznél nagyobb összeg 409-et ad.
-- [ ] Ugyanaz a visszatérítés kétszer indítva egy Stripe-refundot hoz létre.
-- [ ] Pultos PIN-nel átadás után a visszatérítés 403.
+- [x] A vissza nem térített résznél nagyobb összeg 409-et ad.
+- [x] Ugyanaz a visszatérítés kétszer indítva egy Stripe-refundot hoz létre.
+- [x] Pultos PIN-nel átadás után a visszatérítés 403.
 
 **Tesztelés.** Vitest (összeghatárok, jogosultság, idempotencia); teszt módban teljes és részleges visszatérítés Stripe CLI-vel, az application fee visszajárásának ellenőrzése.
 
@@ -1243,10 +1243,10 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] A 10 percen belül átvett rendelésnél nem megy emlékeztető.
-- [ ] A határidő után a rendelés 1 percen belül Lejárt.
-- [ ] A 15 percig fizetetlen rendelés Megszakítva, a PaymentIntent visszavonva.
-- [ ] Az egyeztetés egy szándékosan törölt teszt rendelésnél riaszt.
+- [x] A 10 percen belül átvett rendelésnél nem megy emlékeztető.
+- [x] A határidő után a rendelés 1 percen belül Lejárt.
+- [x] A 15 percig fizetetlen rendelés Megszakítva, a PaymentIntent visszavonva.
+- [x] Az egyeztetés egy szándékosan törölt teszt rendelésnél riaszt.
 
 **Tesztelés.** `@inngest/test` egységtesztek minden függvényre (alvás és visszavonás szimulálása); Inngest dev szerverrel helyi végigjátszás.
 
@@ -1272,10 +1272,10 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] Minden kiküldött szöveg GSM-7 és legfeljebb 160 karakter, a leghosszabb pultnévvel is.
-- [ ] Külföldi számot a pénztár nem fogad el SMS-hez.
-- [ ] Ha a vendégnek van push tokenje, SMS nem megy.
-- [ ] Az SMS-kérés rendelésnél 35 Ft-tal növeli az application fee-t.
+- [x] Minden kiküldött szöveg GSM-7 és legfeljebb 160 karakter, a leghosszabb pultnévvel is.
+- [x] Külföldi számot a pénztár nem fogad el SMS-hez.
+- [x] Ha a vendégnek van push tokenje, SMS nem megy.
+- [x] Az SMS-kérés rendelésnél 35 Ft-tal növeli az application fee-t.
 
 **Tesztelés.** Vitest a `toGsm7()`-re (ő, ű, é és a leghosszabb pultnév); Twilio teszt hitelesítő adatokkal a magic számokra; egy valódi SMS a saját számodra a preview-ból.
 
@@ -1304,7 +1304,7 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 **Elfogadási feltételek.**
 
 - [ ] Minden sablon mindkét nyelven renderel, és Gmailben, Apple Mailben sötét módban is olvasható.
-- [ ] A visszaigazolás láthatóan tartalmazza az „Ez nem nyugta” feliratot.
+- [x] A visszaigazolás láthatóan tartalmazza az „Ez nem nyugta” feliratot.
 - [ ] A magic link levél Gmailben a beérkezőbe érkezik (nem spam).
 
 **Tesztelés.** Vitest snapshot a renderelt HTML-re; React Email előnézeti szerver; küldés a Resend teszt címeire (kézbesített, visszapattant).
@@ -1330,8 +1330,8 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] Pultos vagy másik klub tagja nem kap feltöltési tokent.
-- [ ] 6 MB-os vagy PDF fájl feltöltése elutasítva.
+- [x] Pultos vagy másik klub tagja nem kap feltöltési tokent.
+- [x] 6 MB-os vagy PDF fájl feltöltése elutasítva.
 - [ ] A menü oldalon a kép AVIF-ben, a képernyőméretnek megfelelően érkezik.
 
 **Tesztelés.** Vitest a token-végpont jogosultságára és korlátaira; Playwright: feltöltés az Adminban, megjelenés a rendelős oldalon.
@@ -1356,9 +1356,9 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] Ha egy API-séma változik, a kliens hívóinál a typecheck hibát ad.
-- [ ] A szerver érvénytelen válasza `ApiError`-t dob, nem csendes hibát.
-- [ ] Az újrapróbált rendeléslétrehozás egy rendelést ad.
+- [x] Ha egy API-séma változik, a kliens hívóinál a typecheck hibát ad.
+- [x] A szerver érvénytelen válasza `ApiError`-t dob, nem csendes hibát.
+- [x] Az újrapróbált rendeléslétrehozás egy rendelést ad.
 
 **Tesztelés.** Vitest MSW-vel (mock szerver): siker, hibakódok, újrapróbálás ugyanazzal a kulccsal.
 
