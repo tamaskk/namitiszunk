@@ -1,4 +1,4 @@
-import { AuditLog, connectDb, Order, Venue } from "@namitiszunk/db";
+import { AuditLog, connectDb, Counter, Order, Venue } from "@namitiszunk/db";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { Types } from "mongoose";
 import {
@@ -82,7 +82,7 @@ async function createOrder(
     {
       venueId: venue!._id,
       barId: new Types.ObjectId(),
-      shortNumber: 1,
+      // Provisional, as createOrder leaves it; payment numbers the order (T-024).
       businessDate: "2026-11-07",
       items: [
         {
@@ -155,6 +155,57 @@ describe("transition", () => {
     });
     expect(await Order.countDocuments({ status: "new" })).toBe(1);
     expect(await AuditLog.countDocuments()).toBe(1);
+  });
+
+  it("numbers the order at payment, in the business day of the payment", async () => {
+    const order = await createOrder({ businessDate: "2026-11-06" });
+
+    // 06:00 in Budapest (CET): the new business day starts.
+    await transitionWith(allow, order._id, "payment_succeeded", system, {
+      now: new Date("2026-11-07T05:00:00Z"),
+    });
+
+    expect(await Order.findById(order._id).lean()).toMatchObject({
+      shortNumber: 1,
+      businessDate: "2026-11-07",
+    });
+  });
+
+  it("keeps a payment at 05:59 in the previous business day", async () => {
+    const order = await createOrder({ businessDate: "2026-11-06" });
+
+    await transitionWith(allow, order._id, "payment_succeeded", system, {
+      now: new Date("2026-11-07T04:59:00Z"),
+    });
+
+    expect(await Order.findById(order._id).lean()).toMatchObject({
+      shortNumber: 1,
+      businessDate: "2026-11-06",
+    });
+  });
+
+  it("leaves no gap for an abandoned payment and uses one number per repeated webhook", async () => {
+    const abandoned = await createOrder();
+    const [paid] = await Order.create([
+      {
+        ...abandoned.toObject(),
+        _id: new Types.ObjectId(),
+        guestTokenHash: "b".repeat(64),
+      },
+    ]);
+
+    await transitionWith(allow, paid!._id, "payment_succeeded", system, {
+      now,
+    });
+    await expect(
+      transitionWith(allow, paid!._id, "payment_succeeded", system, { now }),
+    ).rejects.toMatchObject({ name: "InvalidTransition" });
+
+    expect((await Order.findById(paid!._id).lean())?.shortNumber).toBe(1);
+    expect((await Order.findById(abandoned._id).lean())?.shortNumber).toBe(
+      undefined,
+    );
+    expect((await Counter.findOne().lean())?.seq).toBe(1);
   });
 
   it("lets exactly one of two parallel Ready to Picked up requests succeed", async () => {

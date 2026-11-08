@@ -11,6 +11,8 @@ import {
 import { AppError, NotFoundError } from "../errors";
 import { publishStatusChange } from "../realtime";
 import { reportError } from "../report-error";
+import { businessDate } from "./business-date";
+import { allocateShortNumber } from "./short-number";
 import {
   type ActorKind,
   actionFor,
@@ -143,7 +145,7 @@ export async function transitionWith(
       });
 
       const venue = await Venue.findById(order.venueId)
-        .select("orderRules")
+        .select("orderRules timezone businessDayStart")
         .session(session)
         .lean();
       if (!venue) throw new Error(`venue ${venueId} not found`);
@@ -157,6 +159,17 @@ export async function transitionWith(
       const set: Record<string, unknown> = { status: to };
       if (event === "payment_succeeded") {
         set.paidAt = now;
+        // T-024: the number and the business day come with the payment, inside this transaction, so a
+        // repeated webhook (InvalidTransition above) or an abandoned payment never uses up a number.
+        set.businessDate = businessDate(now, {
+          timezone: venue.timezone ?? "Europe/Budapest",
+          businessDayStart: venue.businessDayStart ?? "06:00",
+        });
+        set.shortNumber = await allocateShortNumber(
+          order.venueId,
+          set.businessDate as string,
+          session,
+        );
         if (venue.orderRules?.autoAccept ?? true) set.acceptedAt = now;
       }
       // At a manual-acceptance venue, starting the order is the acceptance.

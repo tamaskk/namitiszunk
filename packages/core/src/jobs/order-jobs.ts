@@ -10,7 +10,7 @@ import {
   sendSms,
   shouldSendSms,
 } from "../notify/sms";
-import { formatShortNumber } from "../orders/short-number";
+import { formatShortNumber, requireShortNumber } from "../orders/short-number";
 import { InvalidTransition, type OrderEvent } from "../orders/state-machine";
 import { transition } from "../orders/transition";
 
@@ -176,7 +176,7 @@ async function pushOrSms(
   const text =
     kind === "ready"
       ? readySmsText(locale, {
-          shortNumber: order.shortNumber,
+          shortNumber: requireShortNumber(order.shortNumber),
           barName,
           link: deps.links.order(orderId),
         })
@@ -251,7 +251,7 @@ export async function notifyByEmail(
     locale,
     venueName: venue.name,
     venueEmail: ownerUser.email,
-    shortNumber: formatShortNumber(order.shortNumber),
+    shortNumber: formatShortNumber(requireShortNumber(order.shortNumber)),
   };
   // Rejected and refunded orders are refunded in full (partial refunds keep the status).
   await deps.sendEmail(

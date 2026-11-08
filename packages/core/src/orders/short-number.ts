@@ -37,6 +37,21 @@ function isDuplicateKey(error: unknown): boolean {
   );
 }
 
-export function formatShortNumber(shortNumber: number): string {
-  return `#${shortNumber}`;
+/** "#12"; null before payment, when the order has no number yet (T-024). */
+export function formatShortNumber(shortNumber: number): string;
+export function formatShortNumber(
+  shortNumber: number | null | undefined,
+): string | null;
+export function formatShortNumber(
+  shortNumber: number | null | undefined,
+): string | null {
+  return shortNumber == null ? null : `#${shortNumber}`;
+}
+
+/** The number of an order that must be paid by now (e-mails, SMS, reports); a missing one is a bug. */
+export function requireShortNumber(
+  shortNumber: number | null | undefined,
+): number {
+  if (shortNumber == null) throw new Error("paid order without a short number");
+  return shortNumber;
 }

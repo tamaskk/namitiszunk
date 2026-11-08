@@ -14,7 +14,7 @@ import { isLocale, type Locale } from "@namitiszunk/i18n";
 import type { Actor } from "../auth/permissions";
 import { AppError, NotFoundError } from "../errors";
 import type { OrderEmail } from "../jobs/order-jobs";
-import { formatShortNumber } from "./short-number";
+import { formatShortNumber, requireShortNumber } from "./short-number";
 
 type GuestActor = Extract<Actor, { kind: "guest" }>;
 
@@ -87,7 +87,7 @@ export function buildConfirmation({
         }
       : null;
   return {
-    number: formatShortNumber(order.shortNumber),
+    number: formatShortNumber(requireShortNumber(order.shortNumber)),
     createdAt: order.createdAt,
     items: order.items.map((item) => ({
       name: item.name,
@@ -186,7 +186,7 @@ export async function requestConfirmationEmail(
         locale,
         venueName: venue?.name ?? "",
         venueEmail: venue?.contactEmail ?? "",
-        shortNumber: formatShortNumber(order.shortNumber),
+        shortNumber: formatShortNumber(requireShortNumber(order.shortNumber)),
         items: order.items.map((item) => ({
           name: locale === "en" ? (item.nameEn ?? item.name) : item.name,
           quantity: item.quantity,
