@@ -950,9 +950,9 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] Minden API-végpont bemenete sémán megy át; hibás bemenetre 400 és mezőnkénti hibakulcsok.
+- [x] Minden API-végpont bemenete sémán megy át; hibás bemenetre 400 és mezőnkénti hibakulcsok.
 - [x] Az `openapi.json` érvényes (Redocly lint a CI-ban).
-- [ ] A rendelős oldal űrlapjai ugyanazt a sémát használják, mint a szerver.
+- [x] A rendelős oldal űrlapjai ugyanazt a sémát használják, mint a szerver.
 
 **Tesztelés.** Vitest a sémák határeseteire (mennyiség 0 és 11, üres kosár, érvénytelen telefonszám); CI-lépés: OpenAPI generálás és lint.
 
@@ -1332,7 +1332,7 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 - [x] Pultos vagy másik klub tagja nem kap feltöltési tokent.
 - [x] 6 MB-os vagy PDF fájl feltöltése elutasítva.
-- [ ] A menü oldalon a kép AVIF-ben, a képernyőméretnek megfelelően érkezik.
+- [x] A menü oldalon a kép AVIF-ben, a képernyőméretnek megfelelően érkezik.
 
 **Tesztelés.** Vitest a token-végpont jogosultságára és korlátaira; Playwright: feltöltés az Adminban, megjelenés a rendelős oldalon.
 
