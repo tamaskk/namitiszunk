@@ -177,6 +177,21 @@
       "limit": "Ehhez a rendeléshez már nem küldhetsz több jelzést.",
       "failed": "Nem sikerült elküldeni. Próbáld újra.",
       "close": "Bezárás"
+    },
+    "thanks": {
+      "pageTitle": "Köszönjük",
+      "title": "Köszönjük",
+      "body": "Jó szórakozást. Ha valami nem stimmelt, jelezd lent.",
+      "rateTitle": "Milyen volt?",
+      "stars": "Értékelés",
+      "star": "{count, plural, one {# csillag} other {# csillag}}",
+      "text": "Megjegyzés (nem kötelező)",
+      "send": "Értékelés küldése",
+      "sent": "Köszönjük az értékelést.",
+      "already": "Ezt a rendelést már értékelted.",
+      "chooseStars": "Válassz 1 és 5 csillag között.",
+      "failed": "Nem sikerült elküldeni. Próbáld újra.",
+      "confirmationLink": "Fizetési visszaigazolás"
     }
   },
   "admin": {
