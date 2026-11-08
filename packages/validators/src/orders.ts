@@ -19,6 +19,9 @@ export const orderStatuses = [
   "refunded",
 ] as const;
 export const TIP_PERCENT_BPS = [0, 500, 1000, 1500] as const;
+/** The ÁSZF version a guest accepts at checkout; createOrder refuses any other (409 terms_outdated). */
+// shortcut: draft until T-003 publishes the real terms and their version.
+export const CURRENT_TERMS_VERSION = "draft-2026-11";
 // A sanity cap only; the venue's maxItemsPerOrder is checked on the server (spec 25, item 2).
 const MAX_CART_LINES = 50;
 

@@ -12,7 +12,10 @@ import {
   Venue,
   Zone,
 } from "@namitiszunk/db";
-import type { CreateOrderInput } from "@namitiszunk/validators";
+import {
+  CURRENT_TERMS_VERSION,
+  type CreateOrderInput,
+} from "@namitiszunk/validators";
 import type { Types } from "mongoose";
 
 import {
@@ -102,6 +105,10 @@ export async function createOrder(
   options: CreateOrderOptions,
 ): Promise<CreatedOrder> {
   const now = options.now ?? new Date();
+  // The order must record the terms the guest saw; a stale checkout tab reloads them first.
+  if (input.acceptedTermsVersion !== CURRENT_TERMS_VERSION) {
+    throw new ConflictError("terms_outdated");
+  }
 
   const bar = await Bar.findById(input.barId)
     .select("venueId isOpen pausedUntil")

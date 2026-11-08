@@ -40,7 +40,7 @@ const body = {
   items: [{ itemId: "e".repeat(24), quantity: 1 }],
   tip: { type: "percent", bps: 0 },
   smsRequested: false,
-  acceptedTermsVersion: "2026-11-01",
+  acceptedTermsVersion: "draft-2026-11",
 };
 
 /** `null` leaves a default header out. */

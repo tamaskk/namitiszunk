@@ -211,6 +211,31 @@ describe("orders.create", () => {
 
     expect(keys[0]).not.toBe(keys[1]);
   });
+
+  it("sends the caller's idempotency key and session id on every call", async () => {
+    const seen: [string | null, string | null][] = [];
+    server.use(
+      http.post(`${base}/v1/orders`, ({ request }) => {
+        seen.push([
+          request.headers.get("idempotency-key"),
+          request.headers.get("x-session-id"),
+        ]);
+        return HttpResponse.json({ data: created }, { status: 201 });
+      }),
+    );
+    const call = {
+      idempotencyKey: "checkout-key-1",
+      sessionId: "c".repeat(22),
+    };
+
+    await client.orders.create(order, call);
+    await client.orders.create(order, call);
+
+    expect(seen).toEqual([
+      ["checkout-key-1", "c".repeat(22)],
+      ["checkout-key-1", "c".repeat(22)],
+    ]);
+  });
 });
 
 describe("orders.refund", () => {

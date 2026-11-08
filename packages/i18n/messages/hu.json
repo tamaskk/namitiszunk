@@ -48,7 +48,8 @@
     "order_not_paid": "Ehhez a rendeléshez nincs visszatéríthető fizetés.",
     "refund_exceeds_remaining": "Az összeg több, mint ami még visszatéríthető.",
     "refund_failed": "A visszatérítés nem sikerült. Próbáld újra, vagy írj a supportnak.",
-    "refund_not_allowed_in_status": "Ez a rendelés a mostani állapotában nem téríthető vissza."
+    "refund_not_allowed_in_status": "Ez a rendelés a mostani állapotában nem téríthető vissza.",
+    "terms_outdated": "A feltételek közben frissültek. Töltsd újra az oldalt, és fogadd el az új változatot."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon"
