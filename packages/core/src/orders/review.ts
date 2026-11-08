@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Order, Review } from "@namitiszunk/db";
+import { Order, Review, Venue } from "@namitiszunk/db";
 
 import type { Actor } from "../auth/permissions";
 import { ConflictError, NotFoundError } from "../errors";
@@ -13,14 +13,32 @@ const isDuplicateKey = (error: unknown) =>
   error !== null &&
   (error as { code?: unknown }).code === 11000;
 
-/** The thanks page (T-045): the order, and whether the guest already rated it. */
+/** Where "Rendelj még" leads: the same venue's menu at the same bar and zone. */
+export type MenuLink = { venueSlug: string; barId: string; zoneId?: string };
+
+/** The thanks page (T-045): the order, whether the guest already rated it, and the menu to order more. */
 export async function getGuestThanks(
   actor: GuestActor,
   orderId: string,
-): Promise<{ order: GuestOrderView; reviewed: boolean }> {
+): Promise<{ order: GuestOrderView; reviewed: boolean; menu: MenuLink }> {
   const order = await getGuestOrder(actor, orderId);
-  const reviewed = (await Review.exists({ orderId: order.id })) !== null;
-  return { order, reviewed };
+  const [reviewed, placed] = await Promise.all([
+    Review.exists({ orderId: order.id }),
+    Order.findById(order.id).select("venueId barId zoneId").lean(),
+  ]);
+  const venue = placed
+    ? await Venue.findById(placed.venueId).select("slug").lean()
+    : null;
+  if (!placed || !venue) throw new NotFoundError();
+  return {
+    order,
+    reviewed: reviewed !== null,
+    menu: {
+      venueSlug: venue.slug,
+      barId: String(placed.barId),
+      ...(placed.zoneId ? { zoneId: String(placed.zoneId) } : {}),
+    },
+  };
 }
 
 /**

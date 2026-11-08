@@ -65,6 +65,13 @@ const noPermissionRoutes: Record<string, string> = {
   "orders/[id]/confirmation-email/route.ts":
     "guestCaller proves the order's token",
   "realtime/token/route.ts": "createTokenRequest checks RBAC per channel",
+  "orders/[id]/reorder/route.ts": "guestCaller proves the order's token",
+  "me/route.ts": "accountCaller: the guest's own account only",
+  "me/orders/route.ts": "accountCaller: the guest's own orders only",
+  "me/orders/claim/route.ts": "each order proven by its guest token in core",
+  "me/orders/[id]/reorder/route.ts":
+    "core answers 404 unless the account owns it",
+  "me/export/route.ts": "accountCaller: the guest's own data only",
 };
 
 describe("only reviewed /v1 routes skip the permission check", () => {

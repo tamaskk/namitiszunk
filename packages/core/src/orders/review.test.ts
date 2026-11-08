@@ -127,4 +127,15 @@ describe("getGuestThanks", () => {
       order: { status: "picked_up" },
     });
   });
+
+  it("links back to the same venue's menu and bar for another round", async () => {
+    const order = await createOrder();
+
+    const thanks = await getGuestThanks(guest, String(order._id));
+
+    expect(thanks.menu).toEqual({
+      venueSlug: (await Venue.findById(order.venueId).lean())?.slug,
+      barId: String(order.barId),
+    });
+  });
 });

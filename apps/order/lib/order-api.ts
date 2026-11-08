@@ -4,6 +4,7 @@ import type {
   OrderQuoteResponse,
   OrderResponse,
   QuoteOrderInput,
+  ReorderResponse,
 } from "@namitiszunk/validators";
 import type { TokenRequest } from "ably";
 
@@ -21,8 +22,8 @@ export class OrderApiError extends Error {
   }
 }
 
-async function send<T>(
-  method: "GET" | "POST",
+export async function send<T>(
+  method: "GET" | "POST" | "DELETE",
   path: string,
   headers: Record<string, string>,
   body?: unknown,
@@ -37,6 +38,8 @@ async function send<T>(
         ...(body !== undefined && { "content-type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
+      // The signed-in guest's session cookie (T-047): a new order joins their history, /v1/me reads it.
+      credentials: "include",
     });
   } catch {
     throw new OrderApiError(0);
@@ -113,6 +116,13 @@ export const orderApi = {
       `/v1/orders/${encodeURIComponent(orderId)}/review`,
       token,
       input,
+    ),
+  /** "Rendeld újra" on the thanks page (T-045). */
+  reorder: (orderId: string, token: string) =>
+    call<ReorderResponse>(
+      "POST",
+      `/v1/orders/${encodeURIComponent(orderId)}/reorder`,
+      token,
     ),
   realtimeToken: (token: string) =>
     call<TokenRequest>("POST", "/v1/realtime/token", token),

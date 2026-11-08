@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import * as account from "./account";
 import * as auth from "./auth";
 import * as menu from "./menu";
 import * as orders from "./orders";
@@ -16,6 +17,12 @@ export const openApiDocumentSchema = z.looseObject({ openapi: z.string() });
 
 const components = {
   ErrorResponse: errorResponseSchema,
+  ClaimOrdersInput: account.claimOrdersInputSchema,
+  ClaimOrdersResponse: account.claimOrdersResponseSchema,
+  AccountOrdersResponse: account.accountOrdersResponseSchema,
+  AccountExportResponse: account.accountExportResponseSchema,
+  DeleteAccountResponse: account.deleteAccountResponseSchema,
+  ReorderResponse: account.reorderResponseSchema,
   CreateOrderInput: orders.createOrderInputSchema,
   CreateOrderResponse: orders.createOrderResponseSchema,
   QuoteOrderInput: orders.quoteOrderInputSchema,
@@ -61,7 +68,7 @@ const components = {
 type ComponentName = keyof typeof components;
 
 type Operation = {
-  method: "get" | "post";
+  method: "get" | "post" | "delete";
   path: string;
   operationId: string;
   summary: string;
@@ -69,8 +76,11 @@ type Operation = {
   request?: ComponentName;
   response: ComponentName;
   status: 200 | 201;
-  /** "staff": a signed-in admin or HQ session; adds 401, 403 and 409. "guest": the order's token in x-guest-token; adds 404 and 409. */
-  auth?: "staff" | "guest";
+  /**
+   * "staff": a signed-in admin or HQ session; adds 401, 403 and 409. "guest": the order's token in
+   * x-guest-token; adds 404 and 409. "account": the guest's own order-app session; adds 401, 404 and 409.
+   */
+  auth?: "staff" | "guest" | "account";
 };
 
 // Endpoints that exist in the spec today; every new route (T-029 onwards) adds its line here.
@@ -234,6 +244,70 @@ const operations: Operation[] = [
     response: "UploadTokenResponse",
     status: 200,
   },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/reorder",
+    operationId: "reorderAsGuest",
+    summary:
+      "The order's lines as a cart at today's prices; sold-out lines are skipped and named",
+    tag: "orders",
+    response: "ReorderResponse",
+    status: 200,
+    auth: "guest",
+  },
+  {
+    method: "delete",
+    path: "/v1/me",
+    operationId: "deleteAccount",
+    summary:
+      "Delete the guest account; orders stay for the venue without it. Staff users get 409",
+    tag: "account",
+    response: "DeleteAccountResponse",
+    status: 200,
+    auth: "account",
+  },
+  {
+    method: "get",
+    path: "/v1/me/orders",
+    operationId: "listAccountOrders",
+    summary: "The signed-in guest's orders, newest first",
+    tag: "account",
+    response: "AccountOrdersResponse",
+    status: 200,
+    auth: "account",
+  },
+  {
+    method: "post",
+    path: "/v1/me/orders/claim",
+    operationId: "claimOrders",
+    summary:
+      "Attach the orders this device remembers, each proven by its guest token",
+    tag: "account",
+    request: "ClaimOrdersInput",
+    response: "ClaimOrdersResponse",
+    status: 200,
+    auth: "account",
+  },
+  {
+    method: "post",
+    path: "/v1/me/orders/{id}/reorder",
+    operationId: "reorder",
+    summary: "An order from the history as a cart at today's prices",
+    tag: "account",
+    response: "ReorderResponse",
+    status: 200,
+    auth: "account",
+  },
+  {
+    method: "get",
+    path: "/v1/me/export",
+    operationId: "exportAccount",
+    summary: "Everything personal tied to the account, as JSON (GDPR access)",
+    tag: "account",
+    response: "AccountExportResponse",
+    status: 200,
+    auth: "account",
+  },
 ];
 
 const ref = (name: ComponentName) => ({
@@ -275,7 +349,9 @@ function buildPaths() {
       security:
         op.auth === "staff"
           ? [{ adminSession: [] }, { hqSession: [] }, { bearerAuth: [] }]
-          : [],
+          : op.auth === "account"
+            ? [{ orderSession: [] }, { bearerAuth: [] }]
+            : [],
       ...(op.request && {
         requestBody: { required: true, ...json(op.request) },
       }),
@@ -285,6 +361,14 @@ function buildPaths() {
         ...(op.auth === "staff" && {
           401: { description: "Not signed in", ...json("ErrorResponse") },
           403: { description: "Not allowed", ...json("ErrorResponse") },
+          409: {
+            description: "Conflicts with the current state",
+            ...json("ErrorResponse"),
+          },
+        }),
+        ...(op.auth === "account" && {
+          401: { description: "Not signed in", ...json("ErrorResponse") },
+          404: { description: "Not found", ...json("ErrorResponse") },
           409: {
             description: "Conflicts with the current state",
             ...json("ErrorResponse"),
@@ -351,6 +435,12 @@ export function buildOpenApiDocument() {
           type: "apiKey",
           in: "cookie",
           name: "nmi-hq.session_token",
+          description: "Over HTTPS the cookie carries the __Secure- prefix.",
+        },
+        orderSession: {
+          type: "apiKey",
+          in: "cookie",
+          name: "nmi-order.session_token",
           description: "Over HTTPS the cookie carries the __Secure- prefix.",
         },
         bearerAuth: { type: "http", scheme: "bearer" },

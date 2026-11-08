@@ -17,6 +17,8 @@ const core = vi.hoisted(() => ({
   reissueOrderPayment: vi.fn(),
 }));
 vi.mock("@namitiszunk/core/payments", () => core);
+const getSessionActor = vi.hoisted(() => vi.fn());
+vi.mock("./session-actor", () => ({ getSessionActor }));
 const send = vi.hoisted(() => vi.fn());
 vi.mock("@/src/inngest/client", () => ({
   inngest: { send },
@@ -75,6 +77,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  getSessionActor.mockResolvedValue(null);
   await db.connection.dropDatabase();
   await Promise.all(
     Object.values(db.connection.models).map((model) => model.syncIndexes()),
@@ -131,6 +134,39 @@ describe("POST /v1/orders", () => {
 
     expect(second.status).toBe(201);
     expect((await second.json()).data).toEqual({ orderId });
+  });
+
+  it("puts the order in the history of a guest signed in on the order app only", async () => {
+    getSessionActor.mockResolvedValue({
+      id: "u1",
+      kind: "user",
+      userId: "a".repeat(24),
+      memberships: [],
+    });
+
+    await POST(post(body, { origin: "https://rendel.namitiszunk.hu" }), route);
+    await POST(
+      post(body, {
+        origin: "https://admin.namitiszunk.hu",
+        "idempotency-key": "checkout-2",
+      }),
+      route,
+    );
+
+    expect(core.createOrder.mock.calls[0]![1].userId).toBe("a".repeat(24));
+    expect(core.createOrder.mock.calls[1]![1]).not.toHaveProperty("userId");
+  });
+
+  it("still takes the order when the session lookup fails", async () => {
+    getSessionActor.mockRejectedValue(new AppError(403, "two_factor_required"));
+
+    const res = await POST(
+      post(body, { origin: "https://rendel.namitiszunk.hu" }),
+      route,
+    );
+
+    expect(res.status).toBe(201);
+    expect(core.createOrder.mock.calls[0]![1]).not.toHaveProperty("userId");
   });
 
   it("requires an Idempotency-Key", async () => {

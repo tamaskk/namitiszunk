@@ -6,8 +6,10 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { ReorderButton } from "@/components/reorder/reorder-button";
 import { ReportProblem } from "@/components/report-problem/report-problem";
 import { loadForGuest } from "@/lib/guest-data";
+import { menuHref } from "@/lib/menu-href";
 
 import { OrderLoading } from "../order-loading";
 import { ReviewForm } from "./review-form";
@@ -64,6 +66,13 @@ async function Thanks({ params }: PageProps<"/[locale]/o/[orderId]/thanks">) {
         token={token}
         alreadyReviewed={thanks.reviewed}
       />
+
+      <div className="flex flex-col gap-3">
+        <Button variant="secondary" asChild>
+          <a href={menuHref(locale, thanks.menu)}>{t("orderMore")}</a>
+        </Button>
+        <ReorderButton orderId={orderId} token={token} />
+      </div>
 
       <div className="flex flex-col gap-3">
         <Button variant="ghost" asChild>

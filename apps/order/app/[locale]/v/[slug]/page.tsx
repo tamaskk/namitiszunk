@@ -7,6 +7,7 @@ import {
   type VenueStatusResponse,
 } from "@namitiszunk/validators";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { UserIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -137,6 +138,16 @@ export default async function MenuPage({
               )}
             >
               {t("otherLanguage")}
+            </Link>
+            <Link
+              href={`/${locale}/fiok`}
+              aria-label={t("accountLabel")}
+              className={cn(
+                "inline-flex size-12 shrink-0 items-center justify-center rounded-md text-text hover:bg-surface [&_svg]:size-5",
+                focusRing,
+              )}
+            >
+              <UserIcon aria-hidden />
             </Link>
           </div>
         </header>

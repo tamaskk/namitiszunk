@@ -1599,9 +1599,9 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] Belépés mindhárom módon működik; a munkamenet-süti csak a rendelős aldomainé.
-- [ ] Belépés után az eszköz korábbi rendelései az előzményekben vannak, más eszközéi nem.
-- [ ] Az export minden, a vendéghez kötött személyes adatot tartalmaz.
+- [ ] Belépés mindhárom módon működik; a munkamenet-süti a T-030 szerint alkalmazásonkénti nevű (`nmi-order.*`) a `.namitiszunk.hu` szülődomainen, és az API csak a rendelős app `Origin`-jével fogadja el (más app munkamenete 401).
+- [x] Belépés után az eszköz korábbi rendelései az előzményekben vannak, más eszközéi nem.
+- [x] Az export minden, a vendéghez kötött személyes adatot tartalmaz.
 - [ ] Törlés után a belépés új fiókot hoz létre, a régi rendelések a klub riportjában név nélkül megmaradnak.
 
 **Tesztelés.** Vitest a rendelés-hozzárendelésre és a törlésre; Playwright: magic link belépés, előzmények, export, törlés.

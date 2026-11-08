@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./account": "./src/account/account.ts",
     "./audit": "./src/audit/audit.ts",
     "./auth": "./src/auth/permissions.ts",
     "./short-number": "./src/orders/short-number.ts",

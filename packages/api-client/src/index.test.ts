@@ -362,3 +362,30 @@ describe("types follow the shared schemas", () => {
     void (() => client.orders.create(textQuantity));
   });
 });
+
+describe("me", () => {
+  it("deletes the account with DELETE /v1/me and reads its answer", async () => {
+    let method = "";
+    server.use(
+      http.delete(`${base}/v1/me`, ({ request }) => {
+        method = request.method;
+        return HttpResponse.json({ data: { ordersDetached: 3 } });
+      }),
+    );
+
+    const result = await client.me.delete();
+
+    expect(method).toBe("DELETE");
+    expect(result).toEqual({ ordersDetached: 3 });
+  });
+
+  it("refuses a malformed device token before sending a claim", async () => {
+    const error = await caught(
+      client.me.claimOrders({
+        orders: [{ orderId: "0123456789abcdef01234567", token: "short" }],
+      }),
+    );
+
+    expect(error.code).toBe("invalid_input");
+  });
+});
