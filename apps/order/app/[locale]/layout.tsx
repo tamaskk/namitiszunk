@@ -35,6 +35,8 @@ export default async function LocaleLayout({
           messages={{
             common: messages[locale].common,
             order: messages[locale].order,
+            // The checkout shows the API's refusal (bar_paused, items_unavailable, terms_outdated).
+            apiErrors: messages[locale].apiErrors,
           }}
         >
           {children}

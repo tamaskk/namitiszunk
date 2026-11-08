@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { MAX_QUANTITY_PER_LINE } from "./cart-limits";
+import { MAX_QUANTITY_PER_LINE, TIP_PERCENT_BPS } from "./cart-limits";
 import { hufSchema, huPhoneSchema, locales, objectIdSchema } from "./shared";
 import { venueSlugSchema } from "./venues";
 
-export { MAX_QUANTITY_PER_LINE };
+export { MAX_QUANTITY_PER_LINE, TIP_PERCENT_BPS };
 
 // Same literals as packages/db and packages/core; packages/core/src/validators-sync.test.ts keeps them equal.
 export const orderStatuses = [
@@ -18,7 +18,6 @@ export const orderStatuses = [
   "expired",
   "refunded",
 ] as const;
-export const TIP_PERCENT_BPS = [0, 500, 1000, 1500] as const;
 /** The ÁSZF version a guest accepts at checkout; createOrder refuses any other (409 terms_outdated). */
 // shortcut: draft until T-003 publishes the real terms and their version.
 export const CURRENT_TERMS_VERSION = "draft-2026-11";
