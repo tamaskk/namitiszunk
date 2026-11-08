@@ -252,9 +252,11 @@ test("takes only a Hungarian mobile number for the SMS", async ({ page }) => {
   expect(sent.guestPhone).toBe("+36301234567");
 });
 
-test("a paused bar disables the pay button and says why", async ({ page }) => {
+test("a paused bar disables the pay button and says why, and Pay comes back when the pause ends", async ({
+  page,
+}) => {
   await cartToCheckout(page, () => answerQuote(page));
-  setBarPaused(bar, true);
+  setBarPaused(bar, true, 8_000);
   try {
     await page.reload();
 
@@ -262,6 +264,8 @@ test("a paused bar disables the pay button and says why", async ({ page }) => {
       page.getByText(messages.hu.apiErrors.bar_paused),
     ).toBeVisible();
     await expect(payButton(page, colaHuf)).toBeDisabled();
+    // T-048: no reload; the cart stayed, the status and the price come back by themselves.
+    await expect(payButton(page, colaHuf)).toBeEnabled({ timeout: 20_000 });
   } finally {
     setBarPaused(bar, false);
   }

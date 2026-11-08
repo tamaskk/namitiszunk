@@ -46,8 +46,8 @@ export function setItemAvailable(itemId: string, available: boolean) {
   update("items", { _id: oid(itemId) }, { $set: { isAvailable: available } });
 }
 
-/** Pauses a bar for ten minutes, or resumes it with null. */
-export function setBarPaused(barId: string, paused: boolean) {
+/** Pauses a bar (ten minutes unless told otherwise), or resumes it with false. */
+export function setBarPaused(barId: string, paused: boolean, forMs = 600_000) {
   update(
     "bars",
     { _id: oid(barId) },
@@ -55,7 +55,7 @@ export function setBarPaused(barId: string, paused: boolean) {
       ? {
           $set: {
             pausedUntil: {
-              $date: new Date(Date.now() + 600_000).toISOString(),
+              $date: new Date(Date.now() + forMs).toISOString(),
             },
           },
         }

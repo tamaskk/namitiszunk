@@ -786,7 +786,7 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 
 1. Modellek a doksi táblája szerint, ezekkel a kiegészítésekkel:
    - VenueMember: `vipHost` szerepkör (később `waiter`), név + PIN-hash e-mail-fiók nélkül;
-   - Venue: `businessDayStart` (alap `06:00`), `timezone` (`Europe/Budapest`), rendelési szabályok (automatikus elfogadás, átvételi határidő 15–60 perc, lejáratkori visszatérítés, max. tétel, minimum rendelés, utolsó rendelés zárás előtt, szervizdíj típusa és értéke, SMS be/ki);
+   - Venue: `businessDayStart` (alap `06:00`), `timezone` (`Europe/Budapest`), `openingHours` (heti nyitvatartás helyi időben, ISO nap 1–7, a nyitásnál nem későbbi zárás másnap reggel van; üresen csak a pult kapcsolója számít, 48.), rendelési szabályok (automatikus elfogadás, átvételi határidő 15–60 perc, lejáratkori visszatérítés, max. tétel, minimum rendelés, utolsó rendelés zárás előtt, szervizdíj típusa és értéke, SMS be/ki);
    - Zone: típus (`bar_area`, `vip_table`); Item: `vipOnly`, `nameEn`, `descriptionEn`;
    - Order: `businessDate`, `shortNumber`, `guestPhone` (30 napos törléssel), `smsRequested`, `receiptEnteredAt` és `receiptEnteredBy` („Nyugta beütve”), `acceptedTermsVersion`, `isVip`;
    - Counter: helyszín és üzleti nap szerinti sorszámláló (24.).
@@ -1635,9 +1635,9 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] Mind a 13 eset Playwright-tesztben reprodukálható, a várt szöveggel, mindkét nyelven.
-- [ ] Egyik eset sem zsákutca: mindegyikben van továbbvezető gomb.
-- [ ] Szünet alatt a kosár megmarad, és a szünet lejárta után újratöltés nélkül lehet fizetni.
+- [x] Mind a 13 eset Playwright-tesztben reprodukálható, a várt szöveggel, mindkét nyelven (`apps/order/e2e/states.spec.ts`; a 4. és a 9. a `checkout.spec.ts`-ben; a 8. a pult átrakása nélkül, az a 54.-kel jön).
+- [x] Egyik eset sem zsákutca: mindegyikben van továbbvezető gomb, vagy magától folytatódik (szünet vége, kapcsolat visszajön).
+- [x] Szünet alatt a kosár megmarad, és a szünet lejárta után újratöltés nélkül lehet fizetni.
 
 **Tesztelés.** Playwright esetenként, a seed adatokból (27.) és a `packages/core` függvényeivel előkészített állapottal; offline eset Playwright offline móddal.
 
