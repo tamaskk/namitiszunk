@@ -189,7 +189,11 @@ export function OrderStatus({
             </DialogContent>
           </Dialog>
         )}
-        {!order.canCancel && cancelMessage}
+        {order.cancelLimitReached ? (
+          <p className="text-body text-text-muted">{t("cancel.limit")}</p>
+        ) : (
+          !order.canCancel && cancelMessage
+        )}
       </div>
 
       {view.ready && (

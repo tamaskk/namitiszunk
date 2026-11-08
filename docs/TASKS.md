@@ -18,7 +18,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [x] T-023 RBAC permissions; `apps/api/lib/v1-routes.test.ts` fails CI on any route that skips `requirePermission()` without a reviewed reason
 
 ## Open decisions
-- [ ] Guest cancel abuse (from the T-043 review): at a manual-acceptance venue a guest can pay and cancel repeatedly, and each refund leaves the Stripe fee with the venue. Decide whether to cap guest cancels per device or phone per business day.
+- [x] Guest cancel abuse (from the T-043 review): at a manual-acceptance venue a guest can pay and cancel repeatedly, and each refund leaves the Stripe fee with the venue. Decide whether to cap guest cancels per device or phone per business day. Decided: 1 guest cancel per card (Stripe fingerprint), venue and business day; fails open without a fingerprint; the guest is told to ask the bar.
 
 ## Deferred parts
 - [ ] T-045 "Order more" and "Order again" buttons on the thanks page: need the menu (T-040) and the cart (T-041). "Order again" skips sold-out items and says so.

@@ -1,4 +1,4 @@
-import { Bar, connectDb, Order, Refund, Venue } from "@namitiszunk/db";
+import { Bar, connectDb, Order, Payment, Refund, Venue } from "@namitiszunk/db";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { Types } from "mongoose";
 import {
@@ -11,7 +11,7 @@ import {
   vi,
 } from "vitest";
 
-import { NotFoundError } from "../errors";
+import { ConflictError, NotFoundError } from "../errors";
 import { cancelGuestOrder, getGuestOrder } from "./guest-order";
 import { InvalidTransition } from "./state-machine";
 
@@ -26,6 +26,8 @@ process.env.ABLY_API_KEY = "test.key:secret";
 const guestTokenHash = "b".repeat(64);
 const guest = { kind: "guest", guestId: guestTokenHash } as const;
 const stranger = { kind: "guest", guestId: "c".repeat(64) } as const;
+// The same person's next order: a new order token, the same card.
+const nextGuest = { kind: "guest", guestId: "d".repeat(64) } as const;
 
 let replSet: MongoMemoryReplSet;
 let mongoose: Awaited<ReturnType<typeof connectDb>>;
@@ -165,5 +167,111 @@ describe("cancelGuestOrder", () => {
     await expect(cancelGuestOrder(guest, String(order._id))).rejects.toThrow(
       InvalidTransition,
     );
+  });
+});
+
+// A second order at the first order's venue and bar.
+async function anotherOrder(
+  first: Awaited<ReturnType<typeof createOrder>>,
+  overrides: Record<string, unknown> = {},
+) {
+  const fields: Record<string, unknown> = first.toObject();
+  delete fields._id;
+  delete fields.createdAt;
+  delete fields.updatedAt;
+  const [order] = await Order.create([
+    {
+      ...fields,
+      shortNumber: 215,
+      pickupCode: "M3X",
+      guestTokenHash: nextGuest.guestId,
+      ...overrides,
+    },
+  ]);
+  return order!;
+}
+
+async function paidWith(
+  order: Awaited<ReturnType<typeof createOrder>>,
+  cardFingerprint?: string,
+) {
+  await Payment.create([
+    {
+      venueId: order.venueId,
+      orderId: order._id,
+      stripePaymentIntentId: `pi_${String(order._id)}`,
+      amountHuf: order.totalHuf,
+      status: "succeeded",
+      ...(cardFingerprint ? { cardFingerprint } : {}),
+    },
+  ]);
+}
+
+describe("guest cancel limit", () => {
+  it("lets a card cancel once per venue per business day, then refuses with 409", async () => {
+    const first = await createOrder();
+    await paidWith(first, "fp_card_a");
+    await cancelGuestOrder(guest, String(first._id));
+    const second = await anotherOrder(first, { status: "new" });
+    await paidWith(second, "fp_card_a");
+
+    const view = await getGuestOrder(nextGuest, String(second._id));
+    const cancel = cancelGuestOrder(nextGuest, String(second._id));
+
+    expect(view).toMatchObject({ canCancel: false, cancelLimitReached: true });
+    await expect(cancel).rejects.toThrow(ConflictError);
+    await expect(cancel).rejects.toMatchObject({ code: "guest_cancel_limit" });
+    expect((await Order.findById(second._id).lean())?.status).toBe("new");
+  });
+
+  it("starts again on the next business day", async () => {
+    const first = await createOrder();
+    await paidWith(first, "fp_card_a");
+    await cancelGuestOrder(guest, String(first._id));
+    const second = await anotherOrder(first, {
+      status: "new",
+      businessDate: "2026-11-08",
+    });
+    await paidWith(second, "fp_card_a");
+
+    const view = await getGuestOrder(nextGuest, String(second._id));
+
+    expect(view.canCancel).toBe(true);
+    expect(view).not.toHaveProperty("cancelLimitReached");
+  });
+
+  it("lets another card cancel", async () => {
+    const first = await createOrder();
+    await paidWith(first, "fp_card_a");
+    await cancelGuestOrder(guest, String(first._id));
+    const second = await anotherOrder(first, { status: "new" });
+    await paidWith(second, "fp_card_b");
+
+    const change = await cancelGuestOrder(nextGuest, String(second._id));
+
+    expect(change).toMatchObject({ from: "new", to: "rejected" });
+  });
+
+  it("does not count a rejection by the bar", async () => {
+    const first = await createOrder({ status: "rejected" });
+    await paidWith(first, "fp_card_a");
+    const second = await anotherOrder(first, { status: "new" });
+    await paidWith(second, "fp_card_a");
+
+    const view = await getGuestOrder(nextGuest, String(second._id));
+
+    expect(view.canCancel).toBe(true);
+  });
+
+  it("fails open when the payment has no card fingerprint", async () => {
+    const first = await createOrder();
+    await paidWith(first, "fp_card_a");
+    await cancelGuestOrder(guest, String(first._id));
+    const second = await anotherOrder(first, { status: "new" });
+    await paidWith(second);
+
+    const change = await cancelGuestOrder(nextGuest, String(second._id));
+
+    expect(change).toMatchObject({ from: "new", to: "rejected" });
   });
 });

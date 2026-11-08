@@ -485,6 +485,37 @@ describe("payment_intent webhooks", () => {
     });
   });
 
+  it("stores the card fingerprint before the order reaches New, for the guest cancel limit", async () => {
+    const { orderId } = await create();
+    const payment = await Payment.findOne({ orderId }).lean();
+    let statusAtFetch: string | undefined;
+    api.charges.retrieve.mockImplementationOnce(async () => {
+      statusAtFetch = await status(orderId);
+      return {
+        payment_method_details: {
+          card: { brand: "visa", last4: "4242", fingerprint: "fp_card_a" },
+        },
+      };
+    });
+
+    await processConnectWebhook(
+      ...intentEvent("evt_fingerprint", "payment_intent.succeeded", {
+        id: payment!.stripePaymentIntentId,
+        amount: payment!.amountHuf * 100,
+        orderId,
+        applicationFee: payment!.applicationFeeHuf * 100,
+        latestCharge: "ch_3",
+      }),
+    );
+
+    expect(statusAtFetch).toBe("awaiting_payment");
+    expect(
+      (await Payment.findById(payment!._id).select("+cardFingerprint").lean())
+        ?.cardFingerprint,
+    ).toBe("fp_card_a");
+    expect(await status(orderId)).toBe("new");
+  });
+
   it("still pays the order when the card details cannot be read", async () => {
     const { orderId } = await create();
     const payment = await Payment.findOne({ orderId }).lean();
