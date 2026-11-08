@@ -36,6 +36,9 @@ jobs:
       # Inside `verify` so branch protection needs no new required check.
       - run: pnpm --filter @namitiszunk/admin exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      # T-049 on the production build from the step above: the JS budget fails the PR, LCP only warns.
+      - run: pnpm --filter @namitiszunk/order test:perf
+      - run: pnpm --filter @namitiszunk/order lighthouse
 
   secrets:
     runs-on: ubuntu-latest

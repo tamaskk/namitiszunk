@@ -40,3 +40,4 @@ graphify-out/
 
 # Serena MCP local state
 .serena/
+.lighthouseci/
