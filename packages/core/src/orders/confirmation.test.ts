@@ -54,6 +54,7 @@ async function createPaidOrder(overrides: Record<string, unknown> = {}) {
     {
       slug: "pilot",
       name: "Pilot Club",
+      contactEmail: "bar@pilot.hu",
       company: { name: "Pilot Kft.", taxNumber: "12345678-2-42" },
       address: { street: "Király u. 1.", city: "Budapest", postalCode: "1061" },
     },
@@ -198,7 +199,11 @@ describe("requestConfirmationEmail", () => {
     expect(send.mock.calls[0]![0]).toMatchObject({
       template: "orderConfirmation",
       to: "vendeg@example.com",
-      data: { shortNumber: "#214", confirmationUrl: emailInput.url },
+      data: {
+        shortNumber: "#214",
+        venueEmail: "bar@pilot.hu",
+        confirmationUrl: emailInput.url,
+      },
     });
   });
 
