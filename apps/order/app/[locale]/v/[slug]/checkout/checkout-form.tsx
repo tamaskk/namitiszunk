@@ -15,7 +15,10 @@ import type {
   OrderQuoteResponse,
   VenueStatusResponse,
 } from "@namitiszunk/validators";
-import { TIP_PERCENT_BPS } from "@namitiszunk/validators/cart-limits";
+import {
+  HU_PHONE_PATTERN,
+  TIP_PERCENT_BPS,
+} from "@namitiszunk/validators/cart-limits";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import {
@@ -173,7 +176,7 @@ export function CheckoutForm({
     );
 
   const phoneDigits = phone.replace(/\D/g, "");
-  const phoneValid = /^\d{8,9}$/.test(phoneDigits);
+  const phoneValid = HU_PHONE_PATTERN.test(`+36${phoneDigits}`);
   const blocked =
     !open ||
     quoteProblem?.code === "bar_paused" ||

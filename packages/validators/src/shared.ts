@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { HU_PHONE_PATTERN } from "./cart-limits";
+
 // Error messages are i18n keys (packages/i18n), never prose; the client translates them.
 // API schemas carry no transforms or defaults: the same schema must describe the wire format in OpenAPI.
 
@@ -22,7 +24,7 @@ export const hufSchema = z
 // A format check only (+36 and 8-9 digits): this leaf package stays without libphonenumber-js, and @namitiszunk/core/notify validates with libphonenumber-js before sending.
 export const huPhoneSchema = z
   .string()
-  .regex(/^\+36\d{8,9}$/, { error: "validation.phone.invalid" });
+  .regex(HU_PHONE_PATTERN, { error: "validation.phone.invalid" });
 
 export const nameSchema = z
   .string()
