@@ -91,6 +91,8 @@ const orderSchema = new Schema(
     acceptedAt: Date,
     readyAt: Date,
     pickedUpAt: Date,
+    // Guest-requested confirmation e-mails (T-044), at most 3 per order.
+    confirmationEmailCount: { type: Number, min: 0, default: 0 },
   },
   { timestamps: true },
 );
@@ -138,6 +140,10 @@ const paymentSchema = new Schema(
       enum: paymentStatuses,
       default: "requires_payment",
     },
+    // Shown on the guest confirmation (T-044); never the full card number.
+    cardBrand: String,
+    cardLast4: { type: String, match: /^\d{4}$/ },
+    wallet: String,
   },
   { timestamps: true },
 );
