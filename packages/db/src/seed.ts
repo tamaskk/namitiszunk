@@ -426,6 +426,10 @@ const seedOrders: SeedOrder[] = [
 
 const minutes = (n: number) => n * 60_000;
 
+/** A demo order's guest link token: the 22-character format guest links require, so the live page opens (T-049 Lighthouse). */
+const seedGuestToken = (key: string) =>
+  createHash("sha256").update(`token:${key}`).digest("base64url").slice(0, 22);
+
 function buildOrder(order: SeedOrder, index: number, now: Date): Fields {
   const createdAt = new Date(now.getTime() - minutes(order.minutesAgo));
   const at = (offset: number) =>
@@ -464,7 +468,9 @@ function buildOrder(order: SeedOrder, index: number, now: Date): Fields {
     totalHuf: subtotalHuf + tipHuf - discountHuf,
     promoId: order.promoCode ? seedId(`promo:${order.promoCode}`) : undefined,
     pickupCode: `D${String(index + 1).padStart(2, "0")}`,
-    guestTokenHash: createHash("sha256").update(key).digest("hex"),
+    guestTokenHash: createHash("sha256")
+      .update(seedGuestToken(key))
+      .digest("hex"),
     acceptedTermsVersion: "draft-2026-11",
     paidAt: paid ? at(1) : undefined,
     acceptedAt: accepted ? at(2) : undefined,
