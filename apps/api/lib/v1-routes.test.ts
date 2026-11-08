@@ -50,3 +50,51 @@ describe("every /v1 route goes through the handler wrapper", () => {
     }
   });
 });
+
+// CI check (T-023): `permission: "none"` only on reviewed routes. A new route that skips
+// requirePermission fails here until someone adds it with the reason it is safe.
+const noPermissionRoutes: Record<string, string> = {
+  "ping/route.ts": "public health probe, no data",
+  "openapi.json/route.ts": "public API description, no data",
+  "orders/route.ts": "guest order creation, prices loaded on the server",
+  "orders/[id]/route.ts": "guestCaller proves the order's token",
+  "orders/[id]/cancel/route.ts": "transition() checks order.reject (own)",
+  "orders/[id]/review/route.ts": "guestCaller proves the order's token",
+  "orders/[id]/report/route.ts": "guestCaller proves the order's token",
+  "orders/[id]/confirmation-email/route.ts":
+    "guestCaller proves the order's token",
+  "realtime/token/route.ts": "createTokenRequest checks RBAC per channel",
+};
+
+describe("only reviewed /v1 routes skip the permission check", () => {
+  it('matches the list of routes with permission "none"', () => {
+    const skipping = routes.filter((file) =>
+      /\bpermission\s*:\s*["']none["']/.test(readFileSync(v1 + file, "utf8")),
+    );
+
+    expect(skipping.sort()).toEqual(Object.keys(noPermissionRoutes).sort());
+  });
+});
+
+// Routes outside /v1 bypass handler(); each one authenticates on its own.
+const nonV1Routes: Record<string, string> = {
+  "api/inngest/route.ts": "Inngest serve() verifies the signing key",
+  "debug/sentry/route.ts": "shared bearer token, 404 otherwise",
+  "health/route.ts": "public health probe, no data",
+  "webhooks/stripe/route.ts": "Stripe signature on the raw body",
+};
+
+describe("only reviewed routes live outside /v1", () => {
+  it("matches the list of non-/v1 routes", () => {
+    const app = fileURLToPath(new URL("../app/", import.meta.url));
+
+    const found = readdirSync(app, {
+      recursive: true,
+      encoding: "utf8",
+    }).filter(
+      (file) => /(^|\/)route\.ts$/.test(file) && !file.startsWith("v1/"),
+    );
+
+    expect(found.sort()).toEqual(Object.keys(nonV1Routes).sort());
+  });
+});

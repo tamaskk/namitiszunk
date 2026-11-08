@@ -15,7 +15,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [x] T-020 Mongoose models and indexes
 - [x] T-021 Order state machine
 - [x] T-022 Pricing (subtotal, service fee, tip, discount, commission); the 175 Ft minimum is refused in `create-order.ts`, the checkout UI message comes with T-042
-- [x] T-023 RBAC permissions; follow-up: CI check that every route handler calls `requirePermission()`, and a cross-venue 403 test for every role
+- [x] T-023 RBAC permissions; `apps/api/lib/v1-routes.test.ts` fails CI on any route that skips `requirePermission()` without a reviewed reason
 
 ## Open decisions
 - [ ] Guest cancel abuse (from the T-043 review): at a manual-acceptance venue a guest can pay and cancel repeatedly, and each refund leaves the Stripe fee with the venue. Decide whether to cap guest cancels per device or phone per business day.
