@@ -1,6 +1,6 @@
 "use client";
 
-import { formatHuf } from "@namitiszunk/i18n";
+import { formatHuf } from "@namitiszunk/i18n/format";
 import {
   Badge,
   Button,

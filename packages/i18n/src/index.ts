@@ -1,6 +1,7 @@
 import en from "../messages/en.json";
 import hu from "../messages/hu.json";
 
+// Client components import these from "@namitiszunk/i18n/format": this entry bundles every message file.
 export { formatDateTime, formatHuf } from "./format";
 
 export const locales = ["hu", "en"] as const;

@@ -5,7 +5,7 @@ import type {
   PublicMenuItem,
   PublicModifierGroup,
 } from "@namitiszunk/core/menu";
-import { formatHuf } from "@namitiszunk/i18n";
+import { formatHuf } from "@namitiszunk/i18n/format";
 import {
   Button,
   cn,
