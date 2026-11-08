@@ -33,6 +33,14 @@ Rules:
 - One accent color. Status colors are for state, not decoration.
 - Text and the accent pass WCAG AA on `--color-bg` (4.5:1 for body text). The accent candidate must reach at least 4.5:1 on black (#16).
 - Light theme: not supported in v1. Never hard-code a color; a light set may be added later under the same token names.
+- Print (the only exception): the payment confirmation (T-044) prints on white paper, so `@media print` in `apps/order/app/globals.css` redefines the same tokens. No other screen is meant to be printed.
+
+| Token (print) | Value |
+| --- | --- |
+| --color-bg, --color-surface | #FFFFFF |
+| --color-border | #A1A1AA |
+| --color-text, --color-warning | #0A0A0B |
+| --color-text-muted | #3F3F46 |
 
 ## 03 Typography
 
