@@ -1,7 +1,4 @@
-import type {
-  AccountOrder,
-  ReorderResponse,
-} from "@namitiszunk/validators";
+import type { AccountOrder, ReorderResponse } from "@namitiszunk/validators";
 
 import { send } from "./order-api";
 

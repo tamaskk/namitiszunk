@@ -389,4 +389,3 @@ describe("me", () => {
     expect(error.code).toBe("invalid_input");
   });
 });
-
