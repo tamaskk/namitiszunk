@@ -64,18 +64,45 @@ export const tipChoiceSchema = z.discriminatedUnion(
 );
 
 /** Prices, totals and the venue come from the server; the cart only names items and quantities. */
+const cartToPrice = {
+  barId: objectIdSchema,
+  zoneId: objectIdSchema.optional(),
+  items: z
+    .array(cartLineSchema)
+    .min(1, { error: "validation.cart.empty" })
+    .max(MAX_CART_LINES, { error: "validation.cart.max" }),
+  tip: tipChoiceSchema,
+  promoCode: z.string().max(32).optional(),
+  smsRequested: z.boolean(),
+};
+
+/** POST /v1/orders/quote (T-042): the checkout summary before payment. Nothing is stored. */
+export const quoteOrderInputSchema = z.object(cartToPrice);
+
+export const orderQuoteResponseSchema = z.object({
+  lines: z.array(
+    z.object({
+      name: z.string(),
+      nameEn: z.string().optional(),
+      options: z.array(z.string()),
+      quantity: z.int().min(1),
+      lineTotalHuf: hufSchema,
+    }),
+  ),
+  subtotalHuf: hufSchema,
+  discountHuf: hufSchema,
+  serviceFeeHuf: hufSchema,
+  tipHuf: hufSchema,
+  totalHuf: hufSchema,
+  /** The venue's connected account: Stripe.js charges on it (direct charge). */
+  stripeAccountId: z.string(),
+  termsVersion: z.string(),
+});
+
 export const createOrderInputSchema = z
   .object({
-    barId: objectIdSchema,
-    zoneId: objectIdSchema.optional(),
-    items: z
-      .array(cartLineSchema)
-      .min(1, { error: "validation.cart.empty" })
-      .max(MAX_CART_LINES, { error: "validation.cart.max" }),
-    tip: tipChoiceSchema,
-    promoCode: z.string().max(32).optional(),
+    ...cartToPrice,
     guestPhone: huPhoneSchema.optional(),
-    smsRequested: z.boolean(),
     acceptedTermsVersion: z
       .string()
       .min(1, { error: "validation.terms.required" })
@@ -168,6 +195,8 @@ export type CartLine = z.infer<typeof cartLineSchema>;
 export type ValidateCartInput = z.infer<typeof validateCartInputSchema>;
 export type TipChoiceInput = z.infer<typeof tipChoiceSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
+export type QuoteOrderInput = z.infer<typeof quoteOrderInputSchema>;
+export type OrderQuoteResponse = z.infer<typeof orderQuoteResponseSchema>;
 export type CreateOrderResponse = z.infer<typeof createOrderResponseSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
 export type ReportProblemInput = z.infer<typeof reportProblemInputSchema>;

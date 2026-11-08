@@ -18,6 +18,8 @@ const components = {
   ErrorResponse: errorResponseSchema,
   CreateOrderInput: orders.createOrderInputSchema,
   CreateOrderResponse: orders.createOrderResponseSchema,
+  QuoteOrderInput: orders.quoteOrderInputSchema,
+  OrderQuoteResponse: orders.orderQuoteResponseSchema,
   OrderResponse: orders.orderResponseSchema,
   ReviewInput: orders.reviewInputSchema,
   ReviewResponse: orders.reviewResponseSchema,
@@ -82,6 +84,17 @@ const operations: Operation[] = [
     request: "CreateOrderInput",
     response: "CreateOrderResponse",
     status: 201,
+  },
+  {
+    method: "post",
+    path: "/v1/orders/quote",
+    operationId: "quoteOrder",
+    summary:
+      "Price a cart for the checkout as the order will be priced; stores nothing",
+    tag: "orders",
+    request: "QuoteOrderInput",
+    response: "OrderQuoteResponse",
+    status: 200,
   },
   {
     method: "get",

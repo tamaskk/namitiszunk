@@ -1,6 +1,8 @@
 import {
   createOrderInputSchema,
   createOrderResponseSchema,
+  orderQuoteResponseSchema,
+  quoteOrderInputSchema,
   errorResponseSchema,
   fieldErrorKeys,
   menuResponseSchema,
@@ -186,6 +188,11 @@ export function createApiClient(options: ApiClientOptions) {
           call.idempotencyKey,
         );
       },
+      /** POST /v1/orders/quote: the checkout summary, priced by the server; stores nothing. */
+      quote: async (input: z.input<typeof quoteOrderInputSchema>) =>
+        request("POST", "/v1/orders/quote", orderQuoteResponseSchema, {
+          body: parseInput(quoteOrderInputSchema, input),
+        }),
       /** POST /v1/orders/{id}/refunds (staff session). Retries like `create`, so a retry never starts a second refund. */
       async refund(
         orderId: string,

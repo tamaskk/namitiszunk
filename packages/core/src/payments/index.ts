@@ -15,6 +15,8 @@ export {
   createOrder,
   type CreatedOrder,
   type CreateOrderOptions,
+  type OrderQuote,
+  quoteOrder,
   reissueOrderPayment,
 } from "./create-order";
 export {

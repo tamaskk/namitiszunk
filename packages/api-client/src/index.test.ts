@@ -308,6 +308,39 @@ describe("realtime.token", () => {
   });
 });
 
+describe("orders.quote", () => {
+  it("posts the cart and returns the server's price", async () => {
+    let sent: unknown;
+    const quote = {
+      lines: [{ name: "Sör", options: [], quantity: 1, lineTotalHuf: 1290 }],
+      subtotalHuf: 1290,
+      discountHuf: 0,
+      serviceFeeHuf: 0,
+      tipHuf: 0,
+      totalHuf: 1290,
+      stripeAccountId: "acct_1",
+      termsVersion: "draft-2026-11",
+    };
+    server.use(
+      http.post(`${base}/v1/orders/quote`, async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json({ data: quote });
+      }),
+    );
+    const cart = {
+      barId: order.barId,
+      items: order.items,
+      tip: order.tip,
+      smsRequested: false,
+    };
+
+    const result = await client.orders.quote(cart);
+
+    expect(result).toEqual(quote);
+    expect(sent).toEqual(cart);
+  });
+});
+
 describe("types follow the shared schemas", () => {
   it("binds inputs and outputs to @namitiszunk/validators", () => {
     expectTypeOf(client.orders.create)

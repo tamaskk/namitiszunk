@@ -46,7 +46,8 @@ vi.mock("ably", () => ({
 }));
 process.env.ABLY_API_KEY = "test.key:secret";
 
-const { createOrder, reissueOrderPayment } = await import("./create-order");
+const { createOrder, quoteOrder, reissueOrderPayment } =
+  await import("./create-order");
 const { processConnectWebhook } = await import("./connect");
 
 const secret = "whsec_test_secret";
@@ -234,6 +235,54 @@ async function paidEvent(id = "evt_paid_1") {
 
 const status = async (orderId: string) =>
   (await Order.findById(orderId).lean())?.status;
+
+describe("quoteOrder", () => {
+  it("prices the cart as createOrder will, names the account and stores nothing", async () => {
+    const cart = input();
+
+    const quote = await quoteOrder(cart, now);
+    const { orderId } = await create();
+
+    const order = await Order.findById(orderId).lean();
+    expect(quote).toMatchObject({
+      subtotalHuf: order!.subtotalHuf,
+      serviceFeeHuf: order!.serviceFeeHuf,
+      tipHuf: order!.tipHuf,
+      discountHuf: 0,
+      totalHuf: 7764,
+      stripeAccountId: accountId,
+      termsVersion: CURRENT_TERMS_VERSION,
+    });
+    expect(quote.lines[0]).toMatchObject({ quantity: 2, options: ["Lime"] });
+    expect(api.paymentIntents.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes no order and creates no PaymentIntent", async () => {
+    await quoteOrder(input(), now);
+
+    expect(await Order.countDocuments()).toBe(0);
+    expect(api.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a paused bar and a sold-out item like createOrder", async () => {
+    await Bar.updateOne(
+      { _id: barId },
+      { $set: { pausedUntil: new Date(now.getTime() + 60_000) } },
+    );
+    await expect(quoteOrder(input(), now)).rejects.toMatchObject({
+      code: "bar_paused",
+    });
+    await Bar.updateOne({ _id: barId }, { $unset: { pausedUntil: 1 } });
+    await Item.updateOne({ _id: beerId }, { $set: { isAvailable: false } });
+
+    const soldOut = quoteOrder(input(), now);
+
+    await expect(soldOut).rejects.toMatchObject({
+      status: 409,
+      code: "items_unavailable",
+    });
+  });
+});
 
 describe("createOrder", () => {
   it("prices on the server and creates a direct-charge PaymentIntent with the T-022 application fee", async () => {

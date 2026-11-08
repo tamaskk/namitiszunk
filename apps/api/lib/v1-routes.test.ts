@@ -57,6 +57,7 @@ const noPermissionRoutes: Record<string, string> = {
   "ping/route.ts": "public health probe, no data",
   "openapi.json/route.ts": "public API description, no data",
   "orders/route.ts": "guest order creation, prices loaded on the server",
+  "orders/quote/route.ts": "checkout price preview, stores nothing",
   "orders/[id]/route.ts": "guestCaller proves the order's token",
   "orders/[id]/cancel/route.ts": "transition() checks order.reject (own)",
   "orders/[id]/review/route.ts": "guestCaller proves the order's token",
