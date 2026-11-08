@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { MAX_QUANTITY_PER_LINE } from "./cart-limits";
+import { MAX_QUANTITY_PER_LINE, TIP_PERCENT_BPS } from "./cart-limits";
 import { hufSchema, huPhoneSchema, locales, objectIdSchema } from "./shared";
 import { venueSlugSchema } from "./venues";
 
-export { MAX_QUANTITY_PER_LINE };
+export { MAX_QUANTITY_PER_LINE, TIP_PERCENT_BPS };
 
 // Same literals as packages/db and packages/core; packages/core/src/validators-sync.test.ts keeps them equal.
 export const orderStatuses = [
@@ -18,7 +18,9 @@ export const orderStatuses = [
   "expired",
   "refunded",
 ] as const;
-export const TIP_PERCENT_BPS = [0, 500, 1000, 1500] as const;
+/** The ÁSZF version a guest accepts at checkout; createOrder refuses any other (409 terms_outdated). */
+// shortcut: draft until T-003 publishes the real terms and their version.
+export const CURRENT_TERMS_VERSION = "draft-2026-11";
 // A sanity cap only; the venue's maxItemsPerOrder is checked on the server (spec 25, item 2).
 const MAX_CART_LINES = 50;
 
@@ -61,18 +63,45 @@ export const tipChoiceSchema = z.discriminatedUnion(
 );
 
 /** Prices, totals and the venue come from the server; the cart only names items and quantities. */
+const cartToPrice = {
+  barId: objectIdSchema,
+  zoneId: objectIdSchema.optional(),
+  items: z
+    .array(cartLineSchema)
+    .min(1, { error: "validation.cart.empty" })
+    .max(MAX_CART_LINES, { error: "validation.cart.max" }),
+  tip: tipChoiceSchema,
+  promoCode: z.string().max(32).optional(),
+  smsRequested: z.boolean(),
+};
+
+/** POST /v1/orders/quote (T-042): the checkout summary before payment. Nothing is stored. */
+export const quoteOrderInputSchema = z.object(cartToPrice);
+
+export const orderQuoteResponseSchema = z.object({
+  lines: z.array(
+    z.object({
+      name: z.string(),
+      nameEn: z.string().optional(),
+      options: z.array(z.string()),
+      quantity: z.int().min(1),
+      lineTotalHuf: hufSchema,
+    }),
+  ),
+  subtotalHuf: hufSchema,
+  discountHuf: hufSchema,
+  serviceFeeHuf: hufSchema,
+  tipHuf: hufSchema,
+  totalHuf: hufSchema,
+  /** The venue's connected account: Stripe.js charges on it (direct charge). */
+  stripeAccountId: z.string(),
+  termsVersion: z.string(),
+});
+
 export const createOrderInputSchema = z
   .object({
-    barId: objectIdSchema,
-    zoneId: objectIdSchema.optional(),
-    items: z
-      .array(cartLineSchema)
-      .min(1, { error: "validation.cart.empty" })
-      .max(MAX_CART_LINES, { error: "validation.cart.max" }),
-    tip: tipChoiceSchema,
-    promoCode: z.string().max(32).optional(),
+    ...cartToPrice,
     guestPhone: huPhoneSchema.optional(),
-    smsRequested: z.boolean(),
     acceptedTermsVersion: z
       .string()
       .min(1, { error: "validation.terms.required" })
@@ -165,6 +194,8 @@ export type CartLine = z.infer<typeof cartLineSchema>;
 export type ValidateCartInput = z.infer<typeof validateCartInputSchema>;
 export type TipChoiceInput = z.infer<typeof tipChoiceSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
+export type QuoteOrderInput = z.infer<typeof quoteOrderInputSchema>;
+export type OrderQuoteResponse = z.infer<typeof orderQuoteResponseSchema>;
 export type CreateOrderResponse = z.infer<typeof createOrderResponseSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
 export type ReportProblemInput = z.infer<typeof reportProblemInputSchema>;

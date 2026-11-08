@@ -465,7 +465,7 @@ function buildOrder(order: SeedOrder, index: number, now: Date): Fields {
     promoId: order.promoCode ? seedId(`promo:${order.promoCode}`) : undefined,
     pickupCode: `D${String(index + 1).padStart(2, "0")}`,
     guestTokenHash: createHash("sha256").update(key).digest("hex"),
-    acceptedTermsVersion: "2026-11-01",
+    acceptedTermsVersion: "draft-2026-11",
     paidAt: paid ? at(1) : undefined,
     acceptedAt: accepted ? at(2) : undefined,
     readyAt: ready ? at(5) : undefined,

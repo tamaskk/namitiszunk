@@ -144,7 +144,10 @@ test("Tovább with a valid cart opens checkout with the bar and zone kept", asyn
     new RegExp(`/hu/v/demo/checkout\\?bar=${bar}&zone=${zone}$`),
   );
   await expect(
-    page.getByRole("heading", { name: messages.hu.order.checkout.title }),
+    page.getByRole("heading", {
+      name: messages.hu.order.checkout.title,
+      exact: true,
+    }),
   ).toBeVisible();
 });
 

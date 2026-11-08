@@ -12,7 +12,10 @@ import {
   Venue,
   Zone,
 } from "@namitiszunk/db";
-import type { CreateOrderInput } from "@namitiszunk/validators";
+import {
+  CURRENT_TERMS_VERSION,
+  type CreateOrderInput,
+} from "@namitiszunk/validators";
 import type { Types } from "mongoose";
 
 import {
@@ -39,6 +42,11 @@ export type CreateOrderOptions = {
 };
 
 export type CreatedOrder = { orderId: string; clientSecret: string | null };
+
+type CartToPrice = Pick<
+  CreateOrderInput,
+  "barId" | "zoneId" | "items" | "tip" | "promoCode" | "smsRequested"
+>;
 
 const PICKUP_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -93,16 +101,10 @@ function chosenOptions(
 }
 
 /**
- * POST /v1/orders (T-033): re-checks the bar and the cart on the server, prices it (T-022), stores the
- * order "awaiting payment" and creates its PaymentIntent on the venue's connected account (direct charge).
- * The order becomes New only through the payment_intent.succeeded webhook.
+ * The server's re-check and price of a cart (T-033, T-042): bar open and not paused, venue able to charge,
+ * items sellable here, options valid, rules met. Shared by the checkout quote and order creation.
  */
-export async function createOrder(
-  input: CreateOrderInput,
-  options: CreateOrderOptions,
-): Promise<CreatedOrder> {
-  const now = options.now ?? new Date();
-
+async function priceCart(input: CartToPrice, now: Date) {
   const bar = await Bar.findById(input.barId)
     .select("venueId isOpen pausedUntil")
     .lean();
@@ -215,6 +217,25 @@ export async function createOrder(
   // shortcut: only a 100% promo makes a free order, and promos are refused until T-060, which decides how a free order reaches New without a webhook.
   if (calc.paymentMode === "none") throw new ConflictError("nothing_to_charge");
 
+  return { bar, venue, isVip, lines, calc };
+}
+
+/**
+ * POST /v1/orders (T-033): re-checks the bar and the cart on the server, prices it (T-022), stores the
+ * order "awaiting payment" and creates its PaymentIntent on the venue's connected account (direct charge).
+ * The order becomes New only through the payment_intent.succeeded webhook.
+ */
+export async function createOrder(
+  input: CreateOrderInput,
+  options: CreateOrderOptions,
+): Promise<CreatedOrder> {
+  const now = options.now ?? new Date();
+  // The order must record the terms the guest saw; a stale checkout tab reloads them first.
+  if (input.acceptedTermsVersion !== CURRENT_TERMS_VERSION) {
+    throw new ConflictError("terms_outdated");
+  }
+  const { bar, venue, isVip, lines, calc } = await priceCart(input, now);
+
   const date = businessDate(now, {
     timezone: venue.timezone ?? "Europe/Budapest",
     businessDayStart: venue.businessDayStart ?? "06:00",
@@ -268,6 +289,52 @@ export async function createOrder(
     posthogId: input.posthogId,
   });
   return { orderId, clientSecret };
+}
+
+export type OrderQuote = {
+  lines: {
+    name: string;
+    nameEn?: string;
+    options: string[];
+    quantity: number;
+    lineTotalHuf: number;
+  }[];
+  subtotalHuf: number;
+  discountHuf: number;
+  serviceFeeHuf: number;
+  tipHuf: number;
+  totalHuf: number;
+  /** The venue's connected account: the checkout's Stripe.js charges on it (direct charge). */
+  stripeAccountId: string;
+  /** The terms version the guest accepts; createOrder takes no other. */
+  termsVersion: string;
+};
+
+/**
+ * POST /v1/orders/quote (T-042): the checkout summary, priced by the server exactly as createOrder will
+ * price it, with the same refusals (paused bar, sold-out item). Nothing is stored.
+ */
+export async function quoteOrder(
+  input: CartToPrice,
+  now: Date = new Date(),
+): Promise<OrderQuote> {
+  const { venue, lines, calc } = await priceCart(input, now);
+  return {
+    lines: lines.map((line) => ({
+      name: line.name,
+      ...(line.nameEn ? { nameEn: line.nameEn } : {}),
+      options: line.options.map((o) => o.name),
+      quantity: line.quantity,
+      lineTotalHuf: line.lineTotalHuf,
+    })),
+    subtotalHuf: calc.subtotalHuf,
+    discountHuf: calc.discountHuf,
+    serviceFeeHuf: calc.serviceFeeHuf,
+    tipHuf: calc.tipHuf,
+    totalHuf: calc.totalHuf,
+    stripeAccountId: venue.stripeAccountId!,
+    termsVersion: CURRENT_TERMS_VERSION,
+  };
 }
 
 /**

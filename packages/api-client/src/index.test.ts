@@ -211,6 +211,31 @@ describe("orders.create", () => {
 
     expect(keys[0]).not.toBe(keys[1]);
   });
+
+  it("sends the caller's idempotency key and session id on every call", async () => {
+    const seen: [string | null, string | null][] = [];
+    server.use(
+      http.post(`${base}/v1/orders`, ({ request }) => {
+        seen.push([
+          request.headers.get("idempotency-key"),
+          request.headers.get("x-session-id"),
+        ]);
+        return HttpResponse.json({ data: created }, { status: 201 });
+      }),
+    );
+    const call = {
+      idempotencyKey: "checkout-key-1",
+      sessionId: "c".repeat(22),
+    };
+
+    await client.orders.create(order, call);
+    await client.orders.create(order, call);
+
+    expect(seen).toEqual([
+      ["checkout-key-1", "c".repeat(22)],
+      ["checkout-key-1", "c".repeat(22)],
+    ]);
+  });
 });
 
 describe("orders.refund", () => {
@@ -280,6 +305,39 @@ describe("realtime.token", () => {
 
     expect(result).toEqual(tokenRequest);
     expect(sent).toEqual({ body: {}, guest: "g".repeat(22) });
+  });
+});
+
+describe("orders.quote", () => {
+  it("posts the cart and returns the server's price", async () => {
+    let sent: unknown;
+    const quote = {
+      lines: [{ name: "Sör", options: [], quantity: 1, lineTotalHuf: 1290 }],
+      subtotalHuf: 1290,
+      discountHuf: 0,
+      serviceFeeHuf: 0,
+      tipHuf: 0,
+      totalHuf: 1290,
+      stripeAccountId: "acct_1",
+      termsVersion: "draft-2026-11",
+    };
+    server.use(
+      http.post(`${base}/v1/orders/quote`, async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json({ data: quote });
+      }),
+    );
+    const cart = {
+      barId: order.barId,
+      items: order.items,
+      tip: order.tip,
+      smsRequested: false,
+    };
+
+    const result = await client.orders.quote(cart);
+
+    expect(result).toEqual(quote);
+    expect(sent).toEqual(cart);
   });
 });
 

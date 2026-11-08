@@ -48,7 +48,8 @@
     "order_not_paid": "This order has no payment to refund.",
     "refund_exceeds_remaining": "The amount is more than what is left to refund.",
     "refund_failed": "The refund did not go through. Try again or contact support.",
-    "refund_not_allowed_in_status": "This order cannot be refunded in its current status."
+    "refund_not_allowed_in_status": "This order cannot be refunded in its current status.",
+    "terms_outdated": "The terms have been updated. Reload the page and accept the new version."
   },
   "landing": {
     "tagline": "Order and pay on your phone"
@@ -132,8 +133,36 @@
     },
     "checkout": {
       "title": "Checkout",
-      "placeholder": "Payment is coming here soon.",
-      "back": "Back to the menu"
+      "back": "Back to the menu",
+      "pickup": "Pick up at: {bar}",
+      "noBar": "No bar is open for ordering here.",
+      "empty": "Your cart is empty.",
+      "summary": "Summary",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "serviceFee": "Service fee",
+      "tip": "Tip",
+      "total": "Total",
+      "tipNone": "None",
+      "tipPercent": "{percent}%",
+      "tipCustom": "Custom",
+      "tipCustomLabel": "Tip amount (HUF)",
+      "sms": "Text me when my order is ready",
+      "phone": "Phone number",
+      "phoneHint": "Hungarian mobile numbers only.",
+      "phoneInvalid": "Enter a Hungarian mobile number, for example 30 123 4567.",
+      "adult": "I am over 18.",
+      "adultRequired": "To order, confirm that you are over 18.",
+      "terms": "I accept the terms and conditions.",
+      "termsRequired": "To order, accept the terms and conditions.",
+      "payment": "Payment method",
+      "pay": "Pay {total}",
+      "paying": "Payment in progress. Keep this page open.",
+      "quoteFailed": "We could not work out the total.",
+      "paymentLoadFailed": "The payment form did not load. Check your connection and try again.",
+      "retry": "Try again",
+      "payFailed": "The payment did not go through. Try again.",
+      "backToCart": "Back to the cart"
     },
     "status": {
       "pageTitle": "Your order",

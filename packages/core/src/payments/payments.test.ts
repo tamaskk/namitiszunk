@@ -11,7 +11,10 @@ import {
   StripeEvent,
   Venue,
 } from "@namitiszunk/db";
-import type { CreateOrderInput } from "@namitiszunk/validators";
+import {
+  CURRENT_TERMS_VERSION,
+  type CreateOrderInput,
+} from "@namitiszunk/validators";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { Types } from "mongoose";
 import Stripe from "stripe";
@@ -43,7 +46,8 @@ vi.mock("ably", () => ({
 }));
 process.env.ABLY_API_KEY = "test.key:secret";
 
-const { createOrder, reissueOrderPayment } = await import("./create-order");
+const { createOrder, quoteOrder, reissueOrderPayment } =
+  await import("./create-order");
 const { processConnectWebhook } = await import("./connect");
 
 const secret = "whsec_test_secret";
@@ -155,7 +159,7 @@ function input(overrides: Partial<CreateOrderInput> = {}): CreateOrderInput {
     ],
     tip: { type: "percent", bps: 1000 },
     smsRequested: false,
-    acceptedTermsVersion: "2026-11-01",
+    acceptedTermsVersion: "draft-2026-11",
     ...overrides,
   };
 }
@@ -231,6 +235,54 @@ async function paidEvent(id = "evt_paid_1") {
 
 const status = async (orderId: string) =>
   (await Order.findById(orderId).lean())?.status;
+
+describe("quoteOrder", () => {
+  it("prices the cart as createOrder will, names the account and stores nothing", async () => {
+    const cart = input();
+
+    const quote = await quoteOrder(cart, now);
+    const { orderId } = await create();
+
+    const order = await Order.findById(orderId).lean();
+    expect(quote).toMatchObject({
+      subtotalHuf: order!.subtotalHuf,
+      serviceFeeHuf: order!.serviceFeeHuf,
+      tipHuf: order!.tipHuf,
+      discountHuf: 0,
+      totalHuf: 7764,
+      stripeAccountId: accountId,
+      termsVersion: CURRENT_TERMS_VERSION,
+    });
+    expect(quote.lines[0]).toMatchObject({ quantity: 2, options: ["Lime"] });
+    expect(api.paymentIntents.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes no order and creates no PaymentIntent", async () => {
+    await quoteOrder(input(), now);
+
+    expect(await Order.countDocuments()).toBe(0);
+    expect(api.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a paused bar and a sold-out item like createOrder", async () => {
+    await Bar.updateOne(
+      { _id: barId },
+      { $set: { pausedUntil: new Date(now.getTime() + 60_000) } },
+    );
+    await expect(quoteOrder(input(), now)).rejects.toMatchObject({
+      code: "bar_paused",
+    });
+    await Bar.updateOne({ _id: barId }, { $unset: { pausedUntil: 1 } });
+    await Item.updateOne({ _id: beerId }, { $set: { isAvailable: false } });
+
+    const soldOut = quoteOrder(input(), now);
+
+    await expect(soldOut).rejects.toMatchObject({
+      status: 409,
+      code: "items_unavailable",
+    });
+  });
+});
 
 describe("createOrder", () => {
   it("prices on the server and creates a direct-charge PaymentIntent with the T-022 application fee", async () => {
@@ -316,6 +368,49 @@ describe("createOrder", () => {
     await Venue.updateOne({ _id: venueId }, { $set: { status: "suspended" } });
     await expect(create()).rejects.toMatchObject({ code: "venue_closed" });
     expect(api.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses terms other than the current version with 409 terms_outdated", async () => {
+    const stale = create({ acceptedTermsVersion: "2026-11-01" });
+
+    await expect(stale).rejects.toMatchObject({
+      status: 409,
+      code: "terms_outdated",
+    });
+    expect(await Order.countDocuments()).toBe(0);
+    expect(api.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
+  it("stores the accepted terms version on the order", async () => {
+    const { orderId } = await create();
+
+    const order = await Order.findById(orderId).lean();
+    expect(order?.acceptedTermsVersion).toBe(CURRENT_TERMS_VERSION);
+  });
+
+  it("adds 35 Ft to the application fee when the guest gives a Hungarian phone for SMS", async () => {
+    const { orderId: without } = await create();
+    const { orderId: withSms } = await create({
+      guestPhone: "+36301234567",
+      smsRequested: true,
+    });
+
+    const fees = await Promise.all(
+      [without, withSms].map(async (orderId) => {
+        const payment = await Payment.findOne({ orderId }).lean();
+        return payment!.applicationFeeHuf;
+      }),
+    );
+    expect(fees[1]! - fees[0]!).toBe(35);
+    expect(api.paymentIntents.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        application_fee_amount: (fees[0]! + 35) * 100,
+      }),
+      expect.anything(),
+    );
+    expect((await Order.findById(withSms).lean())?.guestPhone).toBe(
+      "+36301234567",
+    );
   });
 
   it("applies the default limit of 10 items when the venue sets none", async () => {

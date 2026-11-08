@@ -1,6 +1,8 @@
 import {
   createOrderInputSchema,
   createOrderResponseSchema,
+  orderQuoteResponseSchema,
+  quoteOrderInputSchema,
   errorResponseSchema,
   fieldErrorKeys,
   menuResponseSchema,
@@ -142,10 +144,11 @@ export function createApiClient(options: ApiClientOptions) {
     responseSchema: S,
     body: unknown,
     extraHeaders: Record<string, string> = {},
+    idempotencyKey: string = crypto.randomUUID(),
   ): Promise<z.output<S>> {
     const headers = {
       ...extraHeaders,
-      "idempotency-key": crypto.randomUUID(),
+      "idempotency-key": idempotencyKey,
     };
     for (let attempt = 0; ; attempt++) {
       try {
@@ -165,10 +168,16 @@ export function createApiClient(options: ApiClientOptions) {
     openApiDocument: () =>
       request("GET", "/v1/openapi.json", openApiDocumentSchema, { bare: true }),
     orders: {
-      /** POST /v1/orders. Retries network errors and 5xx with the same Idempotency-Key, so a retry never makes a second order. */
-      async create(input: z.input<typeof createOrderInputSchema>) {
+      /**
+       * POST /v1/orders. Retries network errors and 5xx with the same Idempotency-Key, so a retry never makes a second order.
+       * A checkout passes its own `idempotencyKey` (kept across taps and reloads) and `sessionId` to override getSessionId.
+       */
+      async create(
+        input: z.input<typeof createOrderInputSchema>,
+        call: { idempotencyKey?: string; sessionId?: string } = {},
+      ) {
         const body = parseInput(createOrderInputSchema, input);
-        const sessionId = await options.getSessionId?.();
+        const sessionId = call.sessionId ?? (await options.getSessionId?.());
         const headers: Record<string, string> = {};
         if (sessionId) headers["x-session-id"] = sessionId;
         return postWithRetries(
@@ -176,8 +185,14 @@ export function createApiClient(options: ApiClientOptions) {
           createOrderResponseSchema,
           body,
           headers,
+          call.idempotencyKey,
         );
       },
+      /** POST /v1/orders/quote: the checkout summary, priced by the server; stores nothing. */
+      quote: async (input: z.input<typeof quoteOrderInputSchema>) =>
+        request("POST", "/v1/orders/quote", orderQuoteResponseSchema, {
+          body: parseInput(quoteOrderInputSchema, input),
+        }),
       /** POST /v1/orders/{id}/refunds (staff session). Retries like `create`, so a retry never starts a second refund. */
       async refund(
         orderId: string,

@@ -21,6 +21,7 @@ describe("buildOpenApiDocument", () => {
 
     expect(Object.keys(paths)).toEqual([
       "/v1/orders",
+      "/v1/orders/quote",
       "/v1/orders/{id}",
       "/v1/orders/{id}/cancel",
       "/v1/orders/{id}/confirmation-email",
