@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, EmptyState } from "@namitiszunk/ui";
-import * as Sentry from "@sentry/nextjs";
+import { reportClientError } from "@/lib/sentry-client";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
@@ -15,7 +15,7 @@ export default function MenuError({
   const t = useTranslations("order.menu");
   // An error boundary swallows the error, so it is reported here once.
   useEffect(() => {
-    Sentry.captureException(error);
+    reportClientError(error);
   }, [error]);
 
   return (
