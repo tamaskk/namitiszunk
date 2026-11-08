@@ -1,5 +1,10 @@
 import { TZDate } from "@date-fns/tz";
 
+import { reportError } from "../report-error";
+
+/** The Venue model's default; a lean read of an older venue may not carry the field. */
+export const DEFAULT_LAST_ORDER_MINUTES = 15;
+
 /** One opening of the week: ISO day (1 Monday … 7 Sunday), local "HH:mm"; a close at or before the open is the next day. */
 export type OpeningHours = { day: number; open: string; close: string };
 
@@ -57,16 +62,29 @@ function openings(hours: readonly OpeningHours[], timezone: string, now: Date) {
  */
 export function openingState(
   hours: readonly OpeningHours[] | undefined,
-  lastOrderMinutesBeforeClose: number,
+  lastOrderMinutesBeforeClose: number | undefined,
   timezone: string,
   now: Date,
 ): OpeningState {
   if (!hours?.length)
     return { orderable: true, lastOrderAt: null, nextOpenAt: null };
-  const all = openings(hours, timezone, now);
-  const current = all.find((o) => o.start <= now && now < o.end);
+  let all: { start: Date; end: Date }[];
+  try {
+    all = openings(hours, timezone, now);
+    if (all.some((o) => Number.isNaN(o.start.getTime() + o.end.getTime())))
+      throw new RangeError("invalid opening hours or time zone");
+  } catch (error) {
+    // Bad venue data must not turn the menu into a 500 for every guest: closed, and the team hears of it.
+    reportError(error);
+    return { orderable: false, lastOrderAt: null, nextOpenAt: null };
+  }
+  // Overlapping entries: the opening that runs longest decides tonight's last order.
+  const current = all
+    .filter((o) => o.start <= now && now < o.end)
+    .sort((a, b) => b.end.getTime() - a.end.getTime())[0];
+  const minutes = lastOrderMinutesBeforeClose ?? DEFAULT_LAST_ORDER_MINUTES;
   const lastOrderAt = current
-    ? new Date(current.end.getTime() - lastOrderMinutesBeforeClose * 60_000)
+    ? new Date(current.end.getTime() - minutes * 60_000)
     : null;
   if (lastOrderAt && now < lastOrderAt)
     return { orderable: true, lastOrderAt, nextOpenAt: null };

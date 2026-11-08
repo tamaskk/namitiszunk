@@ -69,6 +69,7 @@ export function CheckoutForm({
 }) {
   const t = useTranslations("order.checkout");
   const tError = useTranslations("apiErrors");
+  const tMenu = useTranslations("order.menu");
   type ApiErrorCode = Parameters<typeof tError>[0];
   // The code comes from the network: only a known one gets its own message.
   const apiErrorText = (code?: string) =>
@@ -439,7 +440,8 @@ export function CheckoutForm({
             id="checkout-payment"
             ref={paymentHeading}
             tabIndex={-1}
-            className="scroll-mt-4 text-h3 outline-none"
+            // Focused by "Más fizetési mód" after a click, where focus-visible would not show.
+            className="scroll-mt-4 rounded-sm text-h3 outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-(--focus-offset)"
           >
             {t("payment")}
           </h2>
@@ -460,12 +462,23 @@ export function CheckoutForm({
           )}
         </section>
 
-        <div aria-live="polite" className="text-body text-danger empty:hidden">
-          {blocked && !quoteProblem
-            ? live.status.status === "closed"
-              ? t("closed")
-              : tError("bar_paused")
-            : (payProblem ?? "")}
+        {/* One live region: paused or closed (a warning, as on the menu), offline, a failed payment, the hours. */}
+        <div aria-live="polite" className="flex flex-col gap-3 empty:hidden">
+          {blocked && !quoteProblem ? (
+            <p className="rounded-lg border border-warning bg-surface p-4 text-body">
+              {live.status.status === "closed"
+                ? t("closed")
+                : tError("bar_paused")}
+            </p>
+          ) : (
+            payProblem && <p className="text-body text-danger">{payProblem}</p>
+          )}
+          {live.stale && (
+            <p className="rounded-lg border border-warning bg-surface p-4 text-body">
+              {tMenu("offline")}
+            </p>
+          )}
+          <HoursNote status={live.status} at={live.at} />
         </div>
         {payProblem && !blocked && (
           // The order stays awaiting payment: Pay below retries, this goes back to choose another method.
@@ -480,7 +493,6 @@ export function CheckoutForm({
             {t("otherMethod")}
           </Button>
         )}
-        <HoursNote status={live.status} at={live.at} />
 
         <div className="fixed inset-x-0 bottom-0 border-t border-border bg-bg p-4">
           <div className="mx-auto max-w-120">

@@ -56,7 +56,22 @@ const venueSchema = new Schema(
     company: { name: String, taxNumber: String, registrationNumber: String },
     // Where guest problem reports go (T-046); onboarding (T-068) makes it required.
     contactEmail: { type: String, trim: true, lowercase: true },
-    timezone: { type: String, default: "Europe/Budapest" },
+    timezone: {
+      type: String,
+      default: "Europe/Budapest",
+      // An unknown zone breaks every date the venue's guests see (T-048 review).
+      validate: {
+        validator: (zone: string) => {
+          try {
+            new Intl.DateTimeFormat("en", { timeZone: zone });
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        message: "{PATH} must be an IANA time zone",
+      },
+    },
     currency: { type: String, enum: ["HUF"], default: "HUF" },
     businessDayStart: { ...timeOfDay, default: "06:00" },
     // Empty: the bars' open/closed switch alone decides when guests can order.

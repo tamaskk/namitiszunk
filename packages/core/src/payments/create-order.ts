@@ -121,7 +121,7 @@ async function priceCart(input: CartToPrice, now: Date) {
   if (venue.status !== "active") throw new ConflictError("venue_closed");
   const hours = openingState(
     venue.openingHours ?? undefined,
-    venue.orderRules?.lastOrderMinutesBeforeClose ?? 0,
+    venue.orderRules?.lastOrderMinutesBeforeClose,
     venue.timezone,
     now,
   );

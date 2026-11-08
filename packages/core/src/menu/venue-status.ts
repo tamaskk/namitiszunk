@@ -82,7 +82,7 @@ export async function getVenueStatus({
     bar?.pausedUntil && bar.pausedUntil > now ? bar.pausedUntil : null;
   const hours = openingState(
     venue.openingHours ?? undefined,
-    venue.orderRules?.lastOrderMinutesBeforeClose ?? 0,
+    venue.orderRules?.lastOrderMinutesBeforeClose,
     venue.timezone,
     now,
   );

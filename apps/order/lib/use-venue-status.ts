@@ -37,13 +37,16 @@ export function useVenueStatus(
     let active = true;
     const markStale = () =>
       active && setLive((current) => ({ ...current, stale: true }));
+    // Only the newest poll may land: a pause-end poll and the interval poll can overlap.
+    let latest = 0;
     const poll = async () => {
+      const mine = ++latest;
       if (document.visibilityState !== "visible") return;
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`status ${response.status}`);
         const body = (await response.json()) as { data: VenueStatusResponse };
-        if (active)
+        if (active && mine === latest)
           setLive({ status: body.data, at: Date.now(), stale: false });
       } catch {
         // Offline or a failed request: keep the last status, say it may be old, retry next tick.

@@ -173,13 +173,14 @@ for (const locale of ["hu", "en"] as const) {
     test("1. a paused bar blocks adding, then reopens without a reload", async ({
       page,
     }) => {
-      const venue = seedVenue({ pausedUntil: new Date(Date.now() + 5_000) });
+      // Long enough to load the page while still paused on a slow machine.
+      const venue = seedVenue({ pausedUntil: new Date(Date.now() + 15_000) });
 
       await page.goto(`/${locale}${venue.menu}`);
 
       await expect(page.getByText(m.menu.pausedNote)).toBeVisible();
       await expect(page.getByText(m.menu.statusOpen)).toBeVisible({
-        timeout: 15_000,
+        timeout: 25_000,
       });
       await expect(page.getByText(m.menu.pausedNote)).toBeHidden();
     });

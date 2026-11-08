@@ -97,11 +97,10 @@ export async function getGuestOrder(
   };
 }
 
-/** The guest's cancel before acceptance; the reject hook refunds the full amount (T-034). */
 /** Where "Rendelj még" and "Vissza a menübe" lead: the same venue's menu at the same bar and zone. */
 export type MenuLink = { venueSlug: string; barId: string; zoneId?: string };
 
-/** The menu link of an order the caller already loaded as theirs. */
+/** The menu link of an order the caller already loaded as theirs (no token check here: keep it unexported). */
 export async function menuLinkOf(orderId: string): Promise<MenuLink> {
   const placed = await Order.findById(orderId)
     .select("venueId barId zoneId")
@@ -126,6 +125,7 @@ export async function getGuestLiveOrder(
   return { order, menu: await menuLinkOf(order.id) };
 }
 
+/** The guest's cancel before acceptance; the reject hook refunds the full amount (T-034). */
 export async function cancelGuestOrder(
   actor: GuestActor,
   orderId: string,

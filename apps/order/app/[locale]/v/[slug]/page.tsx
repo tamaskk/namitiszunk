@@ -180,7 +180,7 @@ async function InactiveVenue() {
         message={t("inactive")}
         action={
           // Same URL again: once the club goes live, the menu opens.
-          <a href="" className={buttonVariants({ variant: "secondary" })}>
+          <a href="" className={buttonVariants()}>
             {t("retry")}
           </a>
         }
