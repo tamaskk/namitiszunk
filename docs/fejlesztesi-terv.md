@@ -1488,8 +1488,8 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 - [ ] A pultos Kész jelölése után az előtérben lévő oldal 2 mp-en belül vált, hangot játszik (bekapcsolt hangnál), Androidon rezeg.
 - [ ] A telefon lezárása és feloldása után az oldal az aktuális állapotot mutatja.
-- [ ] Token nélkül vagy rossz tokennel 404.
-- [ ] Lemondás gomb automatikus elfogadású klubnál nem jelenik meg.
+- [x] Token nélkül vagy rossz tokennel 404.
+- [x] Lemondás gomb automatikus elfogadású klubnál nem jelenik meg.
 - [ ] A Kész képernyő háttere és órája folyamatosan mozog, csökkentett mozgás beállítás mellett is.
 
 **Tesztelés.** Vitest az állapot → nézet leképezésre; Playwright két böngészővel (vendég és pult), offline szimulációval; kézi teszt valódi iPhone-on (Safari) és Androidon (Chrome): hang, Wake Lock, rezgés, lezárás.
@@ -1515,10 +1515,10 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] A „Ez nem nyugta” felirat a képernyőn és a nyomtatott PDF-en is az első sorban van.
-- [ ] Az oldalon nincs ÁFA bontás.
-- [ ] Visszatérített rendelésnél a visszatérítés összege és ideje is szerepel.
-- [ ] Token nélkül 404; a negyedik e-mailes küldés elutasítva.
+- [x] A „Ez nem nyugta” felirat a képernyőn és a nyomtatott PDF-en is az első sorban van.
+- [x] Az oldalon nincs ÁFA bontás.
+- [x] Visszatérített rendelésnél a visszatérítés összege és ideje is szerepel.
+- [x] Token nélkül 404; a negyedik e-mailes küldés elutasítva.
 
 **Tesztelés.** Vitest a tartalom összeállítására (visszatérítéssel és anélkül); Playwright: oldal megnyitása, PDF-nyomtatás (`page.pdf()`), e-mail küldése a Resend teszt címére.
 
@@ -1543,7 +1543,7 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] Értékelni csak Átvéve állapotú rendelést lehet, egyszer.
+- [x] Értékelni csak Átvéve állapotú rendelést lehet, egyszer.
 - [ ] Az értékelés 1 percen belül megjelenik az Admin Értékelések listájában (64.).
 - [ ] A „Rendeld újra” az elfogyott tételt kihagyja, és ezt jelzi.
 
@@ -1571,8 +1571,8 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 **Elfogadási feltételek.**
 
 - [ ] A jelzés e-mailje 1 percen belül megérkezik a klubnak és neked, minden fenti adattal.
-- [ ] Kategória nélkül nem küldhető; a negyedik jelzés ugyanarra a rendelésre 429.
-- [ ] Token nélkül 404.
+- [x] Kategória nélkül nem küldhető; a negyedik jelzés ugyanarra a rendelésre 429.
+- [x] Token nélkül 404.
 - [ ] A jelzés az Admin rendelésoldalán látszik (56.).
 
 **Tesztelés.** Vitest a `reportProblem`-re (korlát, token); Playwright: jelzés az élő oldalról, e-mail a Resend teszt címére.
