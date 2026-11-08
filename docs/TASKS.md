@@ -9,13 +9,13 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [x] T-013 CI (GitHub Actions): lint, typecheck, test, build, gitleaks
 
 ## Next
-- [ ] T-014 Environments, secrets and deploy (`packages/config/src/env.ts`, 5 Vercel projects)
-- [ ] T-015 (F6) Shared i18n package (next-intl, hu + en, formatHuf)
+- [x] T-014 Environments, secrets and deploy (`packages/config/src/env.ts`, 5 Vercel projects)
+- [x] T-015 (F6) Shared i18n package (next-intl, hu + en, formatHuf); follow-up: `formatHuf` check in the mobile app (phase 3)
 - [x] T-016 UI base and dark theme (`packages/ui`, tokens.json)
 - [x] T-020 Mongoose models and indexes
-- [ ] T-021 Order state machine
-- [ ] T-022 Pricing (subtotal, service fee, tip, discount, commission)
-- [ ] T-023 RBAC permissions
+- [x] T-021 Order state machine
+- [x] T-022 Pricing (subtotal, service fee, tip, discount, commission); the 175 Ft minimum is refused in `create-order.ts`, the checkout UI message comes with T-042
+- [x] T-023 RBAC permissions; follow-up: CI check that every route handler calls `requirePermission()`, and a cross-venue 403 test for every role
 
 ## Open decisions
 - [ ] Guest cancel abuse (from the T-043 review): at a manual-acceptance venue a guest can pay and cancel repeatedly, and each refund leaves the Stripe fee with the venue. Decide whether to cap guest cancels per device or phone per business day.

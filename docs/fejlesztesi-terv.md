@@ -830,10 +830,10 @@ Színt és tipográfiát a drótváz nem tartalmaz; az a 16. feladat.
 
 **Elfogadási feltételek.**
 
-- [ ] Állapot csak a `transition()` függvényen át változik; a kódbázisban máshol nincs `status`-írás (lint-szabály vagy grep a CI-ban).
-- [ ] Tiltott átmenet `InvalidTransition` hibát dob, az adat nem változik.
-- [ ] Két párhuzamos Kész → Átvéve kérésből pontosan egy sikeres.
-- [ ] Ugyanaz a webhook kétszer feldolgozva egy Új rendelést ad.
+- [x] Állapot csak a `transition()` függvényen át változik; a kódbázisban máshol nincs `status`-írás (lint-szabály vagy grep a CI-ban).
+- [x] Tiltott átmenet `InvalidTransition` hibát dob, az adat nem változik.
+- [x] Két párhuzamos Kész → Átvéve kérésből pontosan egy sikeres.
+- [x] Ugyanaz a webhook kétszer feldolgozva egy Új rendelést ad.
 
 **Tesztelés.** Vitest: mind a 9 állapot × minden esemény kombinációja egy táblából (megengedett: siker, a többi: hiba). Párhuzamossági teszt `MongoMemoryReplSet`-en `Promise.all`-lal.
 
@@ -864,11 +864,11 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] Az összes összetevő egész szám, és a végösszeg pontosan a részek összege.
-- [ ] A jutalék alapjában nincs borravaló; a szervizdíj benne van.
-- [ ] Az application fee soha nem nagyobb a végösszegnél.
-- [ ] A Stripe minimális HUF-terhelése (175 Ft) alatti végösszegnél a pénztár nem engedi a fizetést.
-- [ ] A 100%-os kedvezményű rendelésre nem készül PaymentIntent.
+- [x] Az összes összetevő egész szám, és a végösszeg pontosan a részek összege.
+- [x] A jutalék alapjában nincs borravaló; a szervizdíj benne van.
+- [x] Az application fee soha nem nagyobb a végösszegnél.
+- [x] A Stripe minimális HUF-terhelése (175 Ft) alatti végösszegnél a pénztár nem engedi a fizetést.
+- [x] A 100%-os kedvezményű rendelésre nem készül PaymentIntent.
 
 **Tesztelés.** Vitest táblázatos esetekkel (szervizdíj % és fix, borravaló 0/5/10/15/egyéni, % és fix kedvezmény, SMS be/ki, pilot 1% és 3%). Tulajdonságalapú teszt (fast-check) véletlen kosarakra az invariánsokra. Egy teszt PaymentIntent teszt módban: a Dashboard összege és az application fee egyezik a függvénnyel.
 
@@ -895,9 +895,9 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 **Elfogadási feltételek.**
 
-- [ ] A mátrix minden cellája automatikus tesztként létezik.
+- [x] A mátrix minden cellája automatikus tesztként létezik.
 - [ ] Másik helyszín erőforrására minden szerepkör 403-at kap.
-- [ ] Pultos PIN-nel a visszatérítés végpontja 403-at ad.
+- [x] Pultos PIN-nel a visszatérítés végpontja 403-at ad.
 - [ ] Nincs route handler `requirePermission()` nélkül (CI-ellenőrzés a nyilvános végpontok listáján kívül).
 
 **Tesztelés.** Vitest: a mátrix egy fixture-ből, szerepkör × művelet × elvárt eredmény. API-szintű tesztek a legkritikusabb végpontokra (visszatérítés, menüár, személyzet, kifizetés) másik klub tokenjével.
