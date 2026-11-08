@@ -54,6 +54,11 @@ export type MenuContext = {
   isVip: boolean;
 };
 
+/** A venue that exists but takes no orders yet (draft) or any more (suspended), for its own page (T-048). */
+export async function isInactiveVenue(slug: string): Promise<boolean> {
+  return (await Venue.exists({ slug, status: { $ne: "active" } })) !== null;
+}
+
 /** Only a live venue has a public menu; drafts and suspended venues read as unknown. */
 export async function findPublicVenue(slug: string) {
   return Venue.findOne({ slug, status: "active" }).lean();

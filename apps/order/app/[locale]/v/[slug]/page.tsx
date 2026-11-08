@@ -1,6 +1,6 @@
-import { getVenueStatus } from "@namitiszunk/core/menu";
+import { getVenueStatus, isInactiveVenue } from "@namitiszunk/core/menu";
 import type { Locale } from "@namitiszunk/i18n";
-import { cn, focusRing } from "@namitiszunk/ui";
+import { buttonVariants, cn, EmptyState, focusRing } from "@namitiszunk/ui";
 import {
   objectIdSchema,
   toVenueStatusResponse,
@@ -14,6 +14,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
+import { OpenOrderBanner } from "@/components/states/open-order-banner";
 import { trackMenuViewed } from "@/lib/analytics";
 import { ensureDb } from "@/lib/db";
 import { getMenu } from "@/lib/menu-cache";
@@ -70,7 +71,11 @@ export default async function MenuPage({
     idParam(query.zone),
     idParam(query.bar),
   );
-  if (!menu) notFound();
+  if (!menu) {
+    await ensureDb();
+    if (await isInactiveVenue(slug)) return <InactiveVenue />;
+    notFound();
+  }
 
   const live = await loadLiveStatus(slug, menu.bar?.id);
   if (!live) notFound();
@@ -148,6 +153,7 @@ export default async function MenuPage({
           </div>
         </header>
 
+        <OpenOrderBanner />
         <MenuBrowser
           slug={slug}
           venueId={menu.venue.id}
@@ -161,6 +167,24 @@ export default async function MenuPage({
         />
       </AgeGate>
       <script dangerouslySetInnerHTML={{ __html: ageGatePrePaintScript }} />
+    </main>
+  );
+}
+
+/** A known venue that takes no orders yet (T-048): not a 404, the QR code is right. */
+async function InactiveVenue() {
+  const t = await getTranslations("order.menu");
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-120 flex-col justify-center bg-bg p-4">
+      <EmptyState
+        message={t("inactive")}
+        action={
+          // Same URL again: once the club goes live, the menu opens.
+          <a href="" className={buttonVariants({ variant: "secondary" })}>
+            {t("retry")}
+          </a>
+        }
+      />
     </main>
   );
 }

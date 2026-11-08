@@ -34,9 +34,12 @@ const toneClass = {
 export function OrderStatus({
   initial,
   token,
+  menuHref,
 }: {
   initial: OrderResponse;
   token: string;
+  /** Back to the same bar's menu once the order has ended. */
+  menuHref: string;
 }) {
   const t = useTranslations("order.status");
   const locale = useLocale();
@@ -151,6 +154,13 @@ export function OrderStatus({
             <span className="tabular-nums">{formatHuf(order.totalHuf)}</span>
           </p>
         </section>
+
+        {/* An order that ended without the drink: never a dead end (T-048). */}
+        {view.final && order.status !== "picked_up" && (
+          <Button variant="secondary" asChild>
+            <a href={menuHref}>{t("backToMenu")}</a>
+          </Button>
+        )}
 
         {/* Paid orders only: before payment, or after a timeout, there is nothing to confirm. */}
         {order.status !== "awaiting_payment" &&

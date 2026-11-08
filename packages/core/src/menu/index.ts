@@ -1,5 +1,6 @@
 export {
   getPublicMenu,
+  isInactiveVenue,
   resolveMenuContext,
   type MenuContext,
   type PublicMenu,

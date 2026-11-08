@@ -87,7 +87,12 @@
       },
       "offline": "No connection, the status may be out of date.",
       "clearSearch": "Clear search",
-      "accountLabel": "Account"
+      "accountLabel": "Account",
+      "nextOpen": "Opens: {at}",
+      "lastOrder": "Last order: {time}. After that the menu stays, but you cannot order.",
+      "openOrder": "You have an order in progress on this phone.",
+      "openOrderLink": "My order status",
+      "inactive": "This place does not take orders here yet. Order at the bar."
     },
     "product": {
       "add": "Add",
@@ -163,7 +168,9 @@
       "paymentLoadFailed": "The payment form did not load. Check your connection and try again.",
       "retry": "Try again",
       "payFailed": "The payment did not go through. Try again.",
-      "backToCart": "Back to the cart"
+      "backToCart": "Back to the cart",
+      "closed": "We are closed now, so you cannot pay. Your cart stays.",
+      "otherMethod": "Another payment method"
     },
     "status": {
       "pageTitle": "Your order",
@@ -229,7 +236,8 @@
           "body": "The payment did not go through, nothing was charged."
         }
       },
-      "confirmationLink": "Payment confirmation"
+      "confirmationLink": "Payment confirmation",
+      "backToMenu": "Back to the menu"
     },
     "confirmation": {
       "pageTitle": "Payment confirmation",

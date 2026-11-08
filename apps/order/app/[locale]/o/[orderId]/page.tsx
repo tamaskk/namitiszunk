@@ -1,4 +1,4 @@
-import { getGuestOrder } from "@namitiszunk/core/orders";
+import { getGuestLiveOrder } from "@namitiszunk/core/orders";
 import type { Locale } from "@namitiszunk/i18n";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { loadForGuest } from "@/lib/guest-data";
+import { menuHref } from "@/lib/menu-href";
 
 import { OrderLoading } from "./order-loading";
 import { OrderStatus } from "./order-status";
@@ -41,9 +42,15 @@ async function LiveOrder({ params }: PageProps<"/[locale]/o/[orderId]">) {
   const { locale, orderId } = await params;
   setRequestLocale(locale as Locale);
   const guest = await loadForGuest(orderId, (actor) =>
-    getGuestOrder(actor, orderId),
+    getGuestLiveOrder(actor, orderId),
   );
   if (!guest) notFound();
 
-  return <OrderStatus initial={guest.data} token={guest.token} />;
+  return (
+    <OrderStatus
+      initial={guest.data.order}
+      token={guest.token}
+      menuHref={menuHref(locale, guest.data.menu)}
+    />
+  );
 }

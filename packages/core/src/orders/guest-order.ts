@@ -1,6 +1,13 @@
 import "server-only";
 
-import { Bar, Order, Payment, Refund, type Types } from "@namitiszunk/db";
+import {
+  Bar,
+  Order,
+  Payment,
+  Refund,
+  type Types,
+  Venue,
+} from "@namitiszunk/db";
 import type { OrderResponse } from "@namitiszunk/validators";
 
 import type { Actor } from "../auth/permissions";
@@ -91,6 +98,34 @@ export async function getGuestOrder(
 }
 
 /** The guest's cancel before acceptance; the reject hook refunds the full amount (T-034). */
+/** Where "Rendelj még" and "Vissza a menübe" lead: the same venue's menu at the same bar and zone. */
+export type MenuLink = { venueSlug: string; barId: string; zoneId?: string };
+
+/** The menu link of an order the caller already loaded as theirs. */
+export async function menuLinkOf(orderId: string): Promise<MenuLink> {
+  const placed = await Order.findById(orderId)
+    .select("venueId barId zoneId")
+    .lean();
+  const venue = placed
+    ? await Venue.findById(placed.venueId).select("slug").lean()
+    : null;
+  if (!placed || !venue) throw new NotFoundError();
+  return {
+    venueSlug: venue.slug,
+    barId: String(placed.barId),
+    ...(placed.zoneId ? { zoneId: String(placed.zoneId) } : {}),
+  };
+}
+
+/** The live page (T-043, T-048): the order and, for an order that ended, the way back to the menu. */
+export async function getGuestLiveOrder(
+  actor: GuestActor,
+  orderId: string,
+): Promise<{ order: GuestOrderView; menu: MenuLink }> {
+  const order = await getGuestOrder(actor, orderId);
+  return { order, menu: await menuLinkOf(order.id) };
+}
+
 export async function cancelGuestOrder(
   actor: GuestActor,
   orderId: string,
