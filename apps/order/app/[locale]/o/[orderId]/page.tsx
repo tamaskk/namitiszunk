@@ -1,12 +1,11 @@
-import { guestActorFromToken } from "@namitiszunk/auth";
-import { connectDb } from "@namitiszunk/core/api";
-import { NotFoundError } from "@namitiszunk/core/errors";
 import { getGuestOrder } from "@namitiszunk/core/orders";
 import type { Locale } from "@namitiszunk/i18n";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+
+import { loadForGuest } from "@/lib/guest-data";
 
 import { OrderLoading } from "./order-loading";
 import { OrderStatus } from "./order-status";
@@ -16,22 +15,6 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
   robots: { index: false, follow: false },
 };
-
-async function loadOrder(orderId: string, token: string) {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error("MONGODB_URI is missing");
-  await connectDb(uri);
-  try {
-    return await getGuestOrder(
-      await guestActorFromToken(orderId, token),
-      orderId,
-    );
-  } catch (error) {
-    // No order, no token and a wrong token all look the same (T-030).
-    if (error instanceof NotFoundError) return null;
-    throw error;
-  }
-}
 
 // The live order status (T-043): /o/[orderId]?t=[guest token], from checkout and the SMS link.
 export default function OrderStatusPage(
@@ -51,9 +34,10 @@ async function LiveOrder({
   const { locale, orderId } = await params;
   const { t: token } = await searchParams;
   setRequestLocale(locale as Locale);
-  if (typeof token !== "string") notFound();
-  const order = await loadOrder(orderId, token);
+  const order = await loadForGuest(orderId, token, (actor) =>
+    getGuestOrder(actor, orderId),
+  );
   if (!order) notFound();
 
-  return <OrderStatus initial={order} token={token} />;
+  return <OrderStatus initial={order} token={token as string} />;
 }

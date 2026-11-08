@@ -116,6 +116,44 @@
           "title": "Megszakítva",
           "body": "A fizetés nem fejeződött be, nem vontunk le pénzt."
         }
+      },
+      "confirmationLink": "Fizetési visszaigazolás"
+    },
+    "confirmation": {
+      "pageTitle": "Fizetési visszaigazolás",
+      "notReceipt": "Ez nem nyugta. A hivatalos nyugtát a klub pénztárgépe adja.",
+      "title": "Fizetési visszaigazolás",
+      "number": "Rendelésszám",
+      "orderedAt": "Rendelés ideje",
+      "items": "Tételek",
+      "subtotal": "Részösszeg",
+      "discount": "Kedvezmény",
+      "serviceFee": "Szervizdíj",
+      "tip": "Borravaló",
+      "total": "Végösszeg",
+      "paidAt": "Fizetés ideje",
+      "method": "Fizetés módja",
+      "methodCard": "{brand}, •••• {last4}",
+      "methodCardOnly": "{brand}",
+      "methodUnknown": "Bankkártya",
+      "wallet": {
+        "apple_pay": "Apple Pay",
+        "google_pay": "Google Pay",
+        "other": "Digitális tárca"
+      },
+      "venue": "Klub",
+      "taxNumber": "Adószám: {taxNumber}",
+      "refunds": "Visszatérítés",
+      "refundLine": "{amount}, {date}",
+      "print": "Nyomtatás / PDF",
+      "back": "Vissza a rendeléshez",
+      "email": {
+        "label": "E-mail-cím",
+        "send": "Küldd el e-mailben",
+        "sent": "Elküldtük a visszaigazolást.",
+        "limit": "Ehhez a rendeléshez már nem küldhetünk több e-mailt.",
+        "invalid": "Adj meg egy érvényes e-mail-címet.",
+        "failed": "Nem sikerült elküldeni. Próbáld újra."
       }
     }
   },
@@ -194,7 +232,8 @@
       "heading": "Megkaptuk a rendelésed",
       "body": "{venueName}: már készítik. Szólunk, amikor átveheted a pultnál.",
       "orderNumber": "Rendelésszám",
-      "notReceipt": "Ez nem nyugta"
+      "notReceipt": "Ez nem nyugta",
+      "open": "Visszaigazolás megnyitása"
     },
     "orderRejected": {
       "subject": "Elutasították a rendelésed ({shortNumber})",

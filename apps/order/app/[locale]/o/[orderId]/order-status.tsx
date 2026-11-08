@@ -143,6 +143,18 @@ export function OrderStatus({
           </p>
         </section>
 
+        {/* Paid orders only: before payment, or after a timeout, there is nothing to confirm. */}
+        {order.status !== "awaiting_payment" &&
+          order.status !== "cancelled" && (
+            <Button variant="ghost" asChild>
+              <a
+                href={`/${locale}/r/${order.id}?t=${encodeURIComponent(token)}`}
+              >
+                {t("confirmationLink")}
+              </a>
+            </Button>
+          )}
+
         {order.canCancel && (
           <Dialog>
             <DialogTrigger asChild>

@@ -16,12 +16,18 @@ async function call<T>(
   method: "GET" | "POST",
   path: string,
   guestToken: string,
+  body?: unknown,
 ): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${base}${path}`, {
       method,
-      headers: { accept: "application/json", "x-guest-token": guestToken },
+      headers: {
+        accept: "application/json",
+        "x-guest-token": guestToken,
+        ...(body !== undefined && { "content-type": "application/json" }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new OrderApiError(0);
@@ -42,6 +48,17 @@ export const orderApi = {
       "POST",
       `/v1/orders/${encodeURIComponent(orderId)}/cancel`,
       token,
+    ),
+  sendConfirmationEmail: (
+    orderId: string,
+    token: string,
+    input: { email: string; locale: string },
+  ) =>
+    call<{ sent: true }>(
+      "POST",
+      `/v1/orders/${encodeURIComponent(orderId)}/confirmation-email`,
+      token,
+      input,
     ),
   realtimeToken: (token: string) =>
     call<TokenRequest>("POST", "/v1/realtime/token", token),
