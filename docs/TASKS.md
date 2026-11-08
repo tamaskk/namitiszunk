@@ -37,7 +37,6 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 
 - [ ] Status audit 2026-11-08 (T-017–T-039, criteria ticked in fejlesztesi-terv.md). Code gaps:
   - T-018 PostHog not built (only `posthogId` in the PaymentIntent metadata; `apps/order/lib/analytics.ts` is a stub).
-  - T-024 short number and business day are set at checkout, not at payment (abandoned payments leave gaps; 05:59 checkout paid at 06:00 lands on the previous day).
   - T-028 inactive-account deletion (2 years), Twilio message deletion and the 90-day `problemReports[].email` cleanup are missing; the job runs at 05:00, the plan says 07:00.
   - T-030 no real magic-link e2e through a Resend test address.
   - Waiting on Admin: T-026 `impersonatedBy` (T-070), T-031 bar view reconnect and the 2 s latency (T-054), T-032 Payouts page (T-059).
@@ -47,6 +46,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [ ] Remaining v1 tasks in `docs/fejlesztesi-terv.md` sections C–I (#17–#83)
 
 ## Done
+- [x] T-024 Short order number and business day at payment (`transition()` on `payment_succeeded`, partial unique index `short_number`); run `packages/db/scripts/migrations/2026-11-09-short-number-at-payment.ts` on every database before deploying
 - [x] T-027 Seed data (status audit 2026-11-08)
 - [x] T-029 API skeleton: `/v1` handler, rate limit, idempotency, CORS (status audit 2026-11-08)
 - [x] T-035 Background jobs (Inngest) (status audit 2026-11-08)
