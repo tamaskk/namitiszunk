@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { createOrderInputSchema, type CreateOrderInput } from "./orders";
+import {
+  createOrderInputSchema,
+  validateCartInputSchema,
+  type CreateOrderInput,
+} from "./orders";
 import { fieldErrorKeys } from "./shared";
 
 const itemId = "0123456789abcdef01234567";
@@ -144,5 +148,23 @@ describe("createOrderInputSchema", () => {
     const keys = errorKeys(input);
 
     expect(keys).toEqual({ barId: "validation.invalid_type" });
+  });
+});
+
+describe("validateCartInputSchema", () => {
+  it("strips the note an older stored cart still carries (hidden until T-047)", () => {
+    const input = {
+      slug: "demo",
+      items: [{ itemId, quantity: 1, unitPriceHuf: 990, note: "Kevés jég" }],
+    };
+
+    const result = validateCartInputSchema.safeParse(input);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.items[0]).toEqual({
+      itemId,
+      quantity: 1,
+      unitPriceHuf: 990,
+    });
   });
 });

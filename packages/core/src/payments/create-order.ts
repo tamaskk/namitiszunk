@@ -15,6 +15,11 @@ import {
 import type { CreateOrderInput } from "@namitiszunk/validators";
 import type { Types } from "mongoose";
 
+import {
+  DEFAULT_MAX_ITEMS_PER_ORDER,
+  validateSelection,
+} from "../cart/selection";
+import { publicModifierGroups } from "../menu/public-menu";
 import { businessDate } from "../orders/business-date";
 import { allocateShortNumber } from "../orders/short-number";
 import { applicationFeeOf, calculateOrder } from "../pricing/calculate-order";
@@ -66,36 +71,25 @@ async function commissionBpsAt(
   throw new Error("no FeeRule in force: seed the platform default");
 }
 
-type ModifierGroup = ItemDoc["modifierGroups"][number];
-
 /** The chosen options of one line, or a 400 when they break the item's groups. */
 function chosenOptions(
-  groups: readonly ModifierGroup[],
+  stored: ItemDoc["modifierGroups"] | undefined,
   modifierIds: readonly string[],
   path: string,
 ) {
-  const options: { groupName: string; name: string; priceDeltaHuf: number }[] =
-    [];
-  for (const group of groups) {
-    const picked = group.modifiers.filter((m) =>
-      modifierIds.includes(String((m as { _id?: unknown })._id)),
-    );
-    const min = Math.max(group.minSelect ?? 0, group.required ? 1 : 0);
-    if (picked.length < min || picked.length > (group.maxSelect ?? 1)) {
-      throw invalid({ [path]: "invalid" });
-    }
-    for (const m of picked) {
-      options.push({
-        groupName: group.name,
-        name: m.name,
-        priceDeltaHuf: m.priceDeltaHuf ?? 0,
-      });
-    }
-  }
-  if (options.length !== new Set(modifierIds).size) {
+  const groups = publicModifierGroups(stored, "hu");
+  if (validateSelection(groups, modifierIds).length > 0) {
     throw invalid({ [path]: "invalid" });
   }
-  return options;
+  return groups.flatMap((group) =>
+    group.modifiers
+      .filter((m) => modifierIds.includes(m.id))
+      .map((m) => ({
+        groupName: group.name,
+        name: m.name,
+        priceDeltaHuf: m.priceDeltaHuf,
+      })),
+  );
 }
 
 /**
@@ -138,7 +132,7 @@ export async function createOrder(
 
   const rules = venue.orderRules;
   const quantity = input.items.reduce((sum, line) => sum + line.quantity, 0);
-  if (rules?.maxItemsPerOrder && quantity > rules.maxItemsPerOrder) {
+  if (quantity > (rules?.maxItemsPerOrder ?? DEFAULT_MAX_ITEMS_PER_ORDER)) {
     throw new ConflictError("too_many_items");
   }
   // shortcut: promo codes arrive with T-060 (packages/core/src/promos); until then a code is refused, never silently ignored.
@@ -173,7 +167,7 @@ export async function createOrder(
   const lines = input.items.map((line, index) => {
     const item = byId.get(line.itemId)!;
     const opts = chosenOptions(
-      item.modifierGroups ?? [],
+      item.modifierGroups,
       line.modifierIds ?? [],
       `items.${index}.modifierIds`,
     );

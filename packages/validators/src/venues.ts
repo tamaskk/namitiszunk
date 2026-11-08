@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   blobUrlSchema,
+  dateTimeSchema,
   hufSchema,
   nameSchema,
   objectIdSchema,
@@ -96,3 +97,29 @@ export const venueListResponseSchema = z.object({
 export type OrderRulesInput = z.infer<typeof orderRulesInputSchema>;
 export type VenueInput = z.infer<typeof venueInputSchema>;
 export type PublicVenueResponse = z.infer<typeof publicVenueResponseSchema>;
+
+/** A venue's URL name, as in /v/{slug}. */
+export const venueSlugSchema = z
+  .string()
+  .regex(/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/, {
+    error: "validation.slug.invalid",
+  });
+
+/** Query of GET /api/venues/{slug}/status; `bar` comes from the QR code. */
+export const venueStatusQuerySchema = z.object({
+  bar: objectIdSchema.optional(),
+});
+
+export const barStates = ["open", "paused", "closed"] as const;
+
+/** The live part of the guest menu, polled every 30 s (T-040). */
+export const venueStatusResponseSchema = z.object({
+  status: z.enum(barStates),
+  pausedUntil: dateTimeSchema.nullable(),
+  /** Median paid → ready minutes of the bar's last 30 minutes; null below 3 orders. */
+  estimatedWaitMinutes: z.int().min(1).nullable(),
+  soldOutItemIds: z.array(objectIdSchema),
+});
+
+export type BarState = (typeof barStates)[number];
+export type VenueStatusResponse = z.infer<typeof venueStatusResponseSchema>;
