@@ -17,7 +17,9 @@
     "./realtime": "./src/realtime/index.ts",
     "./realtime/channels": "./src/realtime/channels.ts",
     "./jobs": "./src/jobs/index.ts",
-    "./retention": "./src/retention/retention.ts"
+    "./retention": "./src/retention/retention.ts",
+    "./menu": "./src/menu/index.ts",
+    "./cart": "./src/cart/validate-cart.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

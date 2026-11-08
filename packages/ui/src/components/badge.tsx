@@ -14,6 +14,8 @@ const badgeVariants = cva(
         ready: "border-primary bg-primary text-on-primary",
         pickedUp: "border-success bg-success text-bg",
         rejected: "border-danger bg-danger text-bg",
+        // Not an order status: a muted state label such as "Sold out".
+        neutral: "border-border text-text-muted",
       },
     },
     defaultVariants: { status: "new" },

@@ -3,96 +3,96 @@ import { createHash, randomBytes } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { formatHuf, messages } from "@namitiszunk/i18n";
 import { expect, type Page, type Route, test } from "@playwright/test";
-import { MongoClient, ObjectId } from "mongodb";
-
-import { E2E_API_URL, E2E_MONGO_URI } from "./env";
+import { upsertDocument } from "./db";
 
 // Guest pages after payment: confirmation (T-044), thanks and rating (T-045), problem report (T-046).
-// The pages read MongoDB directly; their calls to apps/api are answered here with page.route.
+// The pages read the e2e database (seeded here through db.ts); their apps/api calls are answered with page.route.
 
 const hu = messages.hu.order;
 const wcagAA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+
+const newId = () => randomBytes(12).toString("hex");
+const oid = (hex: string) => ({ $oid: hex });
 
 function newToken() {
   const token = randomBytes(16).toString("base64url");
   return { token, hash: createHash("sha256").update(token).digest("hex") };
 }
 
-const pickedUp = { id: new ObjectId(), ...newToken() };
-const preparing = { id: new ObjectId(), ...newToken() };
+const pickedUp = { id: newId(), ...newToken() };
+const preparing = { id: newId(), ...newToken() };
 const refundHuf = 1000;
 
-test.beforeAll(async () => {
-  const client = await MongoClient.connect(E2E_MONGO_URI);
-  const db = client.db();
-  const venueId = new ObjectId();
-  const barId = new ObjectId();
-  const now = new Date();
-  await db.collection("venues").insertOne({
-    _id: venueId,
-    slug: `e2e-${venueId.toHexString()}`,
+test.beforeAll(() => {
+  const venueId = newId();
+  const barId = newId();
+  const now = { $date: new Date().toISOString() };
+  upsertDocument("venues", {
+    _id: oid(venueId),
+    slug: `e2e-${venueId}`,
     name: "Pilot Club",
     company: { name: "Pilot Kft.", taxNumber: "12345678-2-42" },
     address: { street: "Király u. 1.", city: "Budapest", postalCode: "1061" },
   });
-  await db
-    .collection("bars")
-    .insertOne({ _id: barId, venueId, name: "Főpult" });
-  const order = (o: typeof pickedUp, status: string, shortNumber: number) => ({
-    _id: o.id,
-    venueId,
-    barId,
-    shortNumber,
-    businessDate: "2026-11-07",
-    status,
-    isVip: false,
-    items: [
-      {
-        itemId: new ObjectId(),
-        name: "Gin tonic",
-        nameEn: "Gin and tonic",
-        unitPriceHuf: 2490,
-        quantity: 2,
-        options: [],
-        lineTotalHuf: 4980,
-      },
-    ],
-    subtotalHuf: 4980,
-    discountHuf: 0,
-    serviceFeeHuf: 0,
-    tipHuf: 0,
-    totalHuf: 4980,
-    pickupCode: "K7Q",
-    guestTokenHash: o.hash,
-    acceptedTermsVersion: "2026-11-01",
-    paidAt: now,
-    problemReports: [],
-    confirmationEmailCount: 0,
-    createdAt: now,
-    updatedAt: now,
+  upsertDocument("bars", {
+    _id: oid(barId),
+    venueId: oid(venueId),
+    name: "Főpult",
   });
-  await db
-    .collection("orders")
-    .insertMany([
-      order(pickedUp, "picked_up", 214),
-      order(preparing, "preparing", 215),
-    ]);
-  await db.collection("payments").insertOne({
-    orderId: pickedUp.id,
-    stripePaymentIntentId: `pi_e2e_${pickedUp.id.toHexString()}`,
+  for (const [o, status, shortNumber] of [
+    [pickedUp, "picked_up", 214],
+    [preparing, "preparing", 215],
+  ] as const)
+    upsertDocument("orders", {
+      _id: oid(o.id),
+      venueId: oid(venueId),
+      barId: oid(barId),
+      shortNumber,
+      businessDate: "2026-11-07",
+      status,
+      isVip: false,
+      items: [
+        {
+          itemId: oid(newId()),
+          name: "Gin tonic",
+          nameEn: "Gin and tonic",
+          unitPriceHuf: 2490,
+          quantity: 2,
+          options: [],
+          lineTotalHuf: 4980,
+        },
+      ],
+      subtotalHuf: 4980,
+      discountHuf: 0,
+      serviceFeeHuf: 0,
+      tipHuf: 0,
+      totalHuf: 4980,
+      pickupCode: "K7Q",
+      guestTokenHash: o.hash,
+      acceptedTermsVersion: "2026-11-01",
+      paidAt: now,
+      problemReports: [],
+      confirmationEmailCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+  upsertDocument("payments", {
+    _id: oid(newId()),
+    orderId: oid(pickedUp.id),
+    stripePaymentIntentId: `pi_e2e_${pickedUp.id}`,
     status: "succeeded",
     amountHuf: 4980,
     cardBrand: "visa",
     cardLast4: "4242",
   });
-  await db.collection("refunds").insertOne({
-    orderId: pickedUp.id,
+  upsertDocument("refunds", {
+    _id: oid(newId()),
+    orderId: oid(pickedUp.id),
     status: "succeeded",
     amountHuf: refundHuf,
     createdAt: now,
     updatedAt: now,
   });
-  await client.close();
 });
 
 /** Answers one apps/api endpoint, CORS preflight included (the guest token is a custom header). */
@@ -102,7 +102,7 @@ async function answerApi(
   status: number,
   data: unknown,
 ) {
-  await page.route(`${E2E_API_URL}${path}`, (route: Route) => {
+  await page.route(`**${path}`, (route: Route) => {
     const headers = {
       "access-control-allow-origin": "*",
       "access-control-allow-headers": "content-type, x-guest-token, accept",
@@ -132,7 +132,7 @@ async function expectNoViolations(page: Page) {
 }
 
 test.describe("payment confirmation (T-044)", () => {
-  const path = `/hu/r/${pickedUp.id.toHexString()}`;
+  const path = `/hu/r/${pickedUp.id}`;
 
   test("moves the token into a cookie and opens with the not-a-receipt line", async ({
     page,
@@ -184,19 +184,16 @@ test.describe("payment confirmation (T-044)", () => {
       .getByLabel(hu.confirmation.email.label)
       .fill("vendeg@example.com");
 
-    await answerApi(
-      page,
-      `/v1/orders/${pickedUp.id.toHexString()}/confirmation-email`,
-      200,
-      { sent: true },
-    );
+    await answerApi(page, `/v1/orders/${pickedUp.id}/confirmation-email`, 200, {
+      sent: true,
+    });
     await send.click();
     await expect(page.getByText(hu.confirmation.email.sent)).toBeVisible();
 
     await page.unrouteAll();
     await answerApi(
       page,
-      `/v1/orders/${pickedUp.id.toHexString()}/confirmation-email`,
+      `/v1/orders/${pickedUp.id}/confirmation-email`,
       429,
       null,
     );
@@ -209,13 +206,10 @@ test.describe("problem report (T-046)", () => {
   test("needs a category, then reports and moves focus to the result", async ({
     page,
   }) => {
-    await page.goto(`/hu/r/${pickedUp.id.toHexString()}?t=${pickedUp.token}`);
-    await answerApi(
-      page,
-      `/v1/orders/${pickedUp.id.toHexString()}/report`,
-      200,
-      { reported: true },
-    );
+    await page.goto(`/hu/r/${pickedUp.id}?t=${pickedUp.token}`);
+    await answerApi(page, `/v1/orders/${pickedUp.id}/report`, 200, {
+      reported: true,
+    });
     await page.getByRole("button", { name: hu.report.button }).click();
     const send = page.getByRole("button", { name: hu.report.send });
 
@@ -228,13 +222,8 @@ test.describe("problem report (T-046)", () => {
   });
 
   test("says when the fourth report is refused", async ({ page }) => {
-    await page.goto(`/hu/r/${pickedUp.id.toHexString()}?t=${pickedUp.token}`);
-    await answerApi(
-      page,
-      `/v1/orders/${pickedUp.id.toHexString()}/report`,
-      429,
-      null,
-    );
+    await page.goto(`/hu/r/${pickedUp.id}?t=${pickedUp.token}`);
+    await answerApi(page, `/v1/orders/${pickedUp.id}/report`, 429, null);
     await page.getByRole("button", { name: hu.report.button }).click();
 
     await page.getByLabel(hu.report.categories.other).check();
@@ -248,15 +237,10 @@ test.describe("thanks and rating (T-045)", () => {
   test("rates a picked-up order once the guest picks the stars", async ({
     page,
   }) => {
-    await page.goto(
-      `/hu/o/${pickedUp.id.toHexString()}/thanks?t=${pickedUp.token}`,
-    );
-    await answerApi(
-      page,
-      `/v1/orders/${pickedUp.id.toHexString()}/review`,
-      200,
-      { reviewed: true },
-    );
+    await page.goto(`/hu/o/${pickedUp.id}/thanks?t=${pickedUp.token}`);
+    await answerApi(page, `/v1/orders/${pickedUp.id}/review`, 200, {
+      reviewed: true,
+    });
     const send = page.getByRole("button", { name: hu.thanks.send });
     await expectNoViolations(page);
 
@@ -272,7 +256,7 @@ test.describe("thanks and rating (T-045)", () => {
   test("sends an order that is not picked up yet back to the live page", async ({
     page,
   }) => {
-    const id = preparing.id.toHexString();
+    const id = preparing.id;
 
     await page.goto(`/hu/o/${id}/thanks?t=${preparing.token}`);
 
