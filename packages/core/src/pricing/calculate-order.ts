@@ -76,6 +76,22 @@ function percentOf(baseHuf: number, rateBps: number): number {
   return Math.round((baseHuf * rateBps) / FULL_BPS);
 }
 
+/** Sum of the lines with their option surcharges; the cart (client) and createOrder (server) share it. */
+export function subtotalOf(items: readonly PricedItem[]): number {
+  const subtotalHuf = items.reduce((sum, item, index) => {
+    if (!Number.isSafeInteger(item.quantity) || item.quantity < 1) {
+      throw new RangeError(
+        `items[${index}].quantity must be a positive integer`,
+      );
+    }
+    const unitHuf =
+      nonNegativeHuf(item.priceHuf, `items[${index}].priceHuf`) +
+      nonNegativeHuf(item.optionsHuf, `items[${index}].optionsHuf`);
+    return sum + unitHuf * item.quantity;
+  }, 0);
+  return assertIntegerHuf(subtotalHuf);
+}
+
 /**
  * Prices an order in the fixed order of docs/fejlesztesi-terv.md #22, rounding after every step.
  * Always run on the server from fresh prices; a client-side total is display only.
@@ -104,18 +120,7 @@ export function calculateOrder(input: OrderCalculationInput): OrderCalculation {
   if (input.items.length === 0) {
     throw new RangeError("items must not be empty");
   }
-  const subtotalHuf = input.items.reduce((sum, item, index) => {
-    if (!Number.isSafeInteger(item.quantity) || item.quantity < 1) {
-      throw new RangeError(
-        `items[${index}].quantity must be a positive integer`,
-      );
-    }
-    const unitHuf =
-      nonNegativeHuf(item.priceHuf, `items[${index}].priceHuf`) +
-      nonNegativeHuf(item.optionsHuf, `items[${index}].optionsHuf`);
-    return sum + unitHuf * item.quantity;
-  }, 0);
-  assertIntegerHuf(subtotalHuf);
+  const subtotalHuf = subtotalOf(input.items);
 
   const discountHuf = Math.min(
     subtotalHuf,
