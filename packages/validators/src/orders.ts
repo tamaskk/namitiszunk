@@ -1,15 +1,15 @@
 import { z } from "zod";
 
+import { MAX_QUANTITY_PER_LINE } from "./cart-limits";
 import {
   dateTimeSchema,
   hufSchema,
   huPhoneSchema,
   objectIdSchema,
 } from "./shared";
-import { CART_NOTE_MAX, MAX_QUANTITY_PER_LINE } from "./cart-limits";
 import { venueSlugSchema } from "./venues";
 
-export { CART_NOTE_MAX, MAX_QUANTITY_PER_LINE };
+export { MAX_QUANTITY_PER_LINE };
 
 // Same literals as packages/db and packages/core; packages/core/src/validators-sync.test.ts keeps them equal.
 export const orderStatuses = [
@@ -34,12 +34,7 @@ export const cartLineSchema = z.object({
     .min(1, { error: "validation.quantity.min" })
     .max(MAX_QUANTITY_PER_LINE, { error: "validation.quantity.max" }),
   modifierIds: z.array(objectIdSchema).max(20).optional(),
-  /** For the bar, shown on the order card (T-041). */
-  note: z
-    .string()
-    .trim()
-    .max(CART_NOTE_MAX, { error: "validation.note.max" })
-    .optional(),
+  // shortcut: guest item note hidden until T-047 stores it on OrderItem (needs NFC + control/bidi char filter)
 });
 
 /** "Tovább" in the cart (T-041): the guest's lines with the unit price they were shown. */
