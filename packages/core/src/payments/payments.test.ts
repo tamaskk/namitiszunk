@@ -285,6 +285,25 @@ describe("quoteOrder", () => {
 });
 
 describe("createOrder", () => {
+  it("puts the order in the signed-in guest's history, and leaves it out without an account", async () => {
+    const userId = new Types.ObjectId().toHexString();
+
+    const signedIn = await createOrder(input(), {
+      guestTokenHash: new Types.ObjectId().toHexString().padEnd(64, "0"),
+      userId,
+      onOrderCreated,
+      now,
+    });
+    const anonymous = await create();
+
+    expect(
+      String((await Order.findById(signedIn.orderId).lean())?.userId),
+    ).toBe(userId);
+    expect(
+      (await Order.findById(anonymous.orderId).lean())?.userId,
+    ).toBeUndefined();
+  });
+
   it("prices on the server and creates a direct-charge PaymentIntent with the T-022 application fee", async () => {
     const { orderId, clientSecret } = await create();
 

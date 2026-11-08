@@ -33,6 +33,8 @@ import { stripe } from "./stripe-client";
 export type CreateOrderOptions = {
   /** Hash of the guest token the caller hands to the guest (@namitiszunk/auth createGuestToken). */
   guestTokenHash: string;
+  /** The signed-in guest's account (T-047); the order then shows in their history. */
+  userId?: string;
   /** Runs once the order is stored and before the PaymentIntent exists: starts the payment timeout (T-035). */
   onOrderCreated: (order: {
     orderId: string;
@@ -262,6 +264,7 @@ export async function createOrder(
             totalHuf: calc.totalHuf,
             pickupCode: pickupCode(),
             guestTokenHash: options.guestTokenHash,
+            ...(options.userId ? { userId: options.userId } : {}),
             guestPhone: input.guestPhone,
             smsRequested: input.smsRequested,
             isVip,
