@@ -1,7 +1,8 @@
-import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 
 import { expect, test } from "@playwright/test";
+
+import { seedGuestToken, seedId } from "./db";
 
 // T-040 decision (2026-11-08): framework baseline (React, Next.js, next-intl; ~146 KB gzip) plus at
 // most 50 KB of the page's own initial JS. Initial = the chunk script tags in the server HTML, minus
@@ -9,10 +10,6 @@ import { expect, test } from "@playwright/test";
 // stay outside. Counted from the HTML, not the network, so load timing cannot change the sum.
 const budgetBytes = (146 + 50) * 1024;
 
-const seedId = (key: string) =>
-  createHash("sha256").update(`seed:${key}`).digest("hex").slice(0, 24);
-const seedGuestToken = (key: string) =>
-  createHash("sha256").update(`token:${key}`).digest("base64url").slice(0, 22);
 const qr = `bar=${seedId("bar:main")}&zone=${seedId("zone:dancefloor")}`;
 
 const pages = [
@@ -21,10 +18,12 @@ const pages = [
   {
     name: "live order",
     path: `/hu/o/${seedId("order:3")}?t=${seedGuestToken("order:3")}`,
+    // Ably loads after the first paint (live-realtime.ts): the SDK (its host name) must not be here.
+    lazy: "ably.io",
   },
 ];
 
-for (const { name, path } of pages) {
+for (const { name, path, lazy } of pages) {
   test(`${name}: initial JS within budget`, async ({ request }) => {
     const html = await (await request.get(path)).text();
     const chunks = new Set(
@@ -32,7 +31,8 @@ for (const { name, path } of pages) {
         .map(([tag]) => tag)
         .filter((tag) => !/\bnomodule\b/i.test(tag))
         .map(
-          (tag) => /src="(\/_next\/static\/chunks\/[^"]+\.js)"/.exec(tag)?.[1],
+          (tag) =>
+            /src="(\/_next\/static\/chunks\/[^"?]+\.js)[^"]*"/.exec(tag)?.[1],
         )
         .filter((src): src is string => !!src),
     );
@@ -41,7 +41,9 @@ for (const { name, path } of pages) {
     for (const chunk of chunks) {
       const response = await request.get(chunk);
       expect(response.ok(), chunk).toBe(true);
-      total += gzipSync(await response.body()).length;
+      const body = await response.body();
+      if (lazy) expect(body.includes(lazy), `${lazy} in ${chunk}`).toBe(false);
+      total += gzipSync(body).length;
     }
 
     console.log(

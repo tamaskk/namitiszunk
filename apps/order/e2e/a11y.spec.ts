@@ -1,18 +1,11 @@
-import { createHash } from "node:crypto";
-
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
-import { upsertDocument } from "./db";
+import { seedGuestToken, seedId, upsertDocument } from "./db";
 
-// T-049: every guest page passes axe (WCAG 2.1 AA) and every control is at least 48×48 px
-// (DESIGN_SYSTEM §08) at 375px, in both languages. Flows have their own specs; this one sweeps pages.
-
-// Same derivations as packages/db/src/seed.ts.
-const seedId = (key: string) =>
-  createHash("sha256").update(`seed:${key}`).digest("hex").slice(0, 24);
-const seedGuestToken = (key: string) =>
-  createHash("sha256").update(`token:${key}`).digest("base64url").slice(0, 22);
+// T-049: every guest page passes axe (WCAG 2.1 AA) and every control visible on load is at least
+// 48×48 px (DESIGN_SYSTEM §08) at 375px, in both languages. Sheets, the cart and dialogs open in the
+// flow specs (cart, checkout, guest-pages, states), which run axe on them.
 
 const qr = `bar=${seedId("bar:main")}&zone=${seedId("zone:dancefloor")}`;
 // Seeded demo orders: order:3 is being prepared, order:5 was picked up.
@@ -106,7 +99,7 @@ for (const locale of ["hu", "en"] as const) {
           );
 
         await page.goto(`/${locale}${path}`);
-        await page.waitForLoadState("networkidle");
+        await expect(page.locator("main, [role=dialog]").first()).toBeVisible();
         const { violations } = await new AxeBuilder({ page })
           .exclude("nextjs-portal")
           .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])

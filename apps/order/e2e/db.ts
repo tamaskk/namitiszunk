@@ -8,6 +8,14 @@ import { join, resolve } from "node:path";
 
 const E2E_PORT = 3101;
 
+// Same derivations as packages/db/src/seed.ts (lighthouserc.cjs keeps its own CommonJS copy).
+/** The seeded demo document id for a key, e.g. seedId("bar:main"). */
+export const seedId = (key: string) =>
+  createHash("sha256").update(`seed:${key}`).digest("hex").slice(0, 24);
+/** The guest link token of a seeded demo order, e.g. seedGuestToken("order:3"). */
+export const seedGuestToken = (key: string) =>
+  createHash("sha256").update(`token:${key}`).digest("base64url").slice(0, 22);
+
 export const e2eUriFile = (port: string | number) =>
   join(tmpdir(), `namitiszunk-order-e2e-${port}.uri`);
 

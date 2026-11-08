@@ -426,7 +426,11 @@ const seedOrders: SeedOrder[] = [
 
 const minutes = (n: number) => n * 60_000;
 
-/** A demo order's guest link token: the 22-character format guest links require, so the live page opens (T-049 Lighthouse). */
+/**
+ * A demo order's guest link token: the 22-character format guest links require, so the live page
+ * opens (T-049 Lighthouse). Derivable from this file on purpose: demo orders only, and
+ * assertSeedableUri keeps the seed off production and preview.
+ */
 const seedGuestToken = (key: string) =>
   createHash("sha256").update(`token:${key}`).digest("base64url").slice(0, 22);
 

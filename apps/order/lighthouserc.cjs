@@ -3,7 +3,8 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- LHCI loads its config with require(), so this file is CommonJS.
 const { createHash } = require("node:crypto");
 
-const port = 3102;
+// Not 3102: the JS budget run before this one serves there, and its server may still be closing.
+const port = 3103;
 // Same derivations as packages/db/src/seed.ts (seedId and the demo guest token).
 const seedId = (key) =>
   createHash("sha256").update(`seed:${key}`).digest("hex").slice(0, 24);
