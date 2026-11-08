@@ -25,7 +25,7 @@ import {
   vi,
 } from "vitest";
 
-import { calculateOrder } from "../pricing/calculate-order";
+import { calculateOrder, subtotalOf } from "../pricing/calculate-order";
 import { setDefaultErrorReporter } from "../report-error";
 
 vi.mock("server-only", () => ({}));
@@ -313,6 +313,39 @@ describe("createOrder", () => {
     await Venue.updateOne({ _id: venueId }, { $set: { status: "suspended" } });
     await expect(create()).rejects.toMatchObject({ code: "venue_closed" });
     expect(api.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
+  it("applies the default limit of 10 items when the venue sets none", async () => {
+    await Venue.updateOne(
+      { _id: venueId },
+      { $unset: { "orderRules.maxItemsPerOrder": 1 } },
+    );
+    const lines = (beers: number) => [
+      { itemId: ginId.toHexString(), quantity: 6 },
+      { itemId: beerId.toHexString(), quantity: beers },
+    ];
+
+    await expect(create({ items: lines(5) })).rejects.toMatchObject({
+      code: "too_many_items",
+    });
+    await expect(create({ items: lines(4) })).resolves.toMatchObject({
+      orderId: expect.any(String),
+    });
+  });
+
+  it("stores the subtotal the cart shows, priced options included", async () => {
+    // The cart computes its subtotal on the client with the same function.
+    const cartSubtotal = subtotalOf([
+      { priceHuf: 2490, optionsHuf: 100, quantity: 2 },
+      { priceHuf: 1290, optionsHuf: 0, quantity: 1 },
+    ]);
+
+    const { orderId } = await create();
+
+    expect(cartSubtotal).toBe(6470);
+    expect((await Order.findById(orderId).lean())?.subtotalHuf).toBe(
+      cartSubtotal,
+    );
   });
 
   it("refuses a venue whose connected account cannot charge", async () => {

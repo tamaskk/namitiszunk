@@ -1,6 +1,10 @@
 import { z } from "zod";
 
+import { MAX_QUANTITY_PER_LINE } from "./cart-limits";
 import { hufSchema, huPhoneSchema, objectIdSchema } from "./shared";
+import { venueSlugSchema } from "./venues";
+
+export { MAX_QUANTITY_PER_LINE };
 
 // Same literals as packages/db and packages/core; packages/core/src/validators-sync.test.ts keeps them equal.
 export const orderStatuses = [
@@ -15,7 +19,6 @@ export const orderStatuses = [
   "refunded",
 ] as const;
 export const TIP_PERCENT_BPS = [0, 500, 1000, 1500] as const;
-export const MAX_QUANTITY_PER_LINE = 10;
 // A sanity cap only; the venue's maxItemsPerOrder is checked on the server (spec 25, item 2).
 const MAX_CART_LINES = 50;
 
@@ -26,6 +29,23 @@ export const cartLineSchema = z.object({
     .min(1, { error: "validation.quantity.min" })
     .max(MAX_QUANTITY_PER_LINE, { error: "validation.quantity.max" }),
   modifierIds: z.array(objectIdSchema).max(20).optional(),
+  // shortcut: guest item note hidden until T-047 stores it on OrderItem (needs NFC + control/bidi char filter)
+});
+
+/** "Tovább" in the cart (T-041): the guest's lines with the unit price they were shown. */
+export const validateCartInputSchema = z.object({
+  slug: venueSlugSchema,
+  barId: objectIdSchema.optional(),
+  zoneId: objectIdSchema.optional(),
+  items: z
+    .array(
+      cartLineSchema.extend({
+        /** Base price plus surcharges as the cart showed it; compared, never charged. */
+        unitPriceHuf: hufSchema,
+      }),
+    )
+    .min(1, { error: "validation.cart.empty" })
+    .max(MAX_CART_LINES, { error: "validation.cart.max" }),
 });
 
 export const tipChoiceSchema = z.discriminatedUnion(
@@ -99,6 +119,7 @@ export const orderResponseSchema = z.object({
 });
 
 export type CartLine = z.infer<typeof cartLineSchema>;
+export type ValidateCartInput = z.infer<typeof validateCartInputSchema>;
 export type TipChoiceInput = z.infer<typeof tipChoiceSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
 export type CreateOrderResponse = z.infer<typeof createOrderResponseSchema>;
