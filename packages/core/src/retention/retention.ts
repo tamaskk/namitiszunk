@@ -6,11 +6,14 @@ import { audit } from "../audit/audit";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const GUEST_PHONE_DAYS = 30;
+// The cancel limit counts one business day; 2 days covers a night that crosses midnight.
+const CARD_FINGERPRINT_DAYS = 2;
 const FINANCIAL_YEARS = 8;
 
 export type RetentionCounts = {
   // No "phone" in the key: stripPersonalData would drop it from the audit entry.
   ordersContactCleared: number;
+  paymentsFingerprintCleared: number;
   ordersDeleted: number;
   paymentsDeleted: number;
   refundsDeleted: number;
@@ -38,6 +41,12 @@ export async function runRetention({
     guestPhone: { $type: "string" as const },
     createdAt: { $lt: new Date(now.getTime() - GUEST_PHONE_DAYS * DAY_MS) },
   };
+  const fingerprintFilter = {
+    cardFingerprint: { $exists: true },
+    createdAt: {
+      $lt: new Date(now.getTime() - CARD_FINGERPRINT_DAYS * DAY_MS),
+    },
+  };
   const financialFilter = {
     createdAt: { $lt: yearsBefore(now, FINANCIAL_YEARS) },
   };
@@ -45,17 +54,20 @@ export async function runRetention({
   if (dryRun) {
     const [
       ordersContactCleared,
+      paymentsFingerprintCleared,
       ordersDeleted,
       paymentsDeleted,
       refundsDeleted,
     ] = await Promise.all([
       Order.countDocuments(phoneFilter),
+      Payment.countDocuments(fingerprintFilter),
       Order.countDocuments(financialFilter),
       Payment.countDocuments(financialFilter),
       Refund.countDocuments(financialFilter),
     ]);
     return {
       ordersContactCleared,
+      paymentsFingerprintCleared,
       ordersDeleted,
       paymentsDeleted,
       refundsDeleted,
@@ -71,11 +83,17 @@ export async function runRetention({
         { $unset: { guestPhone: 1 } },
         { session },
       );
+      const fingerprints = await Payment.updateMany(
+        fingerprintFilter,
+        { $unset: { cardFingerprint: 1 } },
+        { session },
+      );
       const orders = await Order.deleteMany(financialFilter, { session });
       const payments = await Payment.deleteMany(financialFilter, { session });
       const refunds = await Refund.deleteMany(financialFilter, { session });
       const counts: RetentionCounts = {
         ordersContactCleared: cleared.modifiedCount,
+        paymentsFingerprintCleared: fingerprints.modifiedCount,
         ordersDeleted: orders.deletedCount,
         paymentsDeleted: payments.deletedCount,
         refundsDeleted: refunds.deletedCount,

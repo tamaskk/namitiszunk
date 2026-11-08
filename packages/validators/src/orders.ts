@@ -114,6 +114,8 @@ export const orderResponseSchema = z.object({
   isVip: z.boolean(),
   /** Only before acceptance, which happens only at a manual-acceptance venue. */
   canCancel: z.boolean(),
+  /** The card already cancelled an order at this venue today; the guest asks the bar instead. */
+  cancelLimitReached: z.boolean().optional(),
   rejectionReason: z.string().optional(),
   refundedHuf: hufSchema,
 });

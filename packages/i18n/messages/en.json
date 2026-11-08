@@ -43,6 +43,7 @@
     "promo_invalid": "This promo code is not valid.",
     "below_minimum_order": "Your order is below this venue's minimum.",
     "below_minimum_charge": "The total is below the smallest amount a card can be charged.",
+    "guest_cancel_limit": "This card already cancelled an order here today. Ask at the bar.",
     "nothing_to_charge": "This order has nothing to pay for.",
     "order_not_paid": "This order has no payment to refund.",
     "refund_exceeds_remaining": "The amount is more than what is left to refund.",
@@ -156,7 +157,8 @@
         "confirm": "Cancel order",
         "keep": "Keep it",
         "failed": "Could not cancel. Try again.",
-        "accepted": "The bar has accepted it already, so it can no longer be cancelled."
+        "accepted": "The bar has accepted it already, so it can no longer be cancelled.",
+        "limit": "You already cancelled an order with this card here today. If something is wrong, ask at the bar."
       },
       "views": {
         "awaiting_payment": {

@@ -93,6 +93,8 @@ const orderSchema = new Schema(
     isVip: { type: Boolean, default: false },
     acceptedTermsVersion: { type: String, required: true },
     rejectionReason: String,
+    // Set by transition() when the guest cancels; counts toward the daily cancel limit per card.
+    cancelledByGuest: Boolean,
     receiptEnteredAt: Date,
     receiptEnteredBy: { type: objectId, ref: "VenueMember" },
     paidAt: Date,
@@ -161,11 +163,17 @@ const paymentSchema = new Schema(
     cardBrand: String,
     cardLast4: { type: String, match: /^\d{4}$/ },
     wallet: String,
+    // Stripe's card fingerprint, only to cap guest cancels per card; removed after 2 days (retention).
+    cardFingerprint: { type: String, select: false },
   },
   { timestamps: true },
 );
 paymentSchema.index({ stripePaymentIntentId: 1 }, { unique: true });
 paymentSchema.index({ orderId: 1 });
+paymentSchema.index(
+  { venueId: 1, cardFingerprint: 1 },
+  { partialFilterExpression: { cardFingerprint: { $exists: true } } },
+);
 export const Payment = defineModel("Payment", paymentSchema);
 export type PaymentDoc = InferSchemaType<typeof paymentSchema>;
 

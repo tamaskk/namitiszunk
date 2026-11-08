@@ -102,6 +102,7 @@ async function storeCardDetails(
           cardBrand: card.brand ?? undefined,
           cardLast4: card.last4 ?? undefined,
           wallet: card.wallet?.type ?? undefined,
+          cardFingerprint: card.fingerprint ?? undefined,
         },
       },
     );
@@ -125,6 +126,8 @@ export async function handlePaymentSucceeded(
 
   let late = false;
   if (typeof payment === "object") {
+    // Before the order reaches New: the guest cancel limit needs the card fingerprint from the first moment.
+    await storeCardDetails(event, payment.id);
     try {
       await transition(payment.orderId, "payment_succeeded", systemStripe);
     } catch (error) {
@@ -164,7 +167,6 @@ export async function handlePaymentSucceeded(
   if (late && typeof payment === "object") {
     await refundOrderInFull(payment.orderId, "late_payment");
   }
-  if (typeof payment === "object") await storeCardDetails(event, payment.id);
   // shortcut: the receipt e-mail (intent.receipt_email / the charge's billing_details.email) has no field on Order or Payment yet, so it is not stored.
 }
 

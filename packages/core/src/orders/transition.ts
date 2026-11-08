@@ -171,6 +171,9 @@ export async function transitionWith(
         }
         set.rejectionReason = options.reason.trim();
       }
+      if (event === "reject" && actor.kind === "guest") {
+        set.cancelledByGuest = true;
+      }
 
       // Conditional on the status we read, so a concurrent change cannot be overwritten.
       const updated = await Order.findOneAndUpdate(

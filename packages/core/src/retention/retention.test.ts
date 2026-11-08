@@ -105,6 +105,31 @@ describe("runRetention", () => {
     expect(await Order.collection.countDocuments({ _id: day31 })).toBe(1);
   });
 
+  it("removes the card fingerprint only from payments older than 2 days", async () => {
+    const insertPayment = async (createdAt: Date) => {
+      const _id = new Types.ObjectId();
+      await Payment.collection.insertOne({
+        _id,
+        orderId: new Types.ObjectId(),
+        stripePaymentIntentId: String(_id),
+        cardFingerprint: "fp_card_a",
+        createdAt,
+      });
+      return _id;
+    };
+    const day2 = await insertPayment(daysAgo(2));
+    const day3 = await insertPayment(daysAgo(3));
+
+    const counts = await runRetention({ now, dryRun: false });
+
+    const fingerprintOf = async (id: Types.ObjectId) =>
+      (await Payment.collection.findOne({ _id: id }))
+        ?.cardFingerprint as unknown;
+    expect(counts.paymentsFingerprintCleared).toBe(1);
+    expect(await fingerprintOf(day2)).toBe("fp_card_a");
+    expect(await fingerprintOf(day3)).toBeUndefined();
+  });
+
   it("deletes orders, payments and refunds older than 8 years, keeps the rest", async () => {
     const older = await insertOrder(yearsAgo(8, -1));
     const exact = await insertOrder(yearsAgo(8));
@@ -116,6 +141,7 @@ describe("runRetention", () => {
 
     expect(counts).toEqual({
       ordersContactCleared: 0,
+      paymentsFingerprintCleared: 0,
       ordersDeleted: 1,
       paymentsDeleted: 1,
       refundsDeleted: 1,
@@ -170,6 +196,7 @@ describe("runRetention", () => {
 
     expect(second).toEqual({
       ordersContactCleared: 0,
+      paymentsFingerprintCleared: 0,
       ordersDeleted: 0,
       paymentsDeleted: 0,
       refundsDeleted: 0,
@@ -187,6 +214,7 @@ describe("runRetention", () => {
 
     expect(counts).toEqual({
       ordersContactCleared: 1,
+      paymentsFingerprintCleared: 0,
       ordersDeleted: 1,
       paymentsDeleted: 1,
       refundsDeleted: 1,
