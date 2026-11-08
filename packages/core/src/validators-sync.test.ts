@@ -12,6 +12,7 @@ vi.mock("server-only", () => ({}));
 describe("validators stay in sync with the models and pricing", () => {
   it.each([
     "orderStatuses",
+    "problemCategories",
     "vatRates",
     "discountTypes",
     "venueStatuses",

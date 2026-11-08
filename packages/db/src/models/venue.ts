@@ -36,6 +36,8 @@ const venueSchema = new Schema(
     name: { type: String, required: true, trim: true },
     address: { street: String, city: String, postalCode: String },
     company: { name: String, taxNumber: String, registrationNumber: String },
+    // Where guest problem reports go (T-046); onboarding (T-068) makes it required.
+    contactEmail: { type: String, trim: true, lowercase: true },
     timezone: { type: String, default: "Europe/Budapest" },
     currency: { type: String, enum: ["HUF"], default: "HUF" },
     businessDayStart: { ...timeOfDay, default: "06:00" },

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hufSchema, huPhoneSchema, objectIdSchema } from "./shared";
+import { hufSchema, huPhoneSchema, locales, objectIdSchema } from "./shared";
 
 // Same literals as packages/db and packages/core; packages/core/src/validators-sync.test.ts keeps them equal.
 export const orderStatuses = [
@@ -98,11 +98,33 @@ export const orderResponseSchema = z.object({
   refundedHuf: hufSchema,
 });
 
+// Same literals as packages/db; packages/core/src/validators-sync.test.ts keeps them equal.
+export const problemCategories = [
+  "not_received",
+  "wrong_order",
+  "payment",
+  "other",
+] as const;
+
+/** POST /v1/orders/{id}/report: the guest reports a problem with a paid order (T-046). */
+export const reportProblemInputSchema = z.object({
+  category: z.enum(problemCategories, { error: "validation.required" }),
+  message: z
+    .string()
+    .trim()
+    .max(1000, { error: "validation.tooLong" })
+    .optional(),
+  email: z.email({ error: "validation.email.invalid" }).optional(),
+});
+
+export const reportProblemResponseSchema = z.object({
+  reported: z.literal(true),
+});
+
 /** POST /v1/orders/{id}/confirmation-email: the guest sends the confirmation to an address (T-044). */
 export const confirmationEmailInputSchema = z.object({
   email: z.email({ error: "validation.email.invalid" }),
-  // Same literals as @namitiszunk/i18n locales; validators stays free of the i18n package.
-  locale: z.enum(["hu", "en"]),
+  locale: z.enum(locales),
 });
 
 export const confirmationEmailResponseSchema = z.object({
@@ -114,6 +136,7 @@ export type TipChoiceInput = z.infer<typeof tipChoiceSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
 export type CreateOrderResponse = z.infer<typeof createOrderResponseSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
+export type ReportProblemInput = z.infer<typeof reportProblemInputSchema>;
 export type ConfirmationEmailInput = z.infer<
   typeof confirmationEmailInputSchema
 >;
