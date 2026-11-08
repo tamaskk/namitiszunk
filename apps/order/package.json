@@ -7,7 +7,7 @@
     "start": "next start --port 3001",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run --dir app",
+    "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
     "@namitiszunk/ui": "workspace:*",
     "@namitiszunk/validators": "workspace:*",
     "@sentry/nextjs": "11.10.0",
+    "lucide-react": "1.67.0",
     "next": "16.4.4",
     "next-intl": "4.14.9",
     "react": "19.3.0",

@@ -85,16 +85,14 @@
       "quantity": "Mennyiség",
       "increase": "Eggyel több",
       "decrease": "Eggyel kevesebb",
-      "note": "Megjegyzés a pultnak",
-      "notePlaceholder": "Például kevés jéggel",
-      "noteCount": "{count}/{max} karakter",
       "required": "Kötelező",
       "pickOne": "Válassz egyet",
       "pickUpTo": "Legfeljebb {max}",
-      "pickRange": "Válassz {min}–{max} között",
+      "pickRange": "Válassz {min}–{max} darabot",
       "missing": "Még válassz: {groups}",
       "tooMany": "Túl sok választás: {groups}",
-      "closeLabel": "Bezárás"
+      "closeLabel": "Bezárás",
+      "none": "Nem kérek"
     },
     "cart": {
       "open": "Kosár · {count} tétel · {subtotal}",
@@ -106,7 +104,6 @@
       "decrease": "Eggyel kevesebb: {name}",
       "remove": "Törlés: {name}",
       "quantity": "{count} db",
-      "note": "Megjegyzés: {note}",
       "limit": "Egy rendelésben legfeljebb {max} tétel lehet.",
       "soldOut": "{name} közben elfogyott, kivettük a kosárból.",
       "unavailable": "{name} már nem rendelhető, kivettük a kosárból.",
@@ -115,7 +112,14 @@
       "error": "Nem sikerült ellenőrizni a kosarat. Próbáld újra.",
       "rateLimited": "Túl sok próbálkozás. Várj egy percet, aztán próbáld újra.",
       "closeLabel": "Bezárás",
-      "removeShort": "Törlés"
+      "removeShort": "Törlés",
+      "openPaused": "Kosár (szünet) · {count} tétel · {subtotal}",
+      "openClosed": "Kosár (zárva) · {count} tétel · {subtotal}",
+      "paused": "A rendelés most szünetel, a kosarad megmarad.",
+      "closed": "Most zárva vagyunk, rendelni nem lehet.",
+      "backToMenu": "Vissza a menübe",
+      "invalid": "A kosár tartalma nem olvasható. Ürítsd ki, és tedd bele újra.",
+      "clear": "Kosár ürítése"
     },
     "checkout": {
       "title": "Fizetés",

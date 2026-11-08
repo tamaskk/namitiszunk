@@ -11,13 +11,18 @@ import {
   Input,
 } from "@namitiszunk/ui";
 import type { VenueStatusResponse } from "@namitiszunk/validators";
-import { MAX_QUANTITY_PER_LINE } from "@namitiszunk/validators/cart-limits";
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { itemCount, useCart, type CartLine } from "@/components/cart/use-cart";
+import {
+  cartSubtotalHuf,
+  itemCount,
+  useCart,
+  withLine,
+  type CartLine,
+} from "@/components/cart/use-cart";
 
 // The sheets (Radix Dialog) load after first paint, keeping the menu inside its JS budget.
 // Neither has server markup: the cart is empty until localStorage is read, the sheet starts closed.
@@ -151,6 +156,7 @@ export function MenuBrowser({
   renderedAt,
 }: Props) {
   const t = useTranslations("order.menu");
+  const tCart = useTranslations("order.cart");
   const { status, at, stale } = useVenueStatus(
     slug,
     barId,
@@ -161,21 +167,10 @@ export function MenuBrowser({
   const [openItem, setOpenItem] = useState<PublicMenuItem | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const { lines, update } = useCart(venueId);
-  const remaining = maxItemsPerOrder - itemCount(lines);
-
+  const count = itemCount(lines);
+  const remaining = maxItemsPerOrder - count;
   const addLine = (line: CartLine) =>
-    update((current) => {
-      const same = current.find((l) => l.key === line.key);
-      // The same choice adds up on one line while the line stays within its cap.
-      return same && same.quantity + line.quantity <= MAX_QUANTITY_PER_LINE
-        ? current.map((l) =>
-            l === same ? { ...l, quantity: l.quantity + line.quantity } : l,
-          )
-        : [
-            ...current,
-            { ...line, key: same ? `${line.key}+${Date.now()}` : line.key },
-          ];
-    });
+    update((current) => withLine(current, line));
   const navRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -332,7 +327,8 @@ export function MenuBrowser({
                   key={item.id}
                   item={item}
                   soldOut={soldOut.has(item.id)}
-                  atLimit={remaining < 1}
+                  // A paused or closed venue takes no items; the live region above says why.
+                  blocked={remaining < 1 || status.status !== "open"}
                   onOpen={(opener) => {
                     openerRef.current = opener;
                     setOpenItem(item);
@@ -349,6 +345,7 @@ export function MenuBrowser({
         item={openItem}
         remaining={remaining}
         maxItemsPerOrder={maxItemsPerOrder}
+        status={status.status}
         onAdd={addLine}
         onClose={() => setOpenItem(null)}
         returnFocus={() => openerRef.current?.focus()}
@@ -361,8 +358,18 @@ export function MenuBrowser({
         zoneId={zoneId}
         search={search}
         soldOut={soldOut}
+        status={status.status}
         maxItemsPerOrder={maxItemsPerOrder}
+        hidden={openItem !== null}
       />
+      {/* Always mounted (the cart sheet loads later), so every change to the cart is announced. */}
+      <p role="status" className="sr-only">
+        {count > 0 &&
+          tCart("open", {
+            count,
+            subtotal: formatHuf(cartSubtotalHuf(lines)),
+          })}
+      </p>
     </>
   );
 }
@@ -370,13 +377,13 @@ export function MenuBrowser({
 function ProductCard({
   item,
   soldOut,
-  atLimit,
+  blocked,
   onOpen,
   eager,
 }: {
   item: PublicMenuItem;
   soldOut: boolean;
-  atLimit: boolean;
+  blocked: boolean;
   onOpen: (opener: HTMLElement) => void;
   eager: boolean;
 }) {
@@ -430,7 +437,7 @@ function ProductCard({
           <Button
             variant="secondary"
             className="self-end"
-            disabled={atLimit}
+            disabled={blocked}
             aria-label={tProduct("addLabel", { name: item.name })}
             onClick={(event) => onOpen(event.currentTarget)}
           >

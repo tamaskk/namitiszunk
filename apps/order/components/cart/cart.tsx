@@ -5,6 +5,7 @@ import { formatHuf } from "@namitiszunk/i18n";
 import {
   Badge,
   Button,
+  cn,
   EmptyState,
   Sheet,
   SheetContent,
@@ -13,10 +14,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@namitiszunk/ui";
+import type { VenueStatusResponse } from "@namitiszunk/validators";
 import { MAX_QUANTITY_PER_LINE } from "@namitiszunk/validators/cart-limits";
+import { MinusIcon, PlusIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { validateCartAction } from "@/app/[locale]/v/[slug]/actions";
 
@@ -32,7 +35,11 @@ type Props = {
   search: string;
   /** Live sold-out ids from the venue status poll. */
   soldOut: ReadonlySet<string>;
+  /** The live venue status: "Tovább" needs an open venue. */
+  status: VenueStatusResponse["status"];
   maxItemsPerOrder: number;
+  /** Another sheet is open: the bar steps aside, one primary action at a time. */
+  hidden: boolean;
 };
 
 /** The floating cart button and the cart sheet (T-041); tip, fees and the total belong to checkout (T-042). */
@@ -44,20 +51,30 @@ export function Cart({
   zoneId,
   search,
   soldOut,
+  status,
   maxItemsPerOrder,
+  hidden,
 }: Props) {
   const t = useTranslations("order.cart");
   const tMenu = useTranslations("order.menu");
   const locale = useLocale();
   const router = useRouter();
+  const notesRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<"error" | "rateLimited" | "invalid">();
 
   const count = itemCount(lines);
   const subtotal = formatHuf(cartSubtotalHuf(lines));
   const atLimit = count >= maxItemsPerOrder;
+  const closedReason = status === "open" ? null : t(status);
+  const barLabel =
+    status === "paused"
+      ? "openPaused"
+      : status === "closed"
+        ? "openClosed"
+        : "open";
 
   const setQuantity = (key: string, quantity: number) =>
     update((current) =>
@@ -82,10 +99,13 @@ export function Cart({
     }
   };
 
+  const goToCheckout = () =>
+    router.push(`/${locale}/v/${slug}/checkout${search ? `?${search}` : ""}`);
+
   const proceed = async () => {
     const sent = lines;
     setBusy(true);
-    setError(null);
+    setError(undefined);
     setNotes([]);
     try {
       const result = await validateCartAction({
@@ -96,21 +116,22 @@ export function Cart({
           itemId: line.itemId,
           quantity: line.quantity,
           modifierIds: line.modifierIds,
-          note: line.note || undefined,
           unitPriceHuf: line.unitPriceHuf,
         })),
       });
       if ("error" in result) {
-        setError(
-          result.error.code === "rate_limited" ? t("rateLimited") : t("error"),
-        );
+        const { code } = result.error;
+        // The pre-check is a courtesy: when it is throttled, checkout (createOrder) still checks everything.
+        if (code === "rate_limited" || code === "client_unknown") {
+          goToCheckout();
+          return;
+        }
+        setError(code === "validation_failed" ? "invalid" : "error");
         return;
       }
       const { problems, overLimit } = result.data;
       if (problems.length === 0 && !overLimit) {
-        router.push(
-          `/${locale}/v/${slug}/checkout${search ? `?${search}` : ""}`,
-        );
+        goToCheckout();
         return;
       }
       // Problems point at the lines as sent; match them by key, the cart may have moved on.
@@ -132,9 +153,11 @@ export function Cart({
           ? [t("limit", { max: result.data.maxItemsPerOrder })]
           : []),
       ]);
+      // The messages say what changed; move the guest there.
+      requestAnimationFrame(() => notesRef.current?.focus());
     } catch {
       // Offline or a server error: the cart stays as it is, the guest can try again.
-      setError(t("error"));
+      setError("error");
     } finally {
       setBusy(false);
     }
@@ -147,10 +170,20 @@ export function Cart({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (!next) setNotes([]);
+        if (!next) {
+          setNotes([]);
+          setError(undefined);
+        }
       }}
     >
-      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-120 flex-col gap-2 border-t border-border bg-bg p-4">
+      {/* Hidden, not unmounted, while a sheet is open: one primary at a time, and Radix still
+          returns focus to the trigger. The bottom padding clears the iPhone home indicator. */}
+      <div
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-120 flex-col gap-2 border-t border-border bg-bg p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]",
+          (hidden || open) && "invisible",
+        )}
+      >
         {atLimit && (
           <p className="text-small text-warning">
             {t("limit", { max: maxItemsPerOrder })}
@@ -158,7 +191,7 @@ export function Cart({
         )}
         <SheetTrigger asChild>
           <Button className="w-full tabular-nums">
-            {t("open", { count, subtotal })}
+            {t(barLabel, { count, subtotal })}
           </Button>
         </SheetTrigger>
       </div>
@@ -170,7 +203,20 @@ export function Cart({
           </SheetDescription>
         </SheetHeader>
 
-        <div aria-live="polite" className="flex flex-col gap-2 empty:hidden">
+        <div
+          ref={notesRef}
+          tabIndex={-1}
+          aria-live="polite"
+          className="flex flex-col gap-2 outline-none empty:hidden"
+        >
+          {closedReason && (
+            <p
+              id="cart-closed-reason"
+              className="rounded-lg border border-warning bg-bg p-4 text-body"
+            >
+              {closedReason}
+            </p>
+          )}
           {notes.map((note) => (
             <p
               key={note}
@@ -180,17 +226,35 @@ export function Cart({
             </p>
           ))}
           {error && (
-            <p
+            <div
               role="alert"
-              className="rounded-lg border border-danger bg-bg p-4 text-body"
+              className="flex flex-col gap-4 rounded-lg border border-danger bg-bg p-4 text-body"
             >
-              {error}
-            </p>
+              <p>{t(error)}</p>
+              {error === "invalid" && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    update(() => []);
+                    setError(undefined);
+                  }}
+                >
+                  {t("clear")}
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
         {lines.length === 0 ? (
-          <EmptyState message={t("empty")} />
+          <EmptyState
+            message={t("empty")}
+            action={
+              <Button variant="secondary" onClick={() => setOpen(false)}>
+                {t("backToMenu")}
+              </Button>
+            }
+          />
         ) : (
           <ul className="flex flex-col gap-4">
             {lines.map((line) => (
@@ -209,11 +273,6 @@ export function Cart({
                     {line.options.join(", ")}
                   </p>
                 )}
-                {line.note && (
-                  <p className="text-small text-text-muted">
-                    {t("note", { note: line.note })}
-                  </p>
-                )}
                 {soldOut.has(line.itemId) && (
                   <Badge status="neutral" className="self-start">
                     {tMenu("soldOut")}
@@ -226,11 +285,11 @@ export function Cart({
                     disabled={line.quantity <= 1}
                     onClick={() => setQuantity(line.key, line.quantity - 1)}
                   >
-                    <span aria-hidden>−</span>
+                    <MinusIcon aria-hidden />
                   </Button>
                   <output
-                    aria-label={line.name}
-                    className="w-8 text-center text-body tabular-nums"
+                    aria-label={t("quantity", { count: line.quantity })}
+                    className="w-10 text-center text-body tabular-nums"
                   >
                     {line.quantity}
                   </output>
@@ -240,7 +299,7 @@ export function Cart({
                     disabled={atLimit || line.quantity >= MAX_QUANTITY_PER_LINE}
                     onClick={() => setQuantity(line.key, line.quantity + 1)}
                   >
-                    <span aria-hidden>+</span>
+                    <PlusIcon aria-hidden />
                   </Button>
                   <Button
                     variant="ghost"
@@ -257,15 +316,16 @@ export function Cart({
         )}
 
         {lines.length > 0 && (
-          <div className="sticky bottom-0 -mx-6 -mb-6 mt-auto flex flex-col gap-2 border-t border-border bg-surface p-6">
+          <div className="sticky bottom-0 -mx-6 -mb-6 mt-auto flex flex-col gap-2 border-t border-border bg-surface p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
             <p className="flex justify-between text-body font-semibold tabular-nums">
               <span>{t("subtotal")}</span>
               <span>{subtotal}</span>
             </p>
             <Button
               className="w-full"
-              disabled={busy}
-              aria-busy={busy}
+              loading={busy}
+              disabled={closedReason !== null}
+              aria-describedby={closedReason ? "cart-closed-reason" : undefined}
               onClick={() => void proceed()}
             >
               {t("continue")}

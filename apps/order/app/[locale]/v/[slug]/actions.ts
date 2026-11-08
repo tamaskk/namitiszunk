@@ -17,7 +17,8 @@ export type ValidateCartResult =
       };
     };
 
-const RATE_LIMIT = { limit: 30, windowSeconds: 60 };
+// The same budget as the status route: one guest phone polls and checks out on one venue.
+const RATE_LIMIT = { limit: 300, windowSeconds: 60 };
 
 /** "Tovább" in the cart (T-041): re-checks the cart against the database before checkout. */
 export async function validateCartAction(
@@ -32,7 +33,12 @@ export async function validateCartAction(
     new Request("http://action.local", { headers: await headers() }),
   );
   if (ip === null) return { error: { code: "client_unknown" } };
-  if (await hitRateLimit(`action validateCart|ip:${ip}`, RATE_LIMIT)) {
+  if (
+    await hitRateLimit(
+      `action validateCart|ip:${ip}|venue:${parsed.data.slug}`,
+      RATE_LIMIT,
+    )
+  ) {
     return { error: { code: "rate_limited" } };
   }
 

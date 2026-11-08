@@ -9,22 +9,20 @@ import { formatHuf } from "@namitiszunk/i18n";
 import {
   Button,
   cn,
-  focusRing,
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@namitiszunk/ui";
-import {
-  CART_NOTE_MAX,
-  MAX_QUANTITY_PER_LINE,
-} from "@namitiszunk/validators/cart-limits";
+import type { VenueStatusResponse } from "@namitiszunk/validators";
+import { MAX_QUANTITY_PER_LINE } from "@namitiszunk/validators/cart-limits";
+import { MinusIcon, PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
-import { lineKey, type CartLine } from "../cart/use-cart";
+import { lineKey, type CartLine } from "@/components/cart/use-cart";
 
 type Props = {
   /** The item whose sheet is open; null closes it. */
@@ -32,11 +30,17 @@ type Props = {
   /** How many more items fit under the venue's limit. */
   remaining: number;
   maxItemsPerOrder: number;
+  /** The live venue status: only an open venue takes items. */
+  status: VenueStatusResponse["status"];
   onAdd: (line: CartLine) => void;
   onClose: () => void;
 };
 
-/** The bottom product sheet (T-041): options, quantity and a note, then "Kosárba". */
+// The same ring as focusRing, on the row around a focused radio or checkbox.
+const rowFocusRing =
+  "has-focus-visible:ring-2 has-focus-visible:ring-primary has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-(--focus-offset)";
+
+/** The bottom product sheet (T-041): options and quantity, then "Kosárba". */
 export function ProductSheet({
   item,
   onClose,
@@ -81,15 +85,16 @@ function ProductForm({
   item,
   remaining,
   maxItemsPerOrder,
+  status,
   onAdd,
   onClose,
 }: Props & { item: PublicMenuItem }) {
   const t = useTranslations("order.product");
   const tCart = useTranslations("order.cart");
   const id = useId();
+  const formRef = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<string[]>([]);
   const [quantity, setQuantity] = useState(1);
-  const [note, setNote] = useState("");
 
   const maxQuantity = Math.min(MAX_QUANTITY_PER_LINE, remaining);
   const problems = validateSelection(item.modifierGroups, picked);
@@ -102,45 +107,59 @@ function ProductForm({
       .join(", ");
   const missing = namesOf("missing");
   const tooMany = namesOf("tooMany");
-  const atLimit = maxQuantity < 1;
-  const valid = problems.length === 0 && !atLimit;
+  const reason =
+    status !== "open"
+      ? tCart(status)
+      : maxQuantity < 1
+        ? tCart("limit", { max: maxItemsPerOrder })
+        : missing
+          ? t("missing", { groups: missing })
+          : tooMany
+            ? t("tooMany", { groups: tooMany })
+            : null;
   const unitPriceHuf =
     item.priceHuf + optionsHufOf(item.modifierGroups, picked);
 
-  const toggle = (group: PublicModifierGroup, modifierId: string) => {
+  const pick = (group: PublicModifierGroup, modifierId: string | null) => {
     const inGroup = new Set(group.modifiers.map((m) => m.id));
     setPicked((current) => {
       if (group.maxSelect === 1) {
-        return [...current.filter((m) => !inGroup.has(m)), modifierId];
+        const others = current.filter((m) => !inGroup.has(m));
+        return modifierId ? [...others, modifierId] : others;
       }
-      return current.includes(modifierId)
+      return current.includes(modifierId!)
         ? current.filter((m) => m !== modifierId)
-        : [...current, modifierId];
+        : [...current, modifierId!];
     });
   };
 
   const add = () => {
-    const trimmed = note.trim();
-    const modifierIds = item.modifierGroups.flatMap((g) =>
-      g.modifiers.filter((m) => picked.includes(m.id)).map((m) => m.id),
+    if (reason) {
+      // aria-disabled keeps the button focusable; send the guest to the first group to fix.
+      const first = problems.find((p) => p.groupId !== null)?.groupId;
+      formRef.current
+        ?.querySelector<HTMLInputElement>(`[data-group="${first}"] input`)
+        ?.focus();
+      return;
+    }
+    const chosen = item.modifierGroups.flatMap((g) =>
+      g.modifiers.filter((m) => picked.includes(m.id)),
     );
+    const modifierIds = chosen.map((m) => m.id);
     onAdd({
-      key: lineKey(item.id, modifierIds, trimmed),
+      key: lineKey(item.id, modifierIds),
       itemId: item.id,
       name: item.name,
       unitPriceHuf,
       quantity: Math.min(quantity, maxQuantity),
       modifierIds,
-      options: item.modifierGroups.flatMap((g) =>
-        g.modifiers.filter((m) => picked.includes(m.id)).map((m) => m.name),
-      ),
-      note: trimmed,
+      options: chosen.map((m) => m.name),
     });
     onClose();
   };
 
   return (
-    <>
+    <div ref={formRef} className="contents">
       {item.imageUrl && (
         <div className="relative -mx-6 -mt-6 aspect-video">
           <Image
@@ -154,52 +173,71 @@ function ProductForm({
       )}
       <SheetHeader>
         <SheetTitle>{item.name}</SheetTitle>
-        <p className="text-body tabular-nums">{formatHuf(item.priceHuf)}</p>
-        {/* Radix wants a description; an item without one gets the price read out instead. */}
-        <SheetDescription>
-          {item.description ?? formatHuf(item.priceHuf)}
+        {/* The price is the dialog's description, so it is read once. */}
+        <SheetDescription className="text-body text-text tabular-nums">
+          {formatHuf(item.priceHuf)}
         </SheetDescription>
+        {item.description && (
+          <p className="text-small text-text-muted">{item.description}</p>
+        )}
       </SheetHeader>
 
       {item.modifierGroups.map((group) => {
         const hint = groupHint(group, t);
         const radio = group.maxSelect === 1;
-        const full =
-          !radio &&
-          group.modifiers.filter((m) => picked.includes(m.id)).length >=
-            group.maxSelect;
+        const required = minPicks(group) > 0;
+        const count = group.modifiers.filter((m) =>
+          picked.includes(m.id),
+        ).length;
+        const full = !radio && count >= group.maxSelect;
+        // An optional single choice can be undone with an explicit "none" row.
+        const rows = [
+          ...(radio && !required ? [null] : []),
+          ...group.modifiers,
+        ];
         return (
-          <fieldset key={group.id} className="flex flex-col gap-2">
+          <fieldset
+            key={group.id}
+            data-group={group.id}
+            className="flex flex-col gap-2"
+          >
             <legend className="mb-2 flex w-full flex-wrap items-baseline gap-2">
               <span className="text-body font-semibold">{group.name}</span>
-              {minPicks(group) > 0 && (
+              {required && (
                 <span className="text-small text-warning">{t("required")}</span>
               )}
               {hint && (
                 <span className="text-small text-text-muted">{hint}</span>
               )}
             </legend>
-            {group.modifiers.map((modifier) => {
-              const checked = picked.includes(modifier.id);
+            {rows.map((modifier) => {
+              const checked = modifier
+                ? picked.includes(modifier.id)
+                : count === 0;
+              const disabled = !checked && full;
               return (
                 <label
-                  key={modifier.id}
+                  key={modifier?.id ?? "none"}
                   className={cn(
-                    "flex min-h-12 cursor-pointer items-center gap-4 rounded-md border px-4 has-focus-visible:ring-2 has-focus-visible:ring-primary",
+                    "flex min-h-12 cursor-pointer items-center gap-4 rounded-md border px-4",
+                    rowFocusRing,
                     checked ? "border-primary" : "border-border",
-                    !checked && full && "cursor-not-allowed opacity-50",
+                    disabled && "cursor-not-allowed opacity-50",
                   )}
                 >
                   <input
                     type={radio ? "radio" : "checkbox"}
                     name={`${id}-${group.id}`}
                     checked={checked}
-                    disabled={!checked && full}
-                    onChange={() => toggle(group, modifier.id)}
-                    className="size-5 accent-primary"
+                    disabled={disabled}
+                    required={radio && required}
+                    onChange={() => pick(group, modifier?.id ?? null)}
+                    className="size-5 accent-primary outline-none"
                   />
-                  <span className="flex-1 text-body">{modifier.name}</span>
-                  {modifier.priceDeltaHuf > 0 && (
+                  <span className="flex-1 text-body">
+                    {modifier?.name ?? t("none")}
+                  </span>
+                  {modifier && modifier.priceDeltaHuf > 0 && (
                     <span className="text-small text-text-muted tabular-nums">
                       +{formatHuf(modifier.priceDeltaHuf)}
                     </span>
@@ -226,11 +264,11 @@ function ProductForm({
             disabled={quantity <= 1}
             onClick={() => setQuantity((q) => q - 1)}
           >
-            <span aria-hidden>−</span>
+            <MinusIcon aria-hidden />
           </Button>
           <output
             aria-live="polite"
-            className="w-8 text-center text-body tabular-nums"
+            className="w-10 text-center text-body tabular-nums"
           >
             {quantity}
           </output>
@@ -240,34 +278,9 @@ function ProductForm({
             disabled={quantity >= maxQuantity}
             onClick={() => setQuantity((q) => q + 1)}
           >
-            <span aria-hidden>+</span>
+            <PlusIcon aria-hidden />
           </Button>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <label htmlFor={`${id}-note`} className="text-small font-medium">
-          {t("note")}
-        </label>
-        <textarea
-          id={`${id}-note`}
-          value={note}
-          maxLength={CART_NOTE_MAX}
-          rows={2}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder={t("notePlaceholder")}
-          aria-describedby={`${id}-note-count`}
-          className={cn(
-            "rounded-md border border-border bg-bg px-4 py-2 text-body text-text placeholder:text-text-muted",
-            focusRing,
-          )}
-        />
-        <p
-          id={`${id}-note-count`}
-          className="self-end text-small text-text-muted tabular-nums"
-        >
-          {t("noteCount", { count: note.length, max: CART_NOTE_MAX })}
-        </p>
       </div>
 
       {/* Sticky, so a long option list never hides the button (spec 41, risks). */}
@@ -277,23 +290,17 @@ function ProductForm({
           aria-live="polite"
           className="text-small text-warning empty:hidden"
         >
-          {atLimit
-            ? tCart("limit", { max: maxItemsPerOrder })
-            : missing
-              ? t("missing", { groups: missing })
-              : tooMany
-                ? t("tooMany", { groups: tooMany })
-                : null}
+          {reason}
         </p>
         <Button
-          disabled={!valid}
-          aria-describedby={`${id}-why`}
+          aria-disabled={reason !== null}
+          aria-describedby={reason ? `${id}-why` : undefined}
           onClick={add}
-          className="w-full"
+          className="w-full aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
         >
           {t("toCart", { price: formatHuf(unitPriceHuf * quantity) })}
         </Button>
       </div>
-    </>
+    </div>
   );
 }
