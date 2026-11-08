@@ -11,6 +11,8 @@ import {
   orderResponseSchema,
   reportProblemInputSchema,
   reportProblemResponseSchema,
+  reviewInputSchema,
+  reviewResponseSchema,
   pingResponseSchema,
   realtimeTokenInputSchema,
   realtimeTokenResponseSchema,
@@ -204,6 +206,21 @@ export function createApiClient(options: ApiClientOptions) {
           confirmationEmailResponseSchema,
           {
             body: parseInput(confirmationEmailInputSchema, input),
+            headers: { "x-guest-token": guestToken },
+          },
+        ),
+      /** POST /v1/orders/{id}/review: once per picked-up order (409 after). */
+      review: async (
+        orderId: string,
+        guestToken: string,
+        input: z.input<typeof reviewInputSchema>,
+      ) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/review`,
+          reviewResponseSchema,
+          {
+            body: parseInput(reviewInputSchema, input),
             headers: { "x-guest-token": guestToken },
           },
         ),

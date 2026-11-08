@@ -13,6 +13,7 @@ export {
   type ProblemReportMail,
   reportProblem,
 } from "./problem-report";
+export { getGuestThanks, submitReview } from "./review";
 export {
   cancelGuestOrder,
   getGuestOrder,
