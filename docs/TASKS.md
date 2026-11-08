@@ -22,3 +22,4 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 
 ## Done
 - [x] T-040 Guest menu page (`apps/order/app/[locale]/v/[slug]`); JS budget redefined as framework baseline + 50 KB gzip; LCP with images measured in T-049
+- [x] T-041 Product sheet and cart (`apps/order/components/product-sheet`, `cart`); item note hidden until T-047

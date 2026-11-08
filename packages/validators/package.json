@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./cart-limits": "./src/cart-limits.ts"
   },
   "scripts": {
     "build": "node scripts/write-openapi.ts",

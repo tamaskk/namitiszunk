@@ -4,6 +4,7 @@ export {
   type MenuContext,
   type PublicMenu,
   type PublicMenuItem,
+  type PublicModifierGroup,
 } from "./public-menu";
 export {
   getVenueStatus,

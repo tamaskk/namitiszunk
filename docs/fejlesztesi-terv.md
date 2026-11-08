@@ -1420,11 +1420,11 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Elfogadási feltételek.**
 
-- [ ] Kötelező opció nélkül a tétel nem tehető kosárba, és a lap megmondja, mi hiányzik.
-- [ ] A 11. tétel hozzáadása alap beállításnál letiltva, üzenettel.
-- [ ] A kosár részösszege feláras opciókkal is megegyezik a szerver számításával.
-- [ ] A kosárba tett, majd az Adminban elfogyottra állított tétel a „Tovább” gombnál kikerül, üzenettel.
-- [ ] A kosár az oldal újratöltése után is megvan.
+- [x] Kötelező opció nélkül a tétel nem tehető kosárba, és a lap megmondja, mi hiányzik.
+- [x] A 11. tétel hozzáadása alap beállításnál letiltva, üzenettel.
+- [x] A kosár részösszege feláras opciókkal is megegyezik a szerver számításával.
+- [x] A kosárba tett, majd az Adminban elfogyottra állított tétel a „Tovább” gombnál kikerül, üzenettel.
+- [x] A kosár az oldal újratöltése után is megvan.
 
 **Tesztelés.** Vitest az opcióvalidációra (min/max, kötelező) és a kosár-újraellenőrzésre; Playwright: opciós tétel kosárba, korlát, elfogyás a kosárban; billentyűzetes és képernyőolvasós bejárás a lapon (49.).
 

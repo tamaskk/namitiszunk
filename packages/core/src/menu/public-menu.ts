@@ -1,7 +1,25 @@
 import "server-only";
 
-import { Bar, Category, Item, Types, Venue, Zone } from "@namitiszunk/db";
+import {
+  Bar,
+  Category,
+  Item,
+  type ItemDoc,
+  Types,
+  Venue,
+  Zone,
+} from "@namitiszunk/db";
 import type { Locale } from "@namitiszunk/i18n";
+
+import {
+  DEFAULT_MAX_ITEMS_PER_ORDER,
+  type SelectableGroup,
+} from "../cart/selection";
+
+export type PublicModifierGroup = Omit<SelectableGroup, "modifiers"> & {
+  name: string;
+  modifiers: { id: string; name: string; priceDeltaHuf: number }[];
+};
 
 export type PublicMenuItem = {
   id: string;
@@ -11,6 +29,7 @@ export type PublicMenuItem = {
   priceHuf: number;
   imageUrl: string | null;
   soldOut: boolean;
+  modifierGroups: PublicModifierGroup[];
 };
 
 export type PublicMenu = {
@@ -20,6 +39,8 @@ export type PublicMenu = {
     name: string;
     logoUrl: string | null;
     coverUrl: string | null;
+    /** The venue's item limit, DEFAULT_MAX_ITEMS_PER_ORDER when unset. */
+    maxItemsPerOrder: number;
   };
   bar: { id: string; name: string } | null;
   categories: { id: string; name: string; items: PublicMenuItem[] }[];
@@ -91,6 +112,28 @@ const localized = (
   locale: Locale,
 ) => (locale === "en" && en ? en : hu);
 
+// Subdocuments get an _id from Mongoose; the inferred type leaves it out.
+const idOf = (doc: object) => String((doc as { _id?: unknown })._id);
+
+/** An item's stored modifier groups with ids and schema defaults filled in; the server rules use the "hu" names. */
+export function publicModifierGroups(
+  groups: ItemDoc["modifierGroups"] | undefined,
+  locale: Locale,
+): PublicModifierGroup[] {
+  return (groups ?? []).map((group) => ({
+    id: idOf(group),
+    name: localized(group.name, group.nameEn, locale),
+    required: group.required ?? false,
+    minSelect: group.minSelect ?? 0,
+    maxSelect: group.maxSelect ?? 1,
+    modifiers: group.modifiers.map((m) => ({
+      id: idOf(m),
+      name: localized(m.name, m.nameEn, locale),
+      priceDeltaHuf: m.priceDeltaHuf ?? 0,
+    })),
+  }));
+}
+
 /**
  * The guest menu of a venue in display order, or null for an unknown slug. `barId` and `isVip`
  * must come from resolveMenuContext, never straight from the URL; they are few distinct values,
@@ -142,6 +185,8 @@ export async function getPublicMenu({
       name: venue.name,
       logoUrl: venue.branding?.logoUrl ?? null,
       coverUrl: venue.branding?.coverUrl ?? null,
+      maxItemsPerOrder:
+        venue.orderRules?.maxItemsPerOrder ?? DEFAULT_MAX_ITEMS_PER_ORDER,
     },
     bar: bar ? { id: bar._id.toString(), name: bar.name } : null,
     categories: categories
@@ -159,6 +204,7 @@ export async function getPublicMenu({
             priceHuf: item.priceHuf,
             imageUrl: item.imageUrl ?? null,
             soldOut: !item.isAvailable,
+            modifierGroups: publicModifierGroups(item.modifierGroups, locale),
           })),
       }))
       .filter((category) => category.items.length > 0),
