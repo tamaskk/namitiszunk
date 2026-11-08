@@ -31,6 +31,8 @@ beforeEach(() => {
     pausedUntil: new Date("2026-11-07T22:10:00Z"),
     estimatedWaitMinutes: 6,
     soldOutItemIds: ["c".repeat(24)],
+    lastOrderAt: new Date("2026-11-08T02:45:00Z"),
+    nextOpenAt: null,
   });
 });
 
@@ -48,6 +50,8 @@ describe("GET /api/venues/[slug]/status", () => {
       pausedUntil: "2026-11-07T22:10:00.000Z",
       estimatedWaitMinutes: 6,
       soldOutItemIds: ["c".repeat(24)],
+      lastOrderAt: "2026-11-08T02:45:00.000Z",
+      nextOpenAt: null,
     });
     expect(getVenueStatus).toHaveBeenCalledWith({ slug: "demo", barId });
   });

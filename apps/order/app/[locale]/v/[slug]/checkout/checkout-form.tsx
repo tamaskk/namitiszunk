@@ -13,6 +13,7 @@ import {
 import type {
   CreateOrderInput,
   OrderQuoteResponse,
+  VenueStatusResponse,
 } from "@namitiszunk/validators";
 import { TIP_PERCENT_BPS } from "@namitiszunk/validators/cart-limits";
 import { useLocale, useTranslations } from "next-intl";
@@ -22,12 +23,15 @@ import {
   useEffect,
   useState,
   useSyncExternalStore,
+  useRef,
 } from "react";
 
 import { useCart } from "@/components/cart/use-cart";
+import { HoursNote } from "@/components/states/hours-note";
 import { checkoutKeyFor, forgetCheckoutKey } from "@/lib/checkout-key";
 import { rememberOpenOrder } from "@/lib/open-orders";
 import { orderApi, OrderApiError } from "@/lib/order-api";
+import { useVenueStatus } from "@/lib/use-venue-status";
 
 import { useStripePayment } from "./use-stripe-payment";
 
@@ -46,21 +50,26 @@ const session = () => {
 /** The checkout (T-042): summary, tip, SMS, 18+ and terms, then the Stripe Payment Element. */
 export function CheckoutForm({
   venueId,
+  slug,
   bar,
   zoneId,
-  paused,
+  initialStatus,
+  renderedAt,
   menuHref,
   publishableKey,
 }: {
   venueId: string;
   bar: { id: string; name: string };
+  slug: string;
   zoneId?: string;
-  paused: boolean;
+  initialStatus: VenueStatusResponse;
+  renderedAt: number;
   menuHref: string;
   publishableKey: string;
 }) {
   const t = useTranslations("order.checkout");
   const tError = useTranslations("apiErrors");
+  const tMenu = useTranslations("order.menu");
   type ApiErrorCode = Parameters<typeof tError>[0];
   // The code comes from the network: only a known one gets its own message.
   const apiErrorText = (code?: string) =>
@@ -68,6 +77,9 @@ export function CheckoutForm({
       ? tError(code as ApiErrorCode)
       : undefined;
   const locale = useLocale();
+  // Live, like the menu: a pause that ends while the guest is here unblocks Pay without a reload.
+  const live = useVenueStatus(slug, bar.id, initialStatus, renderedAt);
+  const open = live.status.status === "open";
   // The cart lives in localStorage: until hydration the page shows the skeleton, not "empty".
   const hydrated = useSyncExternalStore(
     noop,
@@ -89,6 +101,7 @@ export function CheckoutForm({
   const [missing, setMissing] = useState<string[]>([]);
   const [paying, setPaying] = useState(false);
   const [payProblem, setPayProblem] = useState<string | null>(null);
+  const paymentHeading = useRef<HTMLHeadingElement>(null);
 
   const cart = {
     barId: bar.id,
@@ -126,9 +139,9 @@ export function CheckoutForm({
       current = false;
       clearTimeout(timer);
     };
-    // cartKey stands for the cart, the bar and the tip.
+    // cartKey stands for the cart, the bar and the tip; `open` prices again once a pause ends.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartKey, hydrated, retries]);
+  }, [cartKey, hydrated, retries, open]);
 
   const {
     attach: attachPayment,
@@ -161,7 +174,10 @@ export function CheckoutForm({
 
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneValid = /^\d{8,9}$/.test(phoneDigits);
-  const blocked = paused || quoteProblem?.code === "bar_paused";
+  const blocked =
+    !open ||
+    quoteProblem?.code === "bar_paused" ||
+    quoteProblem?.code === "bar_closed";
   const quoteCurrent = quote !== null && quotedKey === cartKey;
 
   async function pay(event: FormEvent) {
@@ -302,7 +318,8 @@ export function CheckoutForm({
                   {t("backToCart")}
                 </Link>
               ) : (
-                quoteProblem.code !== "bar_paused" && (
+                quoteProblem.code !== "bar_paused" &&
+                quoteProblem.code !== "bar_closed" && (
                   <Button
                     type="button"
                     variant="secondary"
@@ -419,7 +436,13 @@ export function CheckoutForm({
           aria-labelledby="checkout-payment"
           className="flex flex-col gap-3"
         >
-          <h2 id="checkout-payment" className="text-h3">
+          <h2
+            id="checkout-payment"
+            ref={paymentHeading}
+            tabIndex={-1}
+            // Focused by "Más fizetési mód" after a click, where focus-visible would not show.
+            className="scroll-mt-4 rounded-sm text-h3 outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-(--focus-offset)"
+          >
             {t("payment")}
           </h2>
           {/* Stripe mounts the Payment Element here (card, Apple Pay, Google Pay, Link). */}
@@ -439,11 +462,37 @@ export function CheckoutForm({
           )}
         </section>
 
-        <div aria-live="polite" className="text-body text-danger empty:hidden">
-          {blocked && quoteProblem?.code !== "bar_paused"
-            ? tError("bar_paused")
-            : (payProblem ?? "")}
+        {/* One live region: paused or closed (a warning, as on the menu), offline, a failed payment, the hours. */}
+        <div aria-live="polite" className="flex flex-col gap-3 empty:hidden">
+          {blocked && !quoteProblem ? (
+            <p className="rounded-lg border border-warning bg-surface p-4 text-body">
+              {live.status.status === "closed"
+                ? t("closed")
+                : tError("bar_paused")}
+            </p>
+          ) : (
+            payProblem && <p className="text-body text-danger">{payProblem}</p>
+          )}
+          {live.stale && (
+            <p className="rounded-lg border border-warning bg-surface p-4 text-body">
+              {tMenu("offline")}
+            </p>
+          )}
+          <HoursNote status={live.status} at={live.at} />
         </div>
+        {payProblem && !blocked && (
+          // The order stays awaiting payment: Pay below retries, this goes back to choose another method.
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              paymentHeading.current?.scrollIntoView({ block: "start" });
+              paymentHeading.current?.focus();
+            }}
+          >
+            {t("otherMethod")}
+          </Button>
+        )}
 
         <div className="fixed inset-x-0 bottom-0 border-t border-border bg-bg p-4">
           <div className="mx-auto max-w-120">

@@ -87,7 +87,12 @@
       },
       "offline": "Nincs kapcsolat, az állapot elavult lehet.",
       "clearSearch": "Keresés törlése",
-      "accountLabel": "Fiók"
+      "accountLabel": "Fiók",
+      "nextOpen": "Nyitás: {at}",
+      "lastOrder": "Utolsó rendelés: {time}. Utána a menü megmarad, rendelni nem lehet.",
+      "openOrder": "Van egy folyamatban lévő rendelésed ezen a telefonon.",
+      "openOrderLink": "Rendelésem állapota",
+      "inactive": "Ez a hely még nem fogad rendelést ezen az oldalon. Rendelj a pultnál."
     },
     "product": {
       "add": "Hozzáadás",
@@ -163,7 +168,9 @@
       "paymentLoadFailed": "A fizetési rész nem töltődött be. Ellenőrizd a kapcsolatot, és próbáld újra.",
       "retry": "Újra",
       "payFailed": "A fizetés nem sikerült. Próbáld újra.",
-      "backToCart": "Vissza a kosárhoz"
+      "backToCart": "Vissza a kosárhoz",
+      "closed": "Most zárva vagyunk, ezért nem lehet fizetni. A kosarad megmarad.",
+      "otherMethod": "Más fizetési mód"
     },
     "status": {
       "pageTitle": "Rendelésed",
@@ -229,7 +236,8 @@
           "body": "A fizetés nem fejeződött be, nem vontunk le pénzt."
         }
       },
-      "confirmationLink": "Fizetési visszaigazolás"
+      "confirmationLink": "Fizetési visszaigazolás",
+      "backToMenu": "Vissza a menübe"
     },
     "confirmation": {
       "pageTitle": "Fizetési visszaigazolás",

@@ -16,8 +16,10 @@ export {
 export { getGuestThanks, submitReview } from "./review";
 export {
   cancelGuestOrder,
+  getGuestLiveOrder,
   getGuestOrder,
   type GuestOrderView,
+  type MenuLink,
 } from "./guest-order";
 // transitionWith stays internal: callers outside this package always go through RBAC.
 export {

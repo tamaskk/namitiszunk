@@ -1,10 +1,10 @@
-import { getVenueStatus } from "@namitiszunk/core/menu";
+import { getVenueStatus, isInactiveVenue } from "@namitiszunk/core/menu";
 import type { Locale } from "@namitiszunk/i18n";
-import { cn, focusRing } from "@namitiszunk/ui";
+import { buttonVariants, cn, EmptyState, focusRing } from "@namitiszunk/ui";
 import {
   objectIdSchema,
+  toVenueStatusResponse,
   venueSlugSchema,
-  type VenueStatusResponse,
 } from "@namitiszunk/validators";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { UserIcon } from "lucide-react";
@@ -14,6 +14,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
+import { OpenOrderBanner } from "@/components/states/open-order-banner";
 import { trackMenuViewed } from "@/lib/analytics";
 import { ensureDb } from "@/lib/db";
 import { getMenu } from "@/lib/menu-cache";
@@ -34,11 +35,7 @@ async function loadLiveStatus(slug: string, barId?: string) {
   const now = new Date();
   const status = await getVenueStatus({ slug, barId, now });
   if (!status) return null;
-  const response: VenueStatusResponse = {
-    ...status,
-    pausedUntil: status.pausedUntil?.toISOString() ?? null,
-  };
-  return { status: response, at: now.getTime() };
+  return { status: toVenueStatusResponse(status), at: now.getTime() };
 }
 
 export async function generateMetadata({
@@ -74,7 +71,11 @@ export default async function MenuPage({
     idParam(query.zone),
     idParam(query.bar),
   );
-  if (!menu) notFound();
+  if (!menu) {
+    await ensureDb();
+    if (await isInactiveVenue(slug)) return <InactiveVenue />;
+    notFound();
+  }
 
   const live = await loadLiveStatus(slug, menu.bar?.id);
   if (!live) notFound();
@@ -152,6 +153,7 @@ export default async function MenuPage({
           </div>
         </header>
 
+        <OpenOrderBanner />
         <MenuBrowser
           slug={slug}
           venueId={menu.venue.id}
@@ -165,6 +167,24 @@ export default async function MenuPage({
         />
       </AgeGate>
       <script dangerouslySetInnerHTML={{ __html: ageGatePrePaintScript }} />
+    </main>
+  );
+}
+
+/** A known venue that takes no orders yet (T-048): not a 404, the QR code is right. */
+async function InactiveVenue() {
+  const t = await getTranslations("order.menu");
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-120 flex-col justify-center bg-bg p-4">
+      <EmptyState
+        message={t("inactive")}
+        action={
+          // Same URL again: once the club goes live, the menu opens.
+          <a href="" className={buttonVariants()}>
+            {t("retry")}
+          </a>
+        }
+      />
     </main>
   );
 }

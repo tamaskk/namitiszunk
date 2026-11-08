@@ -23,6 +23,8 @@ import {
   withLine,
   type CartLine,
 } from "@/components/cart/use-cart";
+import { HoursNote } from "@/components/states/hours-note";
+import { useVenueStatus } from "@/lib/use-venue-status";
 
 // The sheets (Radix Dialog) load after first paint, keeping the menu inside its JS budget.
 // Neither has server markup: the cart is empty until localStorage is read, the sheet starts closed.
@@ -38,7 +40,6 @@ const ProductSheet = dynamic(
   { ssr: false },
 );
 
-const POLL_MS = 30_000;
 const EAGER_IMAGES = 4;
 // The sticky category bar's height (48px pill + 2 × 8px padding + border, rounded up): sections
 // scroll to just below it, and the scroll-spy band starts there.
@@ -68,56 +69,6 @@ const fold = (text: string) =>
 
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-/**
- * Polls the live status every 30 s while the tab is visible, and once on coming back.
- * A failed poll or an `offline` event keeps the last status and flags it as possibly stale.
- */
-function useVenueStatus(
-  slug: string,
-  barId: string | null,
-  initial: VenueStatusResponse,
-  renderedAt: number,
-) {
-  // `at` turns pausedUntil into minutes without reading the clock during render.
-  const [live, setLive] = useState({
-    status: initial,
-    at: renderedAt,
-    stale: false,
-  });
-  useEffect(() => {
-    const url = `/api/venues/${slug}/status${barId ? `?bar=${barId}` : ""}`;
-    let active = true;
-    const markStale = () =>
-      active && setLive((current) => ({ ...current, stale: true }));
-    const poll = async () => {
-      if (document.visibilityState !== "visible") return;
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`status ${response.status}`);
-        const body = (await response.json()) as { data: VenueStatusResponse };
-        if (active)
-          setLive({ status: body.data, at: Date.now(), stale: false });
-      } catch {
-        // Offline or a failed request: keep the last status, say it may be old, retry next tick.
-        markStale();
-      }
-    };
-    const onVisible = () => void poll();
-    const timer = setInterval(onVisible, POLL_MS);
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("online", onVisible);
-    window.addEventListener("offline", markStale);
-    return () => {
-      active = false;
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("online", onVisible);
-      window.removeEventListener("offline", markStale);
-    };
-  }, [slug, barId]);
-  return live;
-}
 
 /** The category whose section is topmost in the band just under the sticky bar. */
 function useActiveCategory(ids: string[]) {
@@ -255,6 +206,7 @@ export function MenuBrowser({
               {status.status === "paused" ? t("pausedNote") : t("closedNote")}
             </p>
           )}
+          <HoursNote status={status} at={at} />
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="menu-search" className="text-small font-medium">

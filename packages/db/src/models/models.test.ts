@@ -323,6 +323,20 @@ describe("Venue", () => {
 
     expect(error?.errors["orderRules.pickupDeadlineMinutes"]).toBeDefined();
   });
+
+  it("rejects an unknown time zone and an opening time that is not HH:mm", async () => {
+    const venue = new Venue({
+      slug: "pilot",
+      name: "Pilot",
+      timezone: "Not/AZone",
+      openingHours: [{ day: 6, open: "22", close: "04:00" }],
+    });
+
+    const error = await validationError(venue);
+
+    expect(error?.errors.timezone).toBeDefined();
+    expect(error?.errors["openingHours.0.open"]).toBeDefined();
+  });
 });
 
 describe("Item", () => {

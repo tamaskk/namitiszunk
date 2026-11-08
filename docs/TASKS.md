@@ -23,6 +23,8 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 ## Deferred parts
 - [x] T-045 "Order more" and "Order again" buttons on the thanks page (built with T-047): "Order again" skips sold-out, archived, VIP-only and changed items and names them.
 
+- [ ] T-048 opening hours have no editor yet: the Admin venue settings task (fejlesztesi-terv.md, venue settings) adds it; until then a script sets `Venue.openingHours`. Moving an order to the right bar (case 8) comes with T-054.
+
 - [ ] T-047 guest account, the parts code cannot prove: Google and Apple sign-in with real credentials, a magic link e-mail through Resend, the signed-in history, export, delete and new sign-in after delete on a phone (e2e covers only the signed-out page; a signed session needs a real Better Auth cookie).
 
 - [ ] T-042 checkout, the parts code cannot prove: a Stripe test-mode run with a real card, 3D Secure and a declined card (`stripe listen`), the terms link (T-003), and Apple Pay / Google Pay on real devices in the closed test (T-008).
@@ -39,3 +41,4 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [x] T-045 Thanks page and rating, once per picked-up order; reorder buttons deferred (see above), the Admin reviews list comes with T-064
 - [x] T-046 Problem report, 3 per order, mail to the venue and the platform; real Resend delivery not checked yet, the Admin order page shows it with T-056
 - [x] T-047 Guest account on `/fiok`: sign-in, history with order again, data export, immediate deletion (`/v1/me/*`); device checks deferred (see above)
+- [x] T-048 Guest error states (`apps/order/components/states`, `e2e/states.spec.ts`): venue opening hours and last order (`Venue.openingHours`), live status on checkout, open-order banner, not-live venue page, another payment method, back to the menu from an ended order; hours editing and moving an order to another bar deferred (see above)

@@ -1,7 +1,11 @@
 import { getVenueStatus } from "@namitiszunk/core/menu";
 import type { Locale } from "@namitiszunk/i18n";
 import { buttonVariants, EmptyState } from "@namitiszunk/ui";
-import { objectIdSchema, venueSlugSchema } from "@namitiszunk/validators";
+import {
+  objectIdSchema,
+  toVenueStatusResponse,
+  venueSlugSchema,
+} from "@namitiszunk/validators";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import Link from "next/link";
@@ -28,6 +32,15 @@ export async function generateMetadata({
   return { title: t("title"), robots: { index: false, follow: false } };
 }
 
+/** Request time, not prerender time: whether the bar takes orders right now. */
+async function loadLiveStatus(slug: string, barId?: string) {
+  await connection();
+  await ensureDb();
+  const at = Date.now();
+  const status = await getVenueStatus({ slug, barId, now: new Date(at) });
+  return status && { status: toVenueStatusResponse(status), at };
+}
+
 // Checkout and payment (T-042): the cart from the menu, priced by the server, paid with Stripe.
 export default async function CheckoutPage({
   params,
@@ -42,15 +55,8 @@ export default async function CheckoutPage({
   const zoneId = idParam(query.zone);
   const menu = await getMenu(slug, locale, zoneId, idParam(query.bar));
   if (!menu) notFound();
-  // Request time: whether the bar is paused right now.
-  await connection();
-  await ensureDb();
-  const status = await getVenueStatus({
-    slug,
-    barId: menu.bar?.id,
-    now: new Date(),
-  });
-  if (!status) notFound();
+  const live = await loadLiveStatus(slug, menu.bar?.id);
+  if (!live) notFound();
 
   const t = await getTranslations("order.checkout");
   // Back to the same QR menu: bar and zone stay in the URL.
@@ -72,7 +78,9 @@ export default async function CheckoutPage({
           venueId={menu.venue.id}
           bar={menu.bar}
           zoneId={zoneId}
-          paused={status.status !== "open"}
+          slug={slug}
+          initialStatus={live.status}
+          renderedAt={live.at}
           menuHref={menuHref}
           publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""}
         />
