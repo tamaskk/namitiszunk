@@ -288,11 +288,9 @@ test.describe("thanks and rating (T-045)", () => {
     await page.getByRole("button", { name: hu.reorder.again }).click();
 
     await expect(
-      page
-        .getByRole("status")
-        .filter({
-          hasText: hu.reorder.skipped.replace("{items}", "Coca-Cola"),
-        }),
+      page.getByRole("status").filter({
+        hasText: hu.reorder.skipped.replace("{items}", "Coca-Cola"),
+      }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: hu.reorder.toMenu }),
@@ -339,12 +337,33 @@ test.describe("guest account sign-in (T-047)", () => {
     await page.getByRole("button", { name: hu.account.sendLink }).click();
 
     await expect(
-      page
-        .getByRole("status")
-        .filter({
-          hasText: hu.account.linkSent.replace("{email}", "vendeg@example.com"),
-        }),
+      page.getByRole("status").filter({
+        hasText: hu.account.linkSent.replace("{email}", "vendeg@example.com"),
+      }),
     ).toBeVisible();
+  });
+
+  test("says the account is gone after deletion and keeps focus there", async ({
+    page,
+  }) => {
+    await page.goto("/hu/fiok?notice=deleted");
+
+    await expect(page.getByText(hu.account.notice.deleted)).toBeFocused();
+  });
+
+  test("lets the guest fix the address after the link went out", async ({
+    page,
+  }) => {
+    await page.goto("/hu/fiok");
+    await answerApi(page, "/api/auth/sign-in/magic-link", 200, null);
+    await page.getByLabel(hu.account.emailLabel).fill("rossz@example.com");
+    await page.getByRole("button", { name: hu.account.sendLink }).click();
+
+    await page.getByRole("button", { name: hu.account.otherAddress }).click();
+
+    await expect(page.getByLabel(hu.account.emailLabel)).toHaveValue(
+      "rossz@example.com",
+    );
   });
 
   test("points to the e-mail link when a social sign-in cannot start", async ({

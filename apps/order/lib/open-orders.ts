@@ -39,6 +39,11 @@ export function rememberOpenOrder(
   write([...rest, { ...order, savedAt: now }]);
 }
 
+/** Sign-out and account deletion: the next person on this phone must not claim these orders. */
+export function forgetAllOpenOrders() {
+  write([]);
+}
+
 export function forgetOpenOrder(orderId: string) {
   write(readOpenOrders().filter((o) => o.orderId !== orderId));
 }

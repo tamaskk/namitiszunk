@@ -347,7 +347,17 @@
       "deleteConfirm": "Delete for good",
       "cancel": "Cancel",
       "deleteFailed": "Could not delete it. Try again.",
-      "staffAccount": "This account belongs to a club's team, so it cannot be deleted here. Ask the club to remove you from the team."
+      "staffAccount": "This account belongs to a club's team, so it cannot be deleted here. Ask the club to remove you from the team.",
+      "claimPrompt": "{count, plural, one {There is # recent order on this phone.} other {There are # recent orders on this phone.}} If they are yours, you can add them to your account.",
+      "claimAdd": "Add to my account",
+      "claimSkip": "Not mine",
+      "claimFailed": "Could not add them. Try again.",
+      "otherAddress": "Use another address",
+      "reorderLabel": "Order {number} again",
+      "notice": {
+        "signedOut": "You are signed out.",
+        "deleted": "Your account has been deleted."
+      }
     }
   },
   "admin": {

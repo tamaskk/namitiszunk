@@ -22,9 +22,12 @@ type State =
 export function ReorderButton({
   orderId,
   token,
+  label,
 }: {
   orderId: string;
   token?: string;
+  /** Accessible name when several of these buttons share one page. */
+  label?: string;
 }) {
   const t = useTranslations("order.reorder");
   const locale = useLocale();
@@ -88,6 +91,7 @@ export function ReorderButton({
         variant="secondary"
         loading={state.kind === "loading"}
         onClick={reorder}
+        aria-label={label}
       >
         {t("again")}
       </Button>

@@ -36,8 +36,11 @@ export default function AccountPage(props: PageProps<"/[locale]/fiok">) {
   );
 }
 
-async function Account({ params }: PageProps<"/[locale]/fiok">) {
+const notices = ["signedOut", "deleted"] as const;
+
+async function Account({ params, searchParams }: PageProps<"/[locale]/fiok">) {
   const { locale } = await params;
+  const { notice } = await searchParams;
   setRequestLocale(locale as Locale);
   await ensureDb();
   const actor = await userActorFromHeaders(
@@ -60,7 +63,12 @@ async function Account({ params }: PageProps<"/[locale]/fiok">) {
             <h1 className="text-h1">{t("signInTitle")}</h1>
             <p className="text-body text-text-muted">{t("signInBody")}</p>
           </header>
-          <SignInForm />
+          <SignInForm
+            notice={
+              notices.find((n) => n === notice) &&
+              t(`notice.${notices.find((n) => n === notice)!}`)
+            }
+          />
         </>
       )}
     </main>

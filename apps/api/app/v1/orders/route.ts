@@ -8,7 +8,7 @@ import {
 import { createOrderInputSchema } from "@namitiszunk/validators";
 
 import { handler } from "@/lib/handler";
-import { getSessionActor } from "@/lib/session-actor";
+import { accountCaller } from "@/lib/account-caller";
 import { inngest, orderCreatedEvent } from "@/src/inngest/client";
 
 function created(order: CreatedOrder, guestToken: string): Response {
@@ -65,10 +65,11 @@ export const POST = handler(
     }
     const guest = createGuestToken();
     // Ordering never needs an account; a signed-in guest gets the order in their history (T-047).
-    const account = await getSessionActor(request);
+    // Only an order-app session counts, and a failing lookup (2FA pending, auth down) never blocks payment.
+    const account = await accountCaller(request).catch(() => null);
     const order = await createOrder(input, {
       guestTokenHash: guest.hash,
-      ...(account?.kind === "user" ? { userId: account.userId } : {}),
+      ...(account ? { userId: account.userId } : {}),
       // Starts the 15-minute payment timeout (T-035).
       onOrderCreated: async ({ orderId, venueId }) => {
         await inngest.send(orderCreatedEvent(orderId, venueId));

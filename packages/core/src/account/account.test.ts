@@ -9,6 +9,7 @@ import {
   User,
   Venue,
   VenueMember,
+  Zone,
 } from "@namitiszunk/db";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { Types } from "mongoose";
@@ -366,6 +367,71 @@ describe("reorder", () => {
 
     expect(cart.lines.map((l) => l.name)).toEqual(["Sör"]);
     expect(cart.skipped).toEqual(["Gin tonic"]);
+  });
+
+  it("skips a line whose item has gained a required option since", async () => {
+    const s = await seed();
+    const past = await order(s, { guestTokenHash: hashA });
+    await Item.updateOne(
+      { _id: s.gin._id },
+      {
+        $push: {
+          modifierGroups: {
+            name: "Jég",
+            required: true,
+            modifiers: [{ name: "Sok jég", priceDeltaHuf: 0 }],
+          },
+        },
+      },
+    );
+
+    const cart = await reorder(
+      { kind: "guest", guestId: hashA },
+      String(past._id),
+    );
+
+    expect(cart.lines).toEqual([]);
+    expect(cart.skipped).toEqual(["Gin tonic", "Coca-Cola"]);
+  });
+
+  it("keeps a table that still exists and drops one that was removed", async () => {
+    const s = await seed();
+    const [table] = await Zone.create([
+      { venueId: s.venue._id, barId: s.bar._id, name: "A1" },
+    ]);
+    const atTable = await order(s, {
+      guestTokenHash: hashA,
+      zoneId: table!._id,
+    });
+    const removed = await order(s, {
+      guestTokenHash: hashB,
+      zoneId: new Types.ObjectId(),
+    });
+
+    const kept = await reorder(
+      { kind: "guest", guestId: hashA },
+      String(atTable._id),
+    );
+    const dropped = await reorder(
+      { kind: "guest", guestId: hashB },
+      String(removed._id),
+    );
+
+    expect(kept.zoneId).toBe(String(table!._id));
+    expect(dropped).not.toHaveProperty("zoneId");
+  });
+
+  it("answers 404 when the bar is gone or the id is malformed", async () => {
+    const s = await seed();
+    const past = await order(s, { guestTokenHash: hashA });
+    await Bar.deleteOne({ _id: s.bar._id });
+
+    const guest = { kind: "guest", guestId: hashA } as const;
+
+    await expect(reorder(guest, String(past._id))).rejects.toThrow(
+      NotFoundError,
+    );
+    await expect(reorder(guest, "not-an-id")).rejects.toThrow(NotFoundError);
   });
 
   it("answers 404 for another guest's or another account's order", async () => {

@@ -16,12 +16,15 @@ import {
 import type { AccountOrder } from "@namitiszunk/validators";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { ReorderButton } from "@/components/reorder/reorder-button";
 import { authApi, meApi } from "@/lib/account-api";
-import { readOpenOrders } from "@/lib/open-orders";
+import { forgetAllOpenOrders, readOpenOrders } from "@/lib/open-orders";
 import { OrderApiError } from "@/lib/order-api";
+
+// Read once per render; this list changes only through this view.
+const noSubscription = () => () => undefined;
 
 /** History, data export, sign-out and deletion of the signed-in guest (T-047). */
 export function AccountView({ orders }: { orders: AccountOrder[] }) {
@@ -33,19 +36,34 @@ export function AccountView({ orders }: { orders: AccountOrder[] }) {
   const [exportFailed, setExportFailed] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // localStorage exists only in the browser: the server and the first render see none.
+  const deviceOrderCount = useSyncExternalStore(
+    noSubscription,
+    () => readOpenOrders().length,
+    () => 0,
+  );
+  const [claimHidden, setClaimHidden] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [claimFailed, setClaimFailed] = useState(false);
 
-  // This device's recent orders join the account; only their guest tokens prove they are the guest's.
-  useEffect(() => {
-    const open = readOpenOrders();
-    if (open.length === 0) return;
-    meApi
-      .claimOrders(open.map(({ orderId, token }) => ({ orderId, token })))
-      .then(({ claimed }) => {
-        if (claimed > 0) router.refresh();
-      })
-      // Best effort: the orders stay reachable by their links, and the next visit tries again.
-      .catch(() => undefined);
-  }, [router]);
+  // The guest confirms: on a shared phone these may be someone else's orders (phone, report e-mail).
+  async function claimDeviceOrders() {
+    setClaiming(true);
+    setClaimFailed(false);
+    try {
+      await meApi.claimOrders(
+        readOpenOrders().map(({ orderId, token }) => ({ orderId, token })),
+      );
+    } catch {
+      setClaiming(false);
+      setClaimFailed(true);
+      return;
+    }
+    forgetAllOpenOrders();
+    setClaimHidden(true);
+    setClaiming(false);
+    router.refresh();
+  }
 
   async function downloadExport() {
     setExporting(true);
@@ -81,17 +99,49 @@ export function AccountView({ orders }: { orders: AccountOrder[] }) {
       );
       return;
     }
-    // The sessions are gone on the server: the page renders again as signed out.
-    router.refresh();
+    forgetAllOpenOrders();
+    // The sessions are gone on the server: the page renders again as signed out, and says so.
+    router.replace(`/${locale}/fiok?notice=deleted`);
   }
 
   async function signOut() {
     await authApi.signOut();
-    router.refresh();
+    forgetAllOpenOrders();
+    router.replace(`/${locale}/fiok?notice=signedOut`);
   }
 
   return (
     <div className="flex flex-col gap-8">
+      {deviceOrderCount > 0 && !claimHidden && (
+        <section
+          aria-labelledby="device-orders"
+          className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4"
+        >
+          <p id="device-orders" className="text-body">
+            {t("claimPrompt", { count: deviceOrderCount })}
+          </p>
+          <Button
+            variant="secondary"
+            loading={claiming}
+            onClick={claimDeviceOrders}
+          >
+            {t("claimAdd")}
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={claiming}
+            onClick={() => setClaimHidden(true)}
+          >
+            {t("claimSkip")}
+          </Button>
+          {claimFailed && (
+            <p role="alert" className="text-small text-danger">
+              {t("claimFailed")}
+            </p>
+          )}
+        </section>
+      )}
+
       <section aria-labelledby="history" className="flex flex-col gap-3">
         <h2 id="history" className="text-h2">
           {t("historyTitle")}
@@ -130,7 +180,10 @@ export function AccountView({ orders }: { orders: AccountOrder[] }) {
                 <p className="text-body font-medium tabular-nums">
                   {formatHuf(order.totalHuf)}
                 </p>
-                <ReorderButton orderId={order.id} />
+                <ReorderButton
+                  orderId={order.id}
+                  label={t("reorderLabel", { number: order.number })}
+                />
               </li>
             ))}
           </ul>
@@ -156,7 +209,7 @@ export function AccountView({ orders }: { orders: AccountOrder[] }) {
         <Button variant="ghost" onClick={signOut}>
           {t("signOut")}
         </Button>
-        <Dialog>
+        <Dialog onOpenChange={() => setDeleteError(null)}>
           <DialogTrigger asChild>
             <Button variant="danger">{t("delete")}</Button>
           </DialogTrigger>
@@ -172,7 +225,9 @@ export function AccountView({ orders }: { orders: AccountOrder[] }) {
             )}
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="secondary">{t("cancel")}</Button>
+                <Button variant="secondary" disabled={deleting}>
+                  {t("cancel")}
+                </Button>
               </DialogClose>
               <Button
                 variant="danger"

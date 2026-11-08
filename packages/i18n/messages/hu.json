@@ -347,7 +347,17 @@
       "deleteConfirm": "Végleges törlés",
       "cancel": "Mégse",
       "deleteFailed": "Nem sikerült törölni. Próbáld újra.",
-      "staffAccount": "Ez a fiók egy klub csapatához tartozik, ezért itt nem törölhető. Kérd a klubot, hogy vegyen ki a csapatból."
+      "staffAccount": "Ez a fiók egy klub csapatához tartozik, ezért itt nem törölhető. Kérd a klubot, hogy vegyen ki a csapatból.",
+      "claimPrompt": "{count, plural, one {Ezen a telefonon # friss rendelés van.} other {Ezen a telefonon # friss rendelés van.}} Ha a tieid, hozzáadhatod őket a fiókodhoz.",
+      "claimAdd": "Hozzáadás a fiókomhoz",
+      "claimSkip": "Nem az enyémek",
+      "claimFailed": "Nem sikerült hozzáadni. Próbáld újra.",
+      "otherAddress": "Másik címet adok meg",
+      "reorderLabel": "{number} rendelés újra",
+      "notice": {
+        "signedOut": "Kiléptél.",
+        "deleted": "A fiókodat töröltük."
+      }
     }
   },
   "admin": {

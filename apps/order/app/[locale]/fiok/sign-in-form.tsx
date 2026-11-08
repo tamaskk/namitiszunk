@@ -2,20 +2,30 @@
 
 import { Button, Input, Label } from "@namitiszunk/ui";
 import { useLocale, useTranslations } from "next-intl";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { authApi } from "@/lib/account-api";
 
 type State = "idle" | "sending" | "sent" | "failed" | "socialFailed";
 
 /** Magic link, Google or Apple (T-030); every way lands back on /fiok signed in. */
-export function SignInForm() {
+export function SignInForm({
+  notice,
+}: {
+  /** Shown first, and focused, after sign-out or account deletion. */
+  notice?: string;
+}) {
   const t = useTranslations("order.account");
   const locale = useLocale();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<State>("idle");
   const [social, setSocial] = useState<"google" | "apple" | null>(null);
   const callbackURL = `/${locale}/fiok`;
+  const result = useRef<HTMLParagraphElement>(null);
+  // The form or the account view just went away: keep focus on what happened instead of <body>.
+  useEffect(() => {
+    if (notice || state === "sent") result.current?.focus();
+  }, [notice, state]);
 
   async function sendLink(event: FormEvent) {
     event.preventDefault();
@@ -37,13 +47,33 @@ export function SignInForm() {
 
   if (state === "sent") {
     return (
-      <p role="status" className="text-body">
-        {t("linkSent", { email: email.trim() })}
-      </p>
+      <div className="flex flex-col gap-3">
+        <p
+          ref={result}
+          tabIndex={-1}
+          role="status"
+          className="text-body outline-none"
+        >
+          {t("linkSent", { email: email.trim() })}
+        </p>
+        <Button variant="ghost" onClick={() => setState("idle")}>
+          {t("otherAddress")}
+        </Button>
+      </div>
     );
   }
   return (
     <div className="flex flex-col gap-6">
+      {notice && (
+        <p
+          ref={result}
+          tabIndex={-1}
+          role="status"
+          className="text-body outline-none"
+        >
+          {notice}
+        </p>
+      )}
       <form onSubmit={sendLink} className="flex flex-col gap-3">
         <Label htmlFor="account-email">{t("emailLabel")}</Label>
         <Input

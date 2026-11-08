@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  Bar,
   DeviceToken,
   Item,
   Order,
@@ -9,12 +10,14 @@ import {
   User,
   Venue,
   VenueMember,
+  Zone,
 } from "@namitiszunk/db";
 import type { AccountOrder, ReorderResponse } from "@namitiszunk/validators";
-import { Types } from "mongoose";
+import { isValidObjectId, Types } from "mongoose";
 
 import { audit } from "../audit/audit";
 import type { Actor } from "../auth/permissions";
+import { validateSelection } from "../cart/selection";
 import { ConflictError, NotFoundError } from "../errors";
 import { publicModifierGroups } from "../menu/public-menu";
 import { formatShortNumber } from "../orders/short-number";
@@ -218,8 +221,9 @@ export async function reorder(
   actor: GuestActor | UserActor,
   orderId: string,
 ): Promise<ReorderResponse> {
+  if (!isValidObjectId(orderId)) throw new NotFoundError();
   const order = await Order.findById(orderId)
-    .select("venueId barId zoneId isVip items userId +guestTokenHash")
+    .select("venueId barId zoneId items userId +guestTokenHash")
     .lean();
   const owns =
     order &&
@@ -229,8 +233,19 @@ export async function reorder(
   // Not the caller's order and no order at all look the same: 404.
   if (!order || !owns) throw new NotFoundError();
 
-  const venue = await Venue.findById(order.venueId).select("slug").lean();
-  if (!venue) throw new NotFoundError();
+  const [venue, bar, zone] = await Promise.all([
+    Venue.findById(order.venueId).select("slug").lean(),
+    Bar.exists({ _id: order.barId, venueId: order.venueId }),
+    order.zoneId
+      ? Zone.findOne({ _id: order.zoneId, barId: order.barId })
+          .select("type")
+          .lean()
+      : null,
+  ]);
+  // The bar is gone: there is no menu to send the guest back to.
+  if (!venue || !bar) throw new NotFoundError();
+  // A removed table is not a VIP table any more; the guest orders from the bar's plain menu.
+  const isVip = zone?.type === "vip_table";
   const items = await Item.find({
     _id: { $in: order.items.map((line) => line.itemId) },
     venueId: order.venueId,
@@ -249,18 +264,27 @@ export async function reorder(
       item &&
       item.isAvailable !== false &&
       !item.archivedAt &&
-      (!item.vipOnly || order.isVip) &&
+      (!item.vipOnly || isVip) &&
       (!item.barIds?.length ||
         item.barIds.some((id) => String(id) === String(order.barId)));
     // The order stores option names, not ids: find each by group and name on today's item.
-    const modifiers = sellable
-      ? (line.options ?? []).map((option) =>
-          publicModifierGroups(item.modifierGroups, "hu")
-            .find((group) => group.name === option.groupName)
-            ?.modifiers.find((m) => m.name === option.name),
-        )
+    const groups = sellable
+      ? publicModifierGroups(item.modifierGroups, "hu")
       : [];
-    if (!sellable || modifiers.some((m) => m === undefined)) {
+    const modifiers = (line.options ?? []).map((option) =>
+      groups
+        .find((group) => group.name === option.groupName)
+        ?.modifiers.find((m) => m.name === option.name),
+    );
+    // A group made required or a changed limit since then would fail at checkout: skip it now.
+    const valid =
+      sellable &&
+      modifiers.every((m) => m !== undefined) &&
+      validateSelection(
+        groups,
+        modifiers.map((m) => m!.id),
+      ).length === 0;
+    if (!valid) {
       skipped.push(line.name);
       continue;
     }
@@ -280,7 +304,7 @@ export async function reorder(
     venueId: String(order.venueId),
     venueSlug: venue.slug,
     barId: String(order.barId),
-    ...(order.zoneId ? { zoneId: String(order.zoneId) } : {}),
+    ...(zone ? { zoneId: String(zone._id) } : {}),
     lines,
     skipped,
   };
