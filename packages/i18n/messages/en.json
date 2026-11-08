@@ -114,7 +114,8 @@
       "invalidOptions": "The options of {name} changed, so we took it out of your cart. Add it again.",
       "error": "We could not check your cart. Try again.",
       "rateLimited": "Too many tries. Wait a minute, then try again.",
-      "closeLabel": "Close"
+      "closeLabel": "Close",
+      "removeShort": "Remove"
     },
     "checkout": {
       "title": "Checkout",

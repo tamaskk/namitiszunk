@@ -114,7 +114,8 @@
       "invalidOptions": "{name} opciói közben változtak, kivettük a kosárból. Add hozzá újra.",
       "error": "Nem sikerült ellenőrizni a kosarat. Próbáld újra.",
       "rateLimited": "Túl sok próbálkozás. Várj egy percet, aztán próbáld újra.",
-      "closeLabel": "Bezárás"
+      "closeLabel": "Bezárás",
+      "removeShort": "Törlés"
     },
     "checkout": {
       "title": "Fizetés",

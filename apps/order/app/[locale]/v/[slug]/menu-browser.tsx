@@ -11,9 +11,27 @@ import {
   Input,
 } from "@namitiszunk/ui";
 import type { VenueStatusResponse } from "@namitiszunk/validators";
+import { MAX_QUANTITY_PER_LINE } from "@namitiszunk/validators/cart-limits";
 import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { itemCount, useCart, type CartLine } from "@/components/cart/use-cart";
+
+// The sheets (Radix Dialog) load after first paint, keeping the menu inside its JS budget.
+// Neither has server markup: the cart is empty until localStorage is read, the sheet starts closed.
+const Cart = dynamic(
+  () => import("@/components/cart/cart").then((m) => m.Cart),
+  { ssr: false },
+);
+const ProductSheet = dynamic(
+  () =>
+    import("@/components/product-sheet/product-sheet").then(
+      (m) => m.ProductSheet,
+    ),
+  { ssr: false },
+);
 
 const POLL_MS = 30_000;
 const EAGER_IMAGES = 4;
@@ -23,7 +41,13 @@ const NAV_OFFSET_PX = 80;
 
 type Props = {
   slug: string;
+  venueId: string;
   barId: string | null;
+  /** The QR's zone, re-checked on the server at "Tovább". */
+  zoneId?: string;
+  /** The menu URL's query, kept on the way to checkout. */
+  search: string;
+  maxItemsPerOrder: number;
   categories: PublicMenu["categories"];
   initialStatus: VenueStatusResponse;
   /** When the server read `initialStatus`, in epoch ms. */
@@ -117,7 +141,11 @@ function useActiveCategory(ids: string[]) {
 
 export function MenuBrowser({
   slug,
+  venueId,
   barId,
+  zoneId,
+  search,
+  maxItemsPerOrder,
   categories,
   initialStatus,
   renderedAt,
@@ -130,6 +158,24 @@ export function MenuBrowser({
     renderedAt,
   );
   const [query, setQuery] = useState("");
+  const [openItem, setOpenItem] = useState<PublicMenuItem | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const { lines, update } = useCart(venueId);
+  const remaining = maxItemsPerOrder - itemCount(lines);
+
+  const addLine = (line: CartLine) =>
+    update((current) => {
+      const same = current.find((l) => l.key === line.key);
+      // The same choice adds up on one line while the line stays within its cap.
+      return same && same.quantity + line.quantity <= MAX_QUANTITY_PER_LINE
+        ? current.map((l) =>
+            l === same ? { ...l, quantity: l.quantity + line.quantity } : l,
+          )
+        : [
+            ...current,
+            { ...line, key: same ? `${line.key}+${Date.now()}` : line.key },
+          ];
+    });
   const navRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -286,6 +332,11 @@ export function MenuBrowser({
                   key={item.id}
                   item={item}
                   soldOut={soldOut.has(item.id)}
+                  atLimit={remaining < 1}
+                  onOpen={(opener) => {
+                    openerRef.current = opener;
+                    setOpenItem(item);
+                  }}
                   eager={item.imageUrl ? imageIndex++ < EAGER_IMAGES : false}
                 />
               ))}
@@ -293,6 +344,25 @@ export function MenuBrowser({
           </section>
         ))
       )}
+
+      <ProductSheet
+        item={openItem}
+        remaining={remaining}
+        maxItemsPerOrder={maxItemsPerOrder}
+        onAdd={addLine}
+        onClose={() => setOpenItem(null)}
+        returnFocus={() => openerRef.current?.focus()}
+      />
+      <Cart
+        lines={lines}
+        update={update}
+        slug={slug}
+        barId={barId}
+        zoneId={zoneId}
+        search={search}
+        soldOut={soldOut}
+        maxItemsPerOrder={maxItemsPerOrder}
+      />
     </>
   );
 }
@@ -300,12 +370,17 @@ export function MenuBrowser({
 function ProductCard({
   item,
   soldOut,
+  atLimit,
+  onOpen,
   eager,
 }: {
   item: PublicMenuItem;
   soldOut: boolean;
+  atLimit: boolean;
+  onOpen: (opener: HTMLElement) => void;
   eager: boolean;
 }) {
+  const tProduct = useTranslations("order.product");
   const t = useTranslations("order.menu");
   // Only the picture is dimmed; text stays AA on the surface.
   const picture = cn("size-16 shrink-0 rounded-sm", soldOut && "opacity-50");
@@ -349,8 +424,19 @@ function ProductCard({
         {item.description && (
           <p className="text-small text-text-muted">{item.description}</p>
         )}
-        {soldOut && <Badge status="neutral">{t("soldOut")}</Badge>}
-        {/* shortcut: no add button until the cart exists, T-041 adds it here. */}
+        {soldOut ? (
+          <Badge status="neutral">{t("soldOut")}</Badge>
+        ) : (
+          <Button
+            variant="secondary"
+            className="self-end"
+            disabled={atLimit}
+            aria-label={tProduct("addLabel", { name: item.name })}
+            onClick={(event) => onOpen(event.currentTarget)}
+          >
+            {tProduct("add")}
+          </Button>
+        )}
       </div>
     </li>
   );

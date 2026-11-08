@@ -6,7 +6,10 @@ import {
   huPhoneSchema,
   objectIdSchema,
 } from "./shared";
+import { CART_NOTE_MAX, MAX_QUANTITY_PER_LINE } from "./cart-limits";
 import { venueSlugSchema } from "./venues";
+
+export { CART_NOTE_MAX, MAX_QUANTITY_PER_LINE };
 
 // Same literals as packages/db and packages/core; packages/core/src/validators-sync.test.ts keeps them equal.
 export const orderStatuses = [
@@ -21,10 +24,8 @@ export const orderStatuses = [
   "refunded",
 ] as const;
 export const TIP_PERCENT_BPS = [0, 500, 1000, 1500] as const;
-export const MAX_QUANTITY_PER_LINE = 10;
 // A sanity cap only; the venue's maxItemsPerOrder is checked on the server (spec 25, item 2).
 const MAX_CART_LINES = 50;
-export const CART_NOTE_MAX = 100;
 
 export const cartLineSchema = z.object({
   itemId: objectIdSchema,

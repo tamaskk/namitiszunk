@@ -93,7 +93,7 @@ export default async function MenuPage({
   ).toString();
 
   return (
-    <main className="mx-auto min-h-dvh max-w-120 bg-bg pb-12 text-text">
+    <main className="mx-auto min-h-dvh max-w-120 bg-bg pb-32 text-text">
       <AgeGate>
         <header>
           {menu.venue.coverUrl && (
@@ -143,7 +143,11 @@ export default async function MenuPage({
 
         <MenuBrowser
           slug={slug}
+          venueId={menu.venue.id}
           barId={menu.bar?.id ?? null}
+          zoneId={idParam(query.zone)}
+          search={search}
+          maxItemsPerOrder={menu.venue.maxItemsPerOrder}
           categories={menu.categories}
           initialStatus={live.status}
           renderedAt={live.at}
