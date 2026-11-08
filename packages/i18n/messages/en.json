@@ -135,7 +135,7 @@
       "back": "Back to the menu"
     },
     "status": {
-      "pageTitle": "Order {number}",
+      "pageTitle": "Your order",
       "number": "Order number",
       "keepOpen": "Keep this page open, or we cannot let you know.",
       "soundOn": "Turn on sound",
@@ -257,6 +257,20 @@
       "limit": "You cannot send more reports for this order.",
       "failed": "Could not send it. Try again.",
       "close": "Close"
+    },
+    "thanks": {
+      "pageTitle": "Thank you",
+      "title": "Thank you",
+      "body": "Enjoy your night. If something was wrong, let us know below.",
+      "rateTitle": "How was it?",
+      "star": "{count, plural, one {# star} other {# stars}}",
+      "text": "Comment (optional)",
+      "send": "Send rating",
+      "sent": "Thanks for your rating.",
+      "already": "You have already rated this order.",
+      "chooseStars": "Choose between 1 and 5 stars.",
+      "failed": "Could not send it. Try again.",
+      "confirmationLink": "Payment confirmation"
     }
   },
   "admin": {
@@ -396,7 +410,8 @@
       "orders": "Orders",
       "revenue": "Revenue",
       "button": "Open the report"
-    }
+    },
+    "untrustedText": "Written by the sender, not by us. Links in it are not from us."
   },
   "sms": {
     "ready": "Na mit iszunk: #{shortNumber} is ready. Pick it up at {barName}. {link}",

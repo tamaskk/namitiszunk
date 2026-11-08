@@ -2,7 +2,6 @@
 
 import {
   Button,
-  focusRing,
   Input,
   Label,
   Sheet,
@@ -11,10 +10,10 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  cn,
+  Textarea,
 } from "@namitiszunk/ui";
 import { useTranslations } from "next-intl";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { orderApi, OrderApiError } from "@/lib/order-api";
 
@@ -36,6 +35,11 @@ export function ReportProblem({
   const [email, setEmail] = useState("");
   const [state, setState] = useState<SendState>("idle");
   const [missingCategory, setMissingCategory] = useState(false);
+  const result = useRef<HTMLParagraphElement>(null);
+  // The form unmounts on success: move focus to the result so it is not lost to <body>.
+  useEffect(() => {
+    if (state === "sent") result.current?.focus();
+  }, [state]);
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -70,11 +74,16 @@ export function ReportProblem({
           <SheetDescription>{t("description")}</SheetDescription>
         </SheetHeader>
 
-        {state === "sent" ? (
-          <p role="status" className="text-body text-success">
-            {t("sent")}
-          </p>
-        ) : (
+        {/* Mounted from the start so screen readers announce the result. */}
+        <p
+          ref={result}
+          tabIndex={-1}
+          aria-live="polite"
+          className="text-body text-success empty:hidden"
+        >
+          {state === "sent" ? t("sent") : ""}
+        </p>
+        {state !== "sent" && (
           <form onSubmit={send} className="flex flex-col gap-6" noValidate>
             <fieldset
               className="flex flex-col gap-2"
@@ -122,17 +131,12 @@ export function ReportProblem({
               >
                 {t("message")}
               </Label>
-              {/* No Textarea primitive yet: same tokens as Input. */}
-              <textarea
+              <Textarea
                 id="report-message"
                 maxLength={1000}
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className={cn(
-                  "w-full rounded-sm border border-border bg-surface px-3 py-3 text-body text-text placeholder:text-text-muted",
-                  focusRing,
-                )}
               />
             </div>
 

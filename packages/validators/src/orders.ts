@@ -141,6 +141,14 @@ export const reportProblemResponseSchema = z.object({
   reported: z.literal(true),
 });
 
+/** POST /v1/orders/{id}/review: the guest rates a picked-up order once (T-045). */
+export const reviewInputSchema = z.object({
+  stars: z.int().min(1).max(5),
+  text: z.string().trim().max(500, { error: "validation.tooLong" }).optional(),
+});
+
+export const reviewResponseSchema = z.object({ reviewed: z.literal(true) });
+
 /** POST /v1/orders/{id}/confirmation-email: the guest sends the confirmation to an address (T-044). */
 export const confirmationEmailInputSchema = z.object({
   email: z.email({ error: "validation.email.invalid" }),
@@ -158,6 +166,7 @@ export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
 export type CreateOrderResponse = z.infer<typeof createOrderResponseSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
 export type ReportProblemInput = z.infer<typeof reportProblemInputSchema>;
+export type ReviewInput = z.infer<typeof reviewInputSchema>;
 export type ConfirmationEmailInput = z.infer<
   typeof confirmationEmailInputSchema
 >;

@@ -17,7 +17,8 @@ export const POST = handler(
     permission: "none",
     input: confirmationEmailInputSchema,
     rateLimit: { limit: 5, windowSeconds: 60 },
-    ipRateLimit: { limit: 600, windowSeconds: 60 },
+    // Lower than the other guest routes: each call mails an address the caller types.
+    ipRateLimit: { limit: 30, windowSeconds: 60 },
   },
   async ({ actor, input, params, request }) => {
     const orderId = String(params.id);

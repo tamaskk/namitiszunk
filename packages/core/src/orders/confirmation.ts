@@ -163,6 +163,10 @@ export async function requestConfirmationEmail(
   sendEmail: (email: OrderEmail) => Promise<unknown>,
 ): Promise<void> {
   const order = await loadPaidOrder(actor, orderId);
+  // Loaded before counting, so a failed lookup never uses up one of the guest's sends.
+  const venue = await Venue.findById(order.venueId)
+    .select("name contactEmail")
+    .lean();
   const counted = await Order.updateOne(
     {
       _id: order._id,
@@ -174,7 +178,6 @@ export async function requestConfirmationEmail(
     throw new AppError(429, "confirmation_email_limit");
 
   const locale: Locale = isLocale(input.locale) ? input.locale : "hu";
-  const venue = await Venue.findById(order.venueId).select("name").lean();
   try {
     await sendEmail({
       template: "orderConfirmation",
@@ -182,8 +185,7 @@ export async function requestConfirmationEmail(
       data: {
         locale,
         venueName: venue?.name ?? "",
-        // shortcut: no venue contact address before T-046 (Venue.contactEmail); replies go to the platform sender.
-        venueEmail: "",
+        venueEmail: venue?.contactEmail ?? "",
         shortNumber: formatShortNumber(order.shortNumber),
         items: order.items.map((item) => ({
           name: locale === "en" ? (item.nameEn ?? item.name) : item.name,

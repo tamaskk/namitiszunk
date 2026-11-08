@@ -14,6 +14,7 @@ import {
 } from "@namitiszunk/ui";
 import type { OrderResponse } from "@namitiszunk/validators";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { ReportProblem } from "@/components/report-problem/report-problem";
@@ -39,6 +40,7 @@ export function OrderStatus({
 }) {
   const t = useTranslations("order.status");
   const locale = useLocale();
+  const router = useRouter();
   const { order, problem, cancel } = useOrderLive(initial, token);
   const view = statusView(order.status);
   const { soundOn, enableSound, awake } = useReadyAlerts({
@@ -53,6 +55,12 @@ export function OrderStatus({
     if (view.final) forgetOpenOrder(order.id);
     else rememberOpenOrder({ orderId: order.id, token });
   }, [order.id, token, view.final]);
+
+  // Picked up: the thanks page (T-045) takes over, with the rating and the confirmation link.
+  useEffect(() => {
+    if (order.status === "picked_up")
+      router.replace(`/${locale}/o/${order.id}/thanks`);
+  }, [locale, order.id, order.status, router]);
 
   async function confirmCancel() {
     setCancelling(true);
@@ -149,11 +157,7 @@ export function OrderStatus({
           order.status !== "cancelled" && (
             <>
               <Button variant="ghost" asChild>
-                <a
-                  href={`/${locale}/r/${order.id}?t=${encodeURIComponent(token)}`}
-                >
-                  {t("confirmationLink")}
-                </a>
+                <a href={`/${locale}/r/${order.id}`}>{t("confirmationLink")}</a>
               </Button>
               <ReportProblem orderId={order.id} token={token} />
             </>
