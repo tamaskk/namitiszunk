@@ -511,5 +511,88 @@
   "sms": {
     "ready": "Na mit iszunk: #{shortNumber} is ready. Pick it up at {barName}. {link}",
     "reminder": "Your drink is still waiting at {barName}."
+  },
+  "validation": {
+    "invalid": "Invalid value.",
+    "required": "Required.",
+    "tooLong": "Too long.",
+    "bps": {
+      "max": "At most 100%."
+    },
+    "cart": {
+      "empty": "The cart is empty.",
+      "max": "Too many items in one order."
+    },
+    "dateRange": {
+      "invalid": "The start date is after the end date."
+    },
+    "dateTime": {
+      "invalid": "Invalid date or time."
+    },
+    "email": {
+      "invalid": "Invalid e-mail address."
+    },
+    "huf": {
+      "integer": "The amount must be whole forints.",
+      "min": "The amount is too low."
+    },
+    "modifierGroup": {
+      "minAboveMax": "The minimum cannot be above the maximum."
+    },
+    "name": {
+      "invalid": "The name contains a character that is not allowed.",
+      "max": "The name is too long.",
+      "required": "Enter a name."
+    },
+    "objectId": {
+      "invalid": "Invalid id."
+    },
+    "otp": {
+      "invalid": "The code is 6 digits."
+    },
+    "phone": {
+      "invalid": "Enter a Hungarian mobile number (+36…).",
+      "requiredForSms": "SMS updates need a phone number."
+    },
+    "pickupDeadline": {
+      "max": "At most 60 minutes.",
+      "min": "At least 15 minutes."
+    },
+    "pin": {
+      "invalid": "Invalid PIN."
+    },
+    "promoCode": {
+      "invalid": "Invalid promo code."
+    },
+    "quantity": {
+      "integer": "The quantity must be a whole number.",
+      "max": "Quantity too high.",
+      "min": "The quantity is at least 1."
+    },
+    "role": {
+      "invalid": "Invalid role."
+    },
+    "slug": {
+      "invalid": "Only lowercase letters, digits and hyphens."
+    },
+    "terms": {
+      "required": "Accept the terms."
+    },
+    "time": {
+      "invalid": "Time as HH:MM."
+    },
+    "tip": {
+      "invalid": "Invalid tip.",
+      "preset": "Choose one of the offered tips."
+    },
+    "uploadKind": {
+      "invalid": "This file type cannot be uploaded."
+    },
+    "url": {
+      "invalid": "Invalid web address."
+    },
+    "vatRate": {
+      "invalid": "Invalid VAT rate."
+    }
   }
 }

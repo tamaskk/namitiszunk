@@ -36,16 +36,12 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [ ] T-049 Web Vitals from real guests (`useReportWebVitals` → PostHog LCP, INP, CLS per venue) comes with T-018 PostHog.
 
 - [ ] Status audit 2026-11-08 (T-017–T-039, criteria ticked in fejlesztesi-terv.md). Code gaps:
-  - T-017 `/health` never pings MongoDB (stale `TODO(T-020)`), so a database outage does not alert.
   - T-018 PostHog not built (only `posthogId` in the PaymentIntent metadata; `apps/order/lib/analytics.ts` is a stub).
   - T-024 short number and business day are set at checkout, not at payment (abandoned payments leave gaps; 05:59 checkout paid at 06:00 lands on the previous day).
-  - T-025 `[id]` path params skip the schema; `fields` returns Zod issue codes, not message keys; the checkout phone check copies the regex instead of `huPhoneSchema`.
   - T-028 inactive-account deletion (2 years), Twilio message deletion and the 90-day `problemReports[].email` cleanup are missing; the job runs at 05:00, the plan says 07:00.
   - T-030 no real magic-link e2e through a Resend test address.
-  - T-034 no test for the prorated application fee on a partial refund.
-  - T-038 menu-list image has no `sizes`.
   - Waiting on Admin: T-026 `impersonatedBy` (T-070), T-031 bar view reconnect and the 2 s latency (T-054), T-032 Payouts page (T-059).
-  - Manual (owner): T-017 Sentry/Better Stack production checks, T-019 snapshot restore drill, T-030 Apple/Google sign-in, T-32–34 Stripe Dashboard checks, T-037 Gmail/Apple Mail rendering and inbox delivery.
+  - Manual (owner): T-017 Sentry/Better Stack production checks (`/health` now answers 503 when MongoDB does not answer the ping), T-019 snapshot restore drill, T-030 Apple/Google sign-in, T-32–34 Stripe Dashboard checks (including the prorated fee on a partial refund), T-037 Gmail/Apple Mail rendering and inbox delivery.
 
 ## Later (after these)
 - [ ] Remaining v1 tasks in `docs/fejlesztesi-terv.md` sections C–I (#17–#83)

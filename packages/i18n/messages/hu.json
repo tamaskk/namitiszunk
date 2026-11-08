@@ -511,5 +511,88 @@
   "sms": {
     "ready": "Na mit iszunk: #{shortNumber} kesz! Vedd fel {article} {barName} pultnal. {link}",
     "reminder": "Meg var rad az italod {article} {barName} pultnal."
+  },
+  "validation": {
+    "invalid": "Érvénytelen érték.",
+    "required": "Kötelező mező.",
+    "tooLong": "Túl hosszú.",
+    "bps": {
+      "max": "Legfeljebb 100% lehet."
+    },
+    "cart": {
+      "empty": "A kosár üres.",
+      "max": "Túl sok tétel egy rendelésben."
+    },
+    "dateRange": {
+      "invalid": "A kezdő dátum a záró után van."
+    },
+    "dateTime": {
+      "invalid": "Érvénytelen dátum vagy idő."
+    },
+    "email": {
+      "invalid": "Érvénytelen e-mail-cím."
+    },
+    "huf": {
+      "integer": "Az összeg egész forint legyen.",
+      "min": "Az összeg túl kicsi."
+    },
+    "modifierGroup": {
+      "minAboveMax": "A minimum nem lehet nagyobb a maximumnál."
+    },
+    "name": {
+      "invalid": "A név nem megengedett karaktert tartalmaz.",
+      "max": "A név túl hosszú.",
+      "required": "Add meg a nevet."
+    },
+    "objectId": {
+      "invalid": "Érvénytelen azonosító."
+    },
+    "otp": {
+      "invalid": "A kód 6 számjegy."
+    },
+    "phone": {
+      "invalid": "Magyar mobilszámot adj meg (+36…).",
+      "requiredForSms": "Az SMS-értesítéshez telefonszám kell."
+    },
+    "pickupDeadline": {
+      "max": "Legfeljebb 60 perc lehet.",
+      "min": "Legalább 15 perc legyen."
+    },
+    "pin": {
+      "invalid": "Érvénytelen PIN."
+    },
+    "promoCode": {
+      "invalid": "Érvénytelen kuponkód."
+    },
+    "quantity": {
+      "integer": "A mennyiség egész szám legyen.",
+      "max": "Túl nagy mennyiség.",
+      "min": "A mennyiség legalább 1."
+    },
+    "role": {
+      "invalid": "Érvénytelen szerepkör."
+    },
+    "slug": {
+      "invalid": "Csak kisbetű, szám és kötőjel lehet."
+    },
+    "terms": {
+      "required": "Fogadd el a feltételeket."
+    },
+    "time": {
+      "invalid": "Időpont ÓÓ:PP formában."
+    },
+    "tip": {
+      "invalid": "Érvénytelen borravaló.",
+      "preset": "Válassz a felkínált borravalók közül."
+    },
+    "uploadKind": {
+      "invalid": "Ilyen fájlt nem lehet feltölteni."
+    },
+    "url": {
+      "invalid": "Érvénytelen webcím."
+    },
+    "vatRate": {
+      "invalid": "Érvénytelen ÁFA-kulcs."
+    }
   }
 }

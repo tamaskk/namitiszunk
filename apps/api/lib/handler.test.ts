@@ -109,10 +109,49 @@ describe("handler order", () => {
       error: {
         code: "validation_failed",
         messageKey: "apiErrors.validation_failed",
-        fields: { qty: "too_small" },
+        fields: { qty: "validation.invalid" },
       },
     });
     expect(calls).toEqual(["auth"]);
+  });
+
+  it("sends a schema's own message key for the field", async () => {
+    const endpoint = handler(
+      {
+        ...open,
+        input: z.object({
+          phone: z
+            .string()
+            .regex(/^\+36/, { error: "validation.phone.invalid" }),
+        }),
+      },
+      async () => "ok",
+    );
+
+    const res = await endpoint(post({ phone: "06" }), route);
+
+    expect((await res.json()).error.fields).toEqual({
+      phone: "validation.phone.invalid",
+    });
+  });
+
+  it("refuses a malformed [id] before any service runs", async () => {
+    let ran = false;
+    const endpoint = handler(open, async () => {
+      ran = true;
+      return "ok";
+    });
+
+    const res = await endpoint(
+      new Request("https://api.namitiszunk.hu/v1/orders/not-an-id"),
+      { params: Promise.resolve({ id: "not-an-id" }) },
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.fields).toEqual({
+      id: "validation.objectId.invalid",
+    });
+    expect(ran).toBe(false);
   });
 
   it("runs auth, permission and the logic in order and answers { data }", async () => {
@@ -263,8 +302,8 @@ describe("rate limit", () => {
         params: Promise.resolve({ id }),
       });
 
-    const first = await get("a1");
-    const otherId = await get("b2");
+    const first = await get("a".repeat(24));
+    const otherId = await get("b".repeat(24));
 
     expect(first.status).toBe(200);
     expect(otherId.status).toBe(429);
@@ -466,7 +505,7 @@ describe("idempotency", () => {
 
     expect(res.status).toBe(400);
     expect((await res.json()).error.fields).toEqual({
-      "X-Session-Id": "required",
+      "X-Session-Id": "validation.required",
     });
     expect(created).toBe(0);
   });
@@ -506,7 +545,7 @@ describe("idempotency", () => {
     process.env.MONGODB_URI = uri;
     expect(res.status).toBe(400);
     expect((await res.json()).error.fields).toEqual({
-      "Idempotency-Key": "invalid",
+      "Idempotency-Key": "validation.invalid",
     });
   });
 

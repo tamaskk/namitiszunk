@@ -19,3 +19,25 @@ export function connectDb(uri: string): Promise<typeof mongoose> {
     });
   return cache.namitiszunkDb;
 }
+
+/**
+ * Whether the database answers a ping within `timeoutMs` (the API health check, T-017).
+ * Never throws: a down database is an answer here, not an error.
+ */
+export async function pingDb(uri: string, timeoutMs = 3000): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), timeoutMs);
+  });
+  const ping = connectDb(uri)
+    .then(async (db) => {
+      await db.connection.db?.admin().command({ ping: 1 });
+      return db.connection.db !== undefined;
+    })
+    .catch(() => false);
+  try {
+    return await Promise.race([ping, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
