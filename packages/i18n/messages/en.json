@@ -86,7 +86,8 @@
         "back": "Back"
       },
       "offline": "No connection, the status may be out of date.",
-      "clearSearch": "Clear search"
+      "clearSearch": "Clear search",
+      "accountLabel": "Account"
     },
     "product": {
       "add": "Add",
@@ -301,7 +302,52 @@
       "already": "You have already rated this order.",
       "chooseStars": "Choose between 1 and 5 stars.",
       "failed": "Could not send it. Try again.",
-      "confirmationLink": "Payment confirmation"
+      "confirmationLink": "Payment confirmation",
+      "orderMore": "Order more"
+    },
+    "reorder": {
+      "again": "Order again",
+      "skipped": "These are not available now and were left out: {items}",
+      "noneAvailable": "None of the items in this order are available now.",
+      "toMenu": "Go to the menu",
+      "failed": "Could not add them to the cart. Try again."
+    },
+    "account": {
+      "pageTitle": "Account",
+      "title": "Your account",
+      "signInTitle": "Sign in",
+      "signInBody": "You can order without an account. Signed in, you see your orders in one place and can order again with one tap.",
+      "emailLabel": "Email address",
+      "sendLink": "Send sign-in link",
+      "linkSent": "We sent a sign-in link to {email}. Open it on this phone.",
+      "linkFailed": "Could not send it. Check the address, or try again in a few minutes.",
+      "google": "Sign in with Google",
+      "apple": "Sign in with Apple",
+      "socialFailed": "This sign-in is not available now. Try the email link.",
+      "historyTitle": "Your orders",
+      "empty": "No orders in this account yet.",
+      "statuses": {
+        "awaiting_payment": "Awaiting payment",
+        "new": "Received",
+        "preparing": "Preparing",
+        "ready": "Ready for pickup",
+        "picked_up": "Picked up",
+        "cancelled": "Cancelled",
+        "rejected": "Rejected",
+        "expired": "Expired",
+        "refunded": "Refunded"
+      },
+      "dataTitle": "Your data",
+      "export": "Download my data",
+      "exportFailed": "Could not download it. Try again.",
+      "signOut": "Sign out",
+      "delete": "Delete account",
+      "deleteTitle": "Delete your account?",
+      "deleteBody": "Your account and sign-ins are deleted right away. Your orders stay for 8 years for the club's books, but are no longer linked to you. This cannot be undone.",
+      "deleteConfirm": "Delete for good",
+      "cancel": "Cancel",
+      "deleteFailed": "Could not delete it. Try again.",
+      "staffAccount": "This account belongs to a club's team, so it cannot be deleted here. Ask the club to remove you from the team."
     }
   },
   "admin": {

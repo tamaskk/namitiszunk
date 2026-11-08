@@ -22,10 +22,11 @@ function newToken() {
 const pickedUp = { id: newId(), ...newToken() };
 const preparing = { id: newId(), ...newToken() };
 const refundHuf = 1000;
+const venueId = newId();
+const barId = newId();
+const menuUrl = `/hu/v/e2e-${venueId}?bar=${barId}`;
 
 test.beforeAll(() => {
-  const venueId = newId();
-  const barId = newId();
   const now = { $date: new Date().toISOString() };
   upsertDocument("venues", {
     _id: oid(venueId),
@@ -106,7 +107,7 @@ async function answerApi(
     const headers = {
       "access-control-allow-origin": "*",
       "access-control-allow-headers": "content-type, x-guest-token, accept",
-      "access-control-allow-methods": "POST, OPTIONS",
+      "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
     };
     if (route.request().method() === "OPTIONS")
       return route.fulfill({ status: 204, headers });
@@ -253,6 +254,69 @@ test.describe("thanks and rating (T-045)", () => {
     await expect(page.getByText(hu.thanks.sent)).toBeFocused();
   });
 
+  test("links back to the same bar's menu for another round", async ({
+    page,
+  }) => {
+    await page.goto(`/hu/o/${pickedUp.id}/thanks?t=${pickedUp.token}`);
+
+    await expect(
+      page.getByRole("link", { name: hu.thanks.orderMore }),
+    ).toHaveAttribute("href", menuUrl);
+  });
+
+  test("orders again: fills the cart and names the items left out", async ({
+    page,
+  }) => {
+    await page.goto(`/hu/o/${pickedUp.id}/thanks?t=${pickedUp.token}`);
+    await answerApi(page, `/v1/orders/${pickedUp.id}/reorder`, 200, {
+      venueId,
+      venueSlug: `e2e-${venueId}`,
+      barId,
+      lines: [
+        {
+          itemId: newId(),
+          name: "Gin tonic",
+          unitPriceHuf: 2490,
+          quantity: 2,
+          modifierIds: [],
+          options: [],
+        },
+      ],
+      skipped: ["Coca-Cola"],
+    });
+
+    await page.getByRole("button", { name: hu.reorder.again }).click();
+
+    await expect(
+      page
+        .getByRole("status")
+        .filter({
+          hasText: hu.reorder.skipped.replace("{items}", "Coca-Cola"),
+        }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: hu.reorder.toMenu }),
+    ).toHaveAttribute("href", menuUrl);
+    const cart = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      `namitiszunk:cart:${venueId}`,
+    );
+    expect(JSON.parse(cart ?? "[]")).toEqual([
+      expect.objectContaining({ name: "Gin tonic", quantity: 2 }),
+    ]);
+  });
+
+  test("says when ordering again failed", async ({ page }) => {
+    await page.goto(`/hu/o/${pickedUp.id}/thanks?t=${pickedUp.token}`);
+    await answerApi(page, `/v1/orders/${pickedUp.id}/reorder`, 404, null);
+
+    await page.getByRole("button", { name: hu.reorder.again }).click();
+
+    await expect(
+      page.getByRole("alert").filter({ hasText: hu.reorder.failed }),
+    ).toBeVisible();
+  });
+
   test("sends an order that is not picked up yet back to the live page", async ({
     page,
   }) => {
@@ -261,5 +325,38 @@ test.describe("thanks and rating (T-045)", () => {
     await page.goto(`/hu/o/${id}/thanks?t=${preparing.token}`);
 
     await expect(page).toHaveURL(new RegExp(`/hu/o/${id}$`));
+  });
+});
+
+// Signed-in views need a signed Better Auth cookie: they are checked by hand (docs/fejlesztesi-terv.md §47).
+test.describe("guest account sign-in (T-047)", () => {
+  test("sends a sign-in link and says where it went", async ({ page }) => {
+    await page.goto("/hu/fiok");
+    await answerApi(page, "/api/auth/sign-in/magic-link", 200, null);
+    await expectNoViolations(page);
+
+    await page.getByLabel(hu.account.emailLabel).fill("vendeg@example.com");
+    await page.getByRole("button", { name: hu.account.sendLink }).click();
+
+    await expect(
+      page
+        .getByRole("status")
+        .filter({
+          hasText: hu.account.linkSent.replace("{email}", "vendeg@example.com"),
+        }),
+    ).toBeVisible();
+  });
+
+  test("points to the e-mail link when a social sign-in cannot start", async ({
+    page,
+  }) => {
+    await page.goto("/hu/fiok");
+    await answerApi(page, "/api/auth/sign-in/social", 404, null);
+
+    await page.getByRole("button", { name: hu.account.google }).click();
+
+    await expect(
+      page.getByRole("alert").filter({ hasText: hu.account.socialFailed }),
+    ).toBeVisible();
   });
 });

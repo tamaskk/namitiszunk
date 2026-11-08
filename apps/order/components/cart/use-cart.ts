@@ -140,6 +140,11 @@ function subscribe(listener: () => void) {
   };
 }
 
+/** Adds lines to a venue's cart outside React ("Rendeld újra", T-045 and T-047); same choices merge. */
+export function addToCart(venueId: string, lines: readonly CartLine[]) {
+  write(venueId, lines.reduce(withLine, read(venueId)));
+}
+
 /**
  * The guest's cart for one venue, kept in localStorage so it survives a reload. The server
  * snapshot is empty, so hydration matches and the stored cart appears right after.

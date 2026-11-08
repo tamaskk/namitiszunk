@@ -86,7 +86,8 @@
         "back": "Vissza"
       },
       "offline": "Nincs kapcsolat, az állapot elavult lehet.",
-      "clearSearch": "Keresés törlése"
+      "clearSearch": "Keresés törlése",
+      "accountLabel": "Fiók"
     },
     "product": {
       "add": "Hozzáadás",
@@ -301,7 +302,52 @@
       "already": "Ezt a rendelést már értékelted.",
       "chooseStars": "Válassz 1 és 5 csillag között.",
       "failed": "Nem sikerült elküldeni. Próbáld újra.",
-      "confirmationLink": "Fizetési visszaigazolás"
+      "confirmationLink": "Fizetési visszaigazolás",
+      "orderMore": "Rendelj még"
+    },
+    "reorder": {
+      "again": "Rendeld újra",
+      "skipped": "Ezek most nem rendelhetők, kimaradtak: {items}",
+      "noneAvailable": "A rendelés egyik tétele sem rendelhető most.",
+      "toMenu": "Tovább a menübe",
+      "failed": "Nem sikerült a kosárba tenni. Próbáld újra."
+    },
+    "account": {
+      "pageTitle": "Fiók",
+      "title": "Fiókod",
+      "signInTitle": "Belépés",
+      "signInBody": "Fiók nélkül is rendelhetsz. Belépve egy helyen látod a rendeléseid, és egy koppintással újrarendelhetsz.",
+      "emailLabel": "E-mail-cím",
+      "sendLink": "Belépési link küldése",
+      "linkSent": "Elküldtük a belépési linket ide: {email}. Nyisd meg ezen a telefonon.",
+      "linkFailed": "Nem sikerült elküldeni. Ellenőrizd a címet, vagy próbáld újra pár perc múlva.",
+      "google": "Belépés Google-fiókkal",
+      "apple": "Belépés Apple-fiókkal",
+      "socialFailed": "Ez a belépés most nem érhető el. Próbáld az e-mailes linket.",
+      "historyTitle": "Rendeléseid",
+      "empty": "Még nincs rendelés ebben a fiókban.",
+      "statuses": {
+        "awaiting_payment": "Fizetésre vár",
+        "new": "Beérkezett",
+        "preparing": "Készül",
+        "ready": "Átvehető",
+        "picked_up": "Átvéve",
+        "cancelled": "Lemondva",
+        "rejected": "Elutasítva",
+        "expired": "Lejárt",
+        "refunded": "Visszatérítve"
+      },
+      "dataTitle": "Adataid",
+      "export": "Adataim letöltése",
+      "exportFailed": "Nem sikerült letölteni. Próbáld újra.",
+      "signOut": "Kilépés",
+      "delete": "Fiók törlése",
+      "deleteTitle": "Törlöd a fiókod?",
+      "deleteBody": "A fiókod és a belépéseid azonnal törlődnek. A rendeléseid a klub könyvelése miatt 8 évig megmaradnak, de már nem kötődnek hozzád. Ez nem vonható vissza.",
+      "deleteConfirm": "Végleges törlés",
+      "cancel": "Mégse",
+      "deleteFailed": "Nem sikerült törölni. Próbáld újra.",
+      "staffAccount": "Ez a fiók egy klub csapatához tartozik, ezért itt nem törölhető. Kérd a klubot, hogy vegyen ki a csapatból."
     }
   },
   "admin": {
