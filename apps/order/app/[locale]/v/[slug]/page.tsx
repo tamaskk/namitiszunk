@@ -15,7 +15,7 @@ import { connection } from "next/server";
 
 import { trackMenuViewed } from "@/lib/analytics";
 import { ensureDb } from "@/lib/db";
-import { getCachedMenu } from "@/lib/menu-cache";
+import { getMenu } from "@/lib/menu-cache";
 
 import { AgeGate } from "./age-gate";
 import { MenuBrowser } from "./menu-browser";
@@ -49,7 +49,7 @@ export async function generateMetadata({
   });
   if (!venueSlugSchema.safeParse(slug).success)
     return { title: t("menuTitle") };
-  const menu = await getCachedMenu(slug, locale as Locale);
+  const menu = await getMenu(slug, locale as Locale);
   return {
     title: menu ? `${menu.venue.name} · ${t("menuTitle")}` : t("menuTitle"),
   };
@@ -66,7 +66,7 @@ export default async function MenuPage({
   if (!venueSlugSchema.safeParse(slug).success) notFound();
 
   const query = await searchParams;
-  const menu = await getCachedMenu(
+  const menu = await getMenu(
     slug,
     locale,
     idParam(query.zone),

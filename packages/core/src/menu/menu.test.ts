@@ -19,7 +19,12 @@ import {
   vi,
 } from "vitest";
 
-import { getPublicMenu, getVenueStatus, medianWaitMinutes } from ".";
+import {
+  getPublicMenu,
+  getVenueStatus,
+  medianWaitMinutes,
+  resolveMenuContext,
+} from ".";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
@@ -35,6 +40,7 @@ const ids = {
   otherVenue: new Types.ObjectId(),
   bar: new Types.ObjectId(),
   otherBar: new Types.ObjectId(),
+  terraceBar: new Types.ObjectId(),
   danceZone: new Types.ObjectId(),
   vipZone: new Types.ObjectId(),
   foreignVipZone: new Types.ObjectId(),
@@ -46,9 +52,14 @@ const ids = {
   oldItem: new Types.ObjectId(),
 };
 
-async function insertReadyOrder(paidMinutesAgo: number, waitMinutes: number) {
+async function insertReadyOrder(
+  paidMinutesAgo: number,
+  waitMinutes: number,
+  status = "picked_up",
+) {
   const paidAt = minutesAgo(paidMinutesAgo);
   await Order.collection.insertOne({
+    status,
     venueId: ids.venue,
     barId: ids.bar,
     businessDate: "2026-11-07",
@@ -70,6 +81,7 @@ beforeAll(async () => {
   await Bar.create([
     { _id: ids.bar, venueId: ids.venue, name: "Főpult", isOpen: true },
     { _id: ids.otherBar, venueId: ids.otherVenue, name: "X", isOpen: true },
+    { _id: ids.terraceBar, venueId: ids.venue, name: "Terasz", isOpen: true },
   ]);
   await Zone.create([
     { _id: ids.danceZone, venueId: ids.venue, barId: ids.bar, name: "Tánctér" },
@@ -142,14 +154,60 @@ afterAll(async () => {
 const itemIds = (menu: Awaited<ReturnType<typeof getPublicMenu>>) =>
   menu?.categories.flatMap((c) => c.items.map((i) => i.id));
 
-describe("getPublicMenu", () => {
+const regular = { barId: ids.bar.toString(), isVip: false };
+
+describe("resolveMenuContext", () => {
+  const resolve = (zoneId?: string, barId?: string) =>
+    resolveMenuContext({ slug: "demo", zoneId, barId });
+
   it("returns null for an unknown or unpublished venue", async () => {
-    expect(await getPublicMenu({ slug: "nope", locale: "hu" })).toBeNull();
-    expect(await getPublicMenu({ slug: "draft", locale: "hu" })).toBeNull();
+    expect(await resolveMenuContext({ slug: "nope" })).toBeNull();
+    expect(await resolveMenuContext({ slug: "draft" })).toBeNull();
+  });
+
+  it("grants VIP only for a VIP zone of this venue at the resolved bar", async () => {
+    const vipZone = ids.vipZone.toString();
+
+    expect(await resolve(vipZone)).toEqual({
+      venueId: ids.venue.toString(),
+      barId: ids.bar.toString(),
+      isVip: true,
+    });
+    for (const zoneId of [
+      undefined,
+      ids.danceZone.toString(),
+      ids.foreignVipZone.toString(),
+      new Types.ObjectId().toString(),
+    ]) {
+      expect((await resolve(zoneId))?.isVip).toBe(false);
+    }
+    // A VIP zone of the main bar pasted next to another bar's QR id.
+    expect(await resolve(vipZone, ids.terraceBar.toString())).toMatchObject({
+      barId: ids.terraceBar.toString(),
+      isVip: false,
+    });
+  });
+
+  it("ignores a bar of another venue", async () => {
+    const context = await resolve(undefined, ids.otherBar.toString());
+
+    expect(context?.barId).toBe(ids.bar.toString());
+  });
+});
+
+describe("getPublicMenu", () => {
+  it("returns null for an unknown venue", async () => {
+    expect(
+      await getPublicMenu({ slug: "nope", locale: "hu", ...regular }),
+    ).toBeNull();
   });
 
   it("lists items in display order without archived or VIP items", async () => {
-    const menu = await getPublicMenu({ slug: "demo", locale: "hu" });
+    const menu = await getPublicMenu({
+      slug: "demo",
+      locale: "hu",
+      ...regular,
+    });
 
     expect(itemIds(menu)).toEqual([ids.beer.toString(), ids.gin.toString()]);
     expect(menu?.categories.map((c) => c.name)).toEqual(["Italok"]);
@@ -161,34 +219,23 @@ describe("getPublicMenu", () => {
     });
   });
 
-  it("shows VIP items only for a VIP zone of the same venue", async () => {
-    const vip = (zoneId?: string) =>
-      getPublicMenu({ slug: "demo", locale: "hu", zoneId });
-
-    expect(itemIds(await vip(ids.vipZone.toString()))).toContain(
-      ids.vodka.toString(),
-    );
-    for (const zoneId of [
-      undefined,
-      ids.danceZone.toString(),
-      ids.foreignVipZone.toString(),
-      new Types.ObjectId().toString(),
-    ]) {
-      expect(itemIds(await vip(zoneId))).not.toContain(ids.vodka.toString());
-    }
-  });
-
-  it("ignores a bar of another venue", async () => {
+  it("adds the VIP items for a VIP context", async () => {
     const menu = await getPublicMenu({
       slug: "demo",
       locale: "hu",
-      barId: ids.otherBar.toString(),
+      ...regular,
+      isVip: true,
     });
-    expect(menu?.bar?.id).toBe(ids.bar.toString());
+
+    expect(itemIds(menu)).toContain(ids.vodka.toString());
   });
 
   it("falls back to Hungarian when the English text is empty", async () => {
-    const menu = await getPublicMenu({ slug: "demo", locale: "en" });
+    const menu = await getPublicMenu({
+      slug: "demo",
+      locale: "en",
+      ...regular,
+    });
     const [beer, gin] = menu?.categories[0]?.items ?? [];
 
     expect(menu?.categories[0]?.name).toBe("Drinks");
@@ -240,6 +287,20 @@ describe("getVenueStatus", () => {
     const status = await getVenueStatus({ slug: "demo", now });
 
     expect(status?.estimatedWaitMinutes).toBe(7);
+  });
+
+  it("leaves out orders cancelled or refunded after they were ready", async () => {
+    await insertReadyOrder(20, 5, "ready");
+    await insertReadyOrder(15, 7, "expired");
+    await insertReadyOrder(14, 25, "refunded");
+    await insertReadyOrder(13, 25, "cancelled");
+
+    const twoServed = await getVenueStatus({ slug: "demo", now });
+    await insertReadyOrder(12, 9);
+    const threeServed = await getVenueStatus({ slug: "demo", now });
+
+    expect(twoServed?.estimatedWaitMinutes).toBeNull();
+    expect(threeServed?.estimatedWaitMinutes).toBe(7);
   });
 
   it("reports paused and closed bars", async () => {

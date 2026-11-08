@@ -8,6 +8,8 @@ import { findPublicVenue, resolveBar } from "./public-menu";
 
 const WAIT_WINDOW_MS = 30 * 60 * 1000;
 const MIN_ORDERS_FOR_WAIT = 3;
+// Orders the bar actually made: one cancelled or refunded after Ready says nothing about the wait.
+const SERVED_STATUSES = ["ready", "picked_up", "expired"] as const;
 
 export type VenueStatus = {
   status: BarState;
@@ -48,6 +50,7 @@ export async function getVenueStatus({
 
   const since = new Date(now.getTime() - WAIT_WINDOW_MS);
   const [soldOut, readyOrders] = await Promise.all([
+    // shortcut: includes VIP-only item ids (ids only, no names or prices); filter per zone if that matters.
     Item.find(
       { venueId: venue._id, archivedAt: null, isAvailable: false },
       { _id: 1 },
@@ -63,6 +66,7 @@ export async function getVenueStatus({
                 ...new Set([now, since].map((at) => businessDate(at, venue))),
               ],
             },
+            status: { $in: SERVED_STATUSES },
             readyAt: { $gte: since, $lte: now },
             paidAt: { $type: "date" },
           },

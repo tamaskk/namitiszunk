@@ -1,4 +1,4 @@
-import { hitRateLimit } from "@namitiszunk/core/api";
+import { clientIp, hitRateLimit } from "@namitiszunk/core/api";
 import { getVenueStatus } from "@namitiszunk/core/menu";
 import {
   fieldErrorKeys,
@@ -9,7 +9,8 @@ import {
 
 import { ensureDb } from "@/lib/db";
 
-// Guests on the club Wi-Fi share one address: 30 s polling leaves room for about 150 open menus.
+// A backstop only: the CDN answers most polls. Guests on the club Wi-Fi share one address,
+// so 300 a minute per address and venue leaves room for about 150 open menus.
 const RATE_LIMIT = { limit: 300, windowSeconds: 60 };
 
 function fail(
@@ -18,7 +19,7 @@ function fail(
   {
     fields = {},
     headers = {},
-  }: { fields?: object; headers?: HeadersInit } = {},
+  }: { fields?: Record<string, string>; headers?: HeadersInit } = {},
 ) {
   return Response.json(
     { error: { code, messageKey: `apiErrors.${code}`, fields } },
@@ -45,12 +46,12 @@ export async function GET(
       fields: fieldErrorKeys(query.error),
     });
   }
+  const ip = clientIp(request);
+  if (ip === null) return fail(400, "client_unknown");
 
   await ensureDb();
-  // Vercel overwrites x-forwarded-for with the real client address, so it cannot be spoofed there.
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const limited = await hitRateLimit(
-    `GET /api/venues/status|ip:${ip || "local"}`,
+    `GET /api/venues/status|ip:${ip}|venue:${slug}`,
     RATE_LIMIT,
   );
   if (limited) {
@@ -66,9 +67,13 @@ export async function GET(
     ...status,
     pausedUntil: status.pausedUntil?.toISOString() ?? null,
   };
-  // Shorter than the 30 s poll, so a sold-out switch reaches the next poll.
+  // The same for every guest of a bar, so the CDN may share it; shorter than the 30 s poll.
   return Response.json(
     { data },
-    { headers: { "Cache-Control": "private, max-age=10" } },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=20",
+      },
+    },
   );
 }

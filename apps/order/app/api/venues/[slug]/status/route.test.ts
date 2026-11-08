@@ -5,7 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const hitRateLimit = vi.hoisted(() => vi.fn());
 const getVenueStatus = vi.hoisted(() => vi.fn());
 vi.mock("server-only", () => ({}));
+// clientIp's own rules are tested in packages/core/src/api/client-ip.test.ts.
+const clientIp = vi.hoisted(() => vi.fn());
 vi.mock("@namitiszunk/core/api", () => ({
+  clientIp,
   hitRateLimit,
   connectDb: vi.fn(),
 }));
@@ -22,6 +25,7 @@ const get = (slug: string, query = "") =>
 
 beforeEach(() => {
   hitRateLimit.mockReset().mockResolvedValue(null);
+  clientIp.mockReset().mockReturnValue("203.0.113.7");
   getVenueStatus.mockReset().mockResolvedValue({
     status: "paused",
     pausedUntil: new Date("2026-11-07T22:10:00Z"),
@@ -36,7 +40,9 @@ describe("GET /api/venues/[slug]/status", () => {
 
     const body = (await response.json()) as { data: unknown };
     expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("private, max-age=10");
+    expect(response.headers.get("cache-control")).toBe(
+      "public, s-maxage=10, stale-while-revalidate=20",
+    );
     expect(venueStatusResponseSchema.parse(body.data)).toEqual({
       status: "paused",
       pausedUntil: "2026-11-07T22:10:00.000Z",
@@ -58,20 +64,29 @@ describe("GET /api/venues/[slug]/status", () => {
     expect(getVenueStatus).not.toHaveBeenCalled();
   });
 
-  it("limits requests per client address", async () => {
+  it("limits requests per client address and venue", async () => {
     hitRateLimit.mockResolvedValue({ retryAfterSeconds: 12 });
 
-    const response = await GET(
-      new Request("https://namitiszunk.hu/api/venues/demo/status", {
-        headers: { "x-forwarded-for": "203.0.113.7, 10.0.0.1" },
-      }),
-      { params: Promise.resolve({ slug: "demo" }) },
-    );
+    const response = await get("demo");
 
     expect(response.status).toBe(429);
     expect(response.headers.get("retry-after")).toBe("12");
-    expect(hitRateLimit.mock.calls[0]?.[0]).toContain("ip:203.0.113.7");
+    expect(hitRateLimit.mock.calls[0]?.[0]).toContain(
+      "ip:203.0.113.7|venue:demo",
+    );
     expect(getVenueStatus).not.toHaveBeenCalled();
+  });
+
+  it("refuses a request whose client address is unknown", async () => {
+    clientIp.mockReturnValue(null);
+
+    const response = await get("demo");
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: { code: "client_unknown" },
+    });
+    expect(hitRateLimit).not.toHaveBeenCalled();
   });
 
   it("answers 404 for an unknown venue", async () => {

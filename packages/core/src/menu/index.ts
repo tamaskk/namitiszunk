@@ -1,5 +1,7 @@
 export {
   getPublicMenu,
+  resolveMenuContext,
+  type MenuContext,
   type PublicMenu,
   type PublicMenuItem,
 } from "./public-menu";
