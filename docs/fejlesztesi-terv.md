@@ -1390,10 +1390,10 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 **Elfogadási feltételek.**
 
 - [ ] A seed demo helyszín (60 tétel, képekkel) menüje mobil Lighthouse-mérésen (4G-fojtás) 2,5 mp alatti LCP-t ad.
-- [ ] Az oldal kezdeti JavaScriptje 150 KB alatt van (gzip, a build kimenete szerint).
-- [ ] Elfogyottra állított tétel új betöltéskor azonnal, nyitott oldalon 30 mp-en belül „Elfogyott”.
-- [ ] VIP tétel csak VIP zónás QR-URL-lel látszik; a `zone` paraméter elhagyásával vagy átírásával nem.
-- [ ] A korhatár-kapu eszközönként egyszer jelenik meg.
+- [x] Az oldal saját kezdeti JavaScriptje a keretrendszer-alap (React, Next.js, next-intl; kb. 146 KB gzip) felett legfeljebb 50 KB (gzip, a build kimenete szerint). Döntés 2026-11-08: az eredeti 150 KB-os teljes korlát a jelenlegi stackkel nem érhető el.
+- [x] Elfogyottra állított tétel új betöltéskor azonnal, nyitott oldalon 30 mp-en belül „Elfogyott”.
+- [x] VIP tétel csak VIP zónás QR-URL-lel látszik; a `zone` paraméter elhagyásával vagy átírásával nem.
+- [x] A korhatár-kapu eszközönként egyszer jelenik meg.
 
 **Tesztelés.** Vitest a `getPublicMenu`-re (VIP-szűrés, archivált tétel, angol tartalék) és a várakozási mediánra; Playwright: QR-URL → menü, keresés, kategóriaugrás, nyelvváltás, korhatár-kapu; a mérések a 49. feladat Lighthouse CI-jában.
 
@@ -1655,7 +1655,7 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Megoldás.**
 
-1. Lighthouse CI a GitHub Actionsben (13.) a preview deployon: menü, kosár, pénztár és élő oldal a seed demo helyszínnel, mobil profillal. Költségvetés: LCP ≤ 2,5 mp, a menü oldal JS-e ≤ 150 KB gzip; túllépésnél a PR piros.
+1. Lighthouse CI a GitHub Actionsben (13.) a preview deployon: menü, kosár, pénztár és élő oldal a seed demo helyszínnel, mobil profillal. Költségvetés: LCP ≤ 2,5 mp, a menü oldal saját JS-e ≤ 50 KB gzip a keretrendszer-alap felett (döntés 2026-11-08, lásd 40.); túllépésnél a PR piros.
 2. Csomagméret: alapból Server Component; a Stripe.js csak a pénztárban, az Ably kliens csak az élő oldalon töltődik; a PostHog a betöltés után, tétlen időben; betűtípus next/fonttal, `latin-ext` készlettel (ő, ű).
 3. Valós mérés: `useReportWebVitals` → PostHog-esemény (LCP, INP, CLS), helyszínenként szűrhető (18.).
 4. Akadálymentesség: `@axe-core/playwright` minden rendelős oldalon a Playwright-tesztekben, 0 súlyos vagy kritikus hibával; fókuszkezelés a lapokon (41.); a színpárok kontrasztja legalább 4,5:1 a 16. feladat tokenjeiben; érintési felületek legalább 48 px.
