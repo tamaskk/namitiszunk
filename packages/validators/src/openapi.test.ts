@@ -35,6 +35,12 @@ describe("buildOpenApiDocument", () => {
       "/v1/ping",
       "/v1/openapi.json",
       "/v1/uploads",
+      "/v1/orders/{id}/reorder",
+      "/v1/me",
+      "/v1/me/orders",
+      "/v1/me/orders/claim",
+      "/v1/me/orders/{id}/reorder",
+      "/v1/me/export",
     ]);
     expect(createOrder.requestBody.content["application/json"]?.schema).toEqual(
       { $ref: "#/components/schemas/CreateOrderInput" },
@@ -73,6 +79,7 @@ describe("buildOpenApiDocument", () => {
     expect(Object.keys(components.securitySchemes)).toEqual([
       "adminSession",
       "hqSession",
+      "orderSession",
       "bearerAuth",
     ]);
   });
@@ -105,5 +112,19 @@ describe("buildOpenApiDocument", () => {
         },
       },
     });
+  });
+
+  it("declares the order-app session and 401, 404 and 409 on the account routes", () => {
+    const { paths } = buildOpenApiDocument();
+
+    const remove = paths["/v1/me"]?.delete as {
+      security: unknown[];
+      responses: Record<string, unknown>;
+    };
+
+    expect(remove.security).toEqual([{ orderSession: [] }, { bearerAuth: [] }]);
+    expect(Object.keys(remove.responses)).toEqual(
+      expect.arrayContaining(["200", "401", "404", "409"]),
+    );
   });
 });

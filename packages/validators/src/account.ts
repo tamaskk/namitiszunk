@@ -57,3 +57,16 @@ export const reorderResponseSchema = z.object({
   skipped: z.array(z.string()),
 });
 export type ReorderResponse = z.infer<typeof reorderResponseSchema>;
+
+export const deleteAccountResponseSchema = z.object({
+  ordersDetached: z.int().min(0),
+});
+
+/** GDPR export; its shape is documented loosely, the fields are listed in core (exportAccountData). */
+export const accountExportResponseSchema = z.looseObject({
+  exportedAt: z.iso.datetime(),
+  profile: z.looseObject({}),
+  logins: z.array(z.looseObject({})),
+  orders: z.array(z.looseObject({})),
+  reviews: z.array(z.looseObject({})),
+});

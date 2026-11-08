@@ -1,4 +1,10 @@
 import {
+  accountExportResponseSchema,
+  accountOrdersResponseSchema,
+  claimOrdersInputSchema,
+  claimOrdersResponseSchema,
+  deleteAccountResponseSchema,
+  reorderResponseSchema,
   createOrderInputSchema,
   createOrderResponseSchema,
   orderQuoteResponseSchema,
@@ -81,7 +87,7 @@ export function createApiClient(options: ApiClientOptions) {
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
 
   async function request<S extends z.ZodType>(
-    method: "GET" | "POST",
+    method: "GET" | "POST" | "DELETE",
     path: string,
     responseSchema: S,
     {
@@ -264,6 +270,38 @@ export function createApiClient(options: ApiClientOptions) {
             headers: { "x-guest-token": guestToken },
           },
         ),
+      /** POST /v1/orders/{id}/reorder: the order as a cart at today's prices, for its guest (T-045). */
+      reorder: async (orderId: string, guestToken: string) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/reorder`,
+          reorderResponseSchema,
+          { headers: { "x-guest-token": guestToken } },
+        ),
+    },
+    /** The signed-in guest's own account (T-047): session cookie on the web, Bearer token in the app. */
+    me: {
+      /** GET /v1/me/orders: newest first. */
+      orders: async () =>
+        request("GET", "/v1/me/orders", accountOrdersResponseSchema),
+      /** POST /v1/me/orders/claim: the orders this device remembers, each with its guest token. */
+      claimOrders: async (input: z.input<typeof claimOrdersInputSchema>) =>
+        request("POST", "/v1/me/orders/claim", claimOrdersResponseSchema, {
+          body: parseInput(claimOrdersInputSchema, input),
+        }),
+      /** POST /v1/me/orders/{id}/reorder: an order from the history as a cart. */
+      reorder: async (orderId: string) =>
+        request(
+          "POST",
+          `/v1/me/orders/${id(orderId)}/reorder`,
+          reorderResponseSchema,
+        ),
+      /** GET /v1/me/export: everything personal tied to the account (GDPR). */
+      export: async () =>
+        request("GET", "/v1/me/export", accountExportResponseSchema),
+      /** DELETE /v1/me: deletes the account; not retried, it cannot be undone. */
+      delete: async () =>
+        request("DELETE", "/v1/me", deleteAccountResponseSchema),
     },
     menu: {
       /** GET /v1/venues/{venueId}/menu. Not on the server yet (guest menu, T-040). */
