@@ -51,4 +51,5 @@ export {
   TableRow,
 } from "./components/table";
 export { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/tabs";
+export { Textarea } from "./components/textarea";
 export { toast, Toaster } from "./components/toaster";

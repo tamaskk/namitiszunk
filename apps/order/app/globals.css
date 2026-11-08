@@ -26,6 +26,11 @@
   }
 }
 
+/* No page margin: browsers then drop their header and footer, which would print the URL and its guest token. */
+@page {
+  margin: 0;
+}
+
 /* T-044 Print: the confirmation prints on white paper. The dark theme has no light set (DESIGN_SYSTEM §02),
    so print redefines the same tokens; only the confirmation page is meant to be printed. */
 @media print {
@@ -40,5 +45,6 @@
   body {
     background: var(--color-bg);
     color: var(--color-text);
+    padding: 16mm;
   }
 }

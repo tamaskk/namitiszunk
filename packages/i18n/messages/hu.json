@@ -183,7 +183,6 @@
       "title": "Köszönjük",
       "body": "Jó szórakozást. Ha valami nem stimmelt, jelezd lent.",
       "rateTitle": "Milyen volt?",
-      "stars": "Értékelés",
       "star": "{count, plural, one {# csillag} other {# csillag}}",
       "text": "Megjegyzés (nem kötelező)",
       "send": "Értékelés küldése",

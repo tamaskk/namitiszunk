@@ -38,16 +38,7 @@ export function ConfirmationActions({
     }
   }
 
-  const message =
-    state === "sent" ? (
-      <p role="status" className="text-body text-success">
-        {t("email.sent")}
-      </p>
-    ) : state === "limit" || state === "invalid" || state === "failed" ? (
-      <p role="alert" className="text-body text-danger">
-        {t(`email.${state}`)}
-      </p>
-    ) : null;
+  const failed = state === "limit" || state === "invalid" || state === "failed";
 
   return (
     <section className="flex flex-col gap-6 print:hidden">
@@ -55,7 +46,7 @@ export function ConfirmationActions({
         {t("print")}
       </Button>
 
-      <form onSubmit={send} className="flex flex-col gap-3">
+      <form onSubmit={send} className="flex flex-col gap-3" noValidate>
         <Label htmlFor="confirmation-email" className="text-small font-medium">
           {t("email.label")}
         </Label>
@@ -67,6 +58,7 @@ export function ConfirmationActions({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           aria-invalid={state === "invalid" || undefined}
+          aria-describedby="confirmation-email-result"
         />
         <Button
           type="submit"
@@ -75,7 +67,14 @@ export function ConfirmationActions({
         >
           {t("email.send")}
         </Button>
-        {message}
+        {/* Mounted from the start so screen readers announce the result. */}
+        <p
+          id="confirmation-email-result"
+          aria-live="polite"
+          className={`text-body empty:hidden ${failed ? "text-danger" : "text-success"}`}
+        >
+          {state === "sent" || failed ? t(`email.${state}`) : ""}
+        </p>
       </form>
 
       <ReportProblem orderId={orderId} token={token} />

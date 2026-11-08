@@ -106,6 +106,7 @@ Inputs
 - Height 48px, radius-sm, surface background, border color-border, focus ring primary.
 - Label above the field, always visible. Placeholder is a hint, never the label.
 - Error: border danger, message below in danger at 14px.
+- Multi-line text uses `Textarea`: the same tokens as Input, at least 96px tall, padding space-3 on every side.
 - Forms use react-hook-form + the shared Zod schema from `packages/validators`.
 
 Cards
