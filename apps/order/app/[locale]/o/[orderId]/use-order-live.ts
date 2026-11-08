@@ -1,18 +1,14 @@
 "use client";
 
-import {
-  orderChannel,
-  shouldApply,
-  STATUS_EVENT,
-  type StatusMessage,
-} from "@namitiszunk/core/realtime/channels";
+import { shouldApply } from "@namitiszunk/core/realtime/channels";
 import type { OrderResponse } from "@namitiszunk/validators";
-import { BaseRealtime, FetchRequest, WebSocketTransport } from "ably/modular";
 import { useCallback, useEffect, useState } from "react";
 
 import { forgetOpenOrder } from "@/lib/open-orders";
 import { orderApi, OrderApiError } from "@/lib/order-api";
 import { statusView } from "@/lib/status-view";
+
+import { connectOrderLive } from "./live-realtime";
 
 // Ably silent longer than this: fall back to asking the API every POLL_MS (checked every TICK_MS).
 const POLL_MS = 10_000;
@@ -47,41 +43,31 @@ export function useOrderLive(initial: OrderResponse, token: string) {
 
   useEffect(() => {
     if (final) return;
-    // The modular build carries only WebSocket and fetch: a smaller guest bundle.
-    const ably = new BaseRealtime({
-      plugins: { WebSocketTransport, FetchRequest },
-      authCallback: (_params, callback) => {
-        orderApi.realtimeToken(token).then(
-          (request) => callback(null, request),
-          (error: unknown) => callback(String(error), null),
+    const live = connectOrderLive(orderId, token, {
+      onStatus: (data) => {
+        // Show the new status at once; the refetch brings the rest (refund, cancel option).
+        // Cancel is possible only in New; once the order moves on it never comes back.
+        setOrder((prev) =>
+          shouldApply(prev.version, data)
+            ? {
+                ...prev,
+                status: data.status,
+                version: data.version,
+                canCancel: prev.canCancel && data.status === "new",
+              }
+            : prev,
         );
+        void refresh();
       },
+      // Every (re)connect may have missed messages, including the gap between server render and subscribe.
+      onConnected: () => void refresh(),
     });
-    const channel = ably.channels.get(orderChannel(orderId));
-    void channel.subscribe(STATUS_EVENT, (message) => {
-      const data = message.data as StatusMessage;
-      // Show the new status at once; the refetch brings the rest (refund, cancel option).
-      // Cancel is possible only in New; once the order moves on it never comes back.
-      setOrder((prev) =>
-        shouldApply(prev.version, data)
-          ? {
-              ...prev,
-              status: data.status,
-              version: data.version,
-              canCancel: prev.canCancel && data.status === "new",
-            }
-          : prev,
-      );
-      void refresh();
-    });
-    // Every (re)connect may have missed messages, including the gap between server render and subscribe.
-    ably.connection.on("connected", () => void refresh());
 
     let lastLive = Date.now();
     let lastPoll = 0;
     const poll = setInterval(() => {
       const now = Date.now();
-      if (ably.connection.state === "connected") lastLive = now;
+      if (live.connected()) lastLive = now;
       else if (now - lastLive >= POLL_MS && now - lastPoll >= POLL_MS) {
         lastPoll = now;
         void refresh();
@@ -96,7 +82,7 @@ export function useOrderLive(initial: OrderResponse, token: string) {
     return () => {
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisible);
-      ably.close();
+      live.close();
     };
   }, [final, orderId, refresh, token]);
 

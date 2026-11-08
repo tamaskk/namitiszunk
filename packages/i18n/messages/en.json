@@ -72,7 +72,7 @@
       "soldOut": "Sold out",
       "empty": "This menu has no items yet.",
       "otherLanguage": "Magyar",
-      "otherLanguageLabel": "Váltás magyarra",
+      "otherLanguageLabel": "Magyar nyelvre váltás",
       "loadError": "The menu could not be loaded.",
       "retry": "Try again",
       "notFound": "We cannot find this venue. Scan the QR code again.",
