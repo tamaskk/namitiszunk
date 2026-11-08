@@ -19,6 +19,12 @@ const components = {
   CreateOrderInput: orders.createOrderInputSchema,
   CreateOrderResponse: orders.createOrderResponseSchema,
   OrderResponse: orders.orderResponseSchema,
+  ReviewInput: orders.reviewInputSchema,
+  ReviewResponse: orders.reviewResponseSchema,
+  ReportProblemInput: orders.reportProblemInputSchema,
+  ReportProblemResponse: orders.reportProblemResponseSchema,
+  ConfirmationEmailInput: orders.confirmationEmailInputSchema,
+  ConfirmationEmailResponse: orders.confirmationEmailResponseSchema,
   CategoryInput: menu.categoryInputSchema,
   ItemInput: menu.itemInputSchema,
   MenuResponse: menu.menuResponseSchema,
@@ -61,8 +67,8 @@ type Operation = {
   request?: ComponentName;
   response: ComponentName;
   status: 200 | 201;
-  /** "staff": a signed-in admin or HQ session; adds 401, 403 and 409. */
-  auth?: "staff";
+  /** "staff": a signed-in admin or HQ session; adds 401, 403 and 409. "guest": the order's token in x-guest-token; adds 404 and 409. */
+  auth?: "staff" | "guest";
 };
 
 // Endpoints that exist in the spec today; every new route (T-029 onwards) adds its line here.
@@ -76,6 +82,63 @@ const operations: Operation[] = [
     request: "CreateOrderInput",
     response: "CreateOrderResponse",
     status: 201,
+  },
+  {
+    method: "get",
+    path: "/v1/orders/{id}",
+    operationId: "getOrder",
+    summary:
+      "The guest's view of their order; a missing or wrong guest token gives 404",
+    tag: "orders",
+    response: "OrderResponse",
+    status: 200,
+    auth: "guest",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/cancel",
+    operationId: "cancelOrder",
+    summary:
+      "The guest cancels their order before acceptance; the full amount is refunded",
+    tag: "orders",
+    response: "OrderResponse",
+    status: 200,
+    auth: "guest",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/confirmation-email",
+    operationId: "sendConfirmationEmail",
+    summary:
+      "Send the guest's payment confirmation (not a receipt) to an address, at most 3 times per order",
+    tag: "orders",
+    request: "ConfirmationEmailInput",
+    response: "ConfirmationEmailResponse",
+    status: 200,
+    auth: "guest",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/report",
+    operationId: "reportProblem",
+    summary:
+      "The guest reports a problem with a paid order; mailed to the venue and the platform, at most 3 per order",
+    tag: "orders",
+    request: "ReportProblemInput",
+    response: "ReportProblemResponse",
+    status: 200,
+    auth: "guest",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/review",
+    operationId: "reviewOrder",
+    summary: "The guest rates a picked-up order with 1 to 5 stars, once",
+    tag: "orders",
+    request: "ReviewInput",
+    response: "ReviewResponse",
+    status: 200,
+    auth: "guest",
   },
   {
     method: "post",
@@ -183,6 +246,16 @@ function buildPaths() {
             required: true,
             schema: { type: "string" },
           },
+          ...(op.auth === "guest"
+            ? [
+                {
+                  name: "x-guest-token",
+                  in: "header",
+                  required: true,
+                  schema: { type: "string" },
+                },
+              ]
+            : []),
         ],
       }),
       // shortcut: only the refund route declares its staff session so far; the other staff routes still list none.
@@ -199,6 +272,16 @@ function buildPaths() {
         ...(op.auth === "staff" && {
           401: { description: "Not signed in", ...json("ErrorResponse") },
           403: { description: "Not allowed", ...json("ErrorResponse") },
+          409: {
+            description: "Conflicts with the current state",
+            ...json("ErrorResponse"),
+          },
+        }),
+        ...(op.auth === "guest" && {
+          404: {
+            description: "No such order for this token",
+            ...json("ErrorResponse"),
+          },
           409: {
             description: "Conflicts with the current state",
             ...json("ErrorResponse"),

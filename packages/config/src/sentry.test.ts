@@ -67,6 +67,20 @@ describe("scrubPii", () => {
     expect(result.request.url).not.toMatch(/anna|123%204567|123 4567/);
   });
 
+  it("filters the guest token from order status URLs, breadcrumbs and query strings", () => {
+    const url =
+      "https://rendel.namitiszunk.hu/hu/o/6a0f1c2b3d4e5f6a7b8c9d0e?t=AbCdEfGhIjKlMnOpQrStUv";
+    const event = {
+      request: { url, query_string: "t=AbCdEfGhIjKlMnOpQrStUv&x=1" },
+      breadcrumbs: [{ data: { to: url } }],
+    };
+
+    const scrubbed = scrubPii(event);
+
+    expect(JSON.stringify(scrubbed)).not.toContain("AbCdEfGhIjKlMnOpQrStUv");
+    expect(scrubbed.request.query_string).toBe("t=[Filtered]&x=1");
+  });
+
   it("filters values of sensitive field names whatever their format", () => {
     const event = {
       extra: {
@@ -119,6 +133,21 @@ describe("scrubPii", () => {
 });
 
 describe("scrubSpan", () => {
+  it("filters the guest token from the span URL", () => {
+    const span = {
+      attributes: {
+        "url.full":
+          "https://rendel.namitiszunk.hu/hu/o/x?t=AbCdEfGhIjKlMnOpQrStUv",
+      },
+    };
+
+    const scrubbed = scrubSpan(span);
+
+    expect(scrubbed.attributes["url.full"]).toBe(
+      "https://rendel.namitiszunk.hu/hu/o/x?t=[Filtered]",
+    );
+  });
+
   it("drops request attributes and masks the rest", () => {
     const span = {
       attributes: {

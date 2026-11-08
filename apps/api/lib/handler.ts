@@ -64,6 +64,8 @@ type Options<A extends Actor | null, S extends z.ZodType | undefined> = {
   input?: S;
   /** Counted per client IP, per signed-in caller and per `rateLimitKey`, each in its own bucket. */
   rateLimit?: RateLimitRule;
+  /** The per-IP bucket when it must be looser than `rateLimit`: many guests share one club Wi-Fi or CGNAT address. */
+  ipRateLimit?: RateLimitRule;
   /** A target to limit after validation (a phone number for OTP, a venue for PIN guesses). */
   rateLimitKey?: (input: Input<S>) => string;
   /** POST only: a request with an Idempotency-Key header gets the replay on repeat. */
@@ -146,12 +148,9 @@ export function handler<
       }
 
       const bucket = `${request.method} ${routeTemplate(url.pathname, params)}`;
-      const limit = async (scope: string) => {
-        if (!options.rateLimit) return null;
-        const limited = await hitRateLimit(
-          `${bucket}|${scope}`,
-          options.rateLimit,
-        );
+      const limit = async (scope: string, rule = options.rateLimit) => {
+        if (!rule) return null;
+        const limited = await hitRateLimit(`${bucket}|${scope}`, rule);
         return limited
           ? fail(429, "rate_limited", {
               headers: { "Retry-After": String(limited.retryAfterSeconds) },
@@ -162,7 +161,10 @@ export function handler<
       if (options.rateLimit) {
         const ip = clientIp(request);
         if (ip === null) return fail(400, "client_unknown");
-        const limited = await limit(`ip:${ip}`);
+        const limited = await limit(
+          `ip:${ip}`,
+          options.ipRateLimit ?? options.rateLimit,
+        );
         if (limited) return limited;
       }
 

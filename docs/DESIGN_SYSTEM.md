@@ -33,6 +33,14 @@ Rules:
 - One accent color. Status colors are for state, not decoration.
 - Text and the accent pass WCAG AA on `--color-bg` (4.5:1 for body text). The accent candidate must reach at least 4.5:1 on black (#16).
 - Light theme: not supported in v1. Never hard-code a color; a light set may be added later under the same token names.
+- Print (the only exception): the payment confirmation (T-044) prints on white paper, so `@media print` in `apps/order/app/globals.css` redefines the same tokens. No other screen is meant to be printed.
+
+| Token (print) | Value |
+| --- | --- |
+| --color-bg, --color-surface | #FFFFFF |
+| --color-border | #A1A1AA |
+| --color-text, --color-warning | #0A0A0B |
+| --color-text-muted | #3F3F46 |
 
 ## 03 Typography
 
@@ -106,6 +114,7 @@ Inputs
 - Height 48px, radius-sm, surface background, border color-border, focus ring primary.
 - Label above the field, always visible. Placeholder is a hint, never the label.
 - Error: border danger, message below in danger at 14px.
+- Multi-line text uses `Textarea`: the same tokens as Input, at least 96px tall, padding space-3 on every side.
 - Forms use react-hook-form + the shared Zod schema from `packages/validators`.
 
 Cards
@@ -148,6 +157,7 @@ Rules:
 - Duration: 150ms micro interactions, 250ms sheets and panels.
 - A new order in the bar view: one highlight pulse plus a sound; no continuous animation.
 - Respect `prefers-reduced-motion`: disable non-essential animation.
+- Exception: the guest Ready screen (T-043) keeps its moving background and ticking clock under reduced motion, only slower (12s loop instead of 3s). The motion is the proof that the screen is live, not a screenshot (`.ready-motion` in `apps/order/app/globals.css`).
 
 ## 10 Implementation
 

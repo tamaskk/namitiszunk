@@ -1,3 +1,50 @@
 @import "tailwindcss";
 @import "@namitiszunk/config/tailwind/theme.css";
 @source "../../../packages/ui/src";
+
+/* T-043 Ready screen: a moving background so the bartender can tell a live page from a screenshot.
+   It stays on with reduced motion (it is the proof), only slower. */
+@keyframes ready-shift {
+  to {
+    background-position: 300% 0;
+  }
+}
+.ready-motion {
+  background-image: linear-gradient(
+    120deg,
+    var(--color-primary),
+    var(--color-success),
+    var(--color-primary-hover),
+    var(--color-primary)
+  );
+  background-size: 300% 100%;
+  animation: ready-shift 3s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ready-motion {
+    animation-duration: 12s;
+  }
+}
+
+/* No page margin: browsers then drop their header and footer, which would print the URL and its guest token. */
+@page {
+  margin: 0;
+}
+
+/* T-044 Print: the confirmation prints on white paper. The dark theme has no light set (DESIGN_SYSTEM §02),
+   so print redefines the same tokens; only the confirmation page is meant to be printed. */
+@media print {
+  :root {
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+    --color-border: #a1a1aa;
+    --color-text: #0a0a0b;
+    --color-text-muted: #3f3f46;
+    --color-warning: #0a0a0b;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    padding: 16mm;
+  }
+}

@@ -11,6 +11,7 @@ import {
   sendPickupReminder,
 } from "@namitiszunk/core/jobs";
 import { AppError } from "@namitiszunk/core/errors";
+import { problemReportMails } from "@namitiszunk/core/orders";
 import { runRetention } from "@namitiszunk/core/retention";
 import * as Sentry from "@sentry/nextjs";
 import { RetryAfterError } from "inngest";
@@ -20,6 +21,7 @@ import {
   inngest,
   orderCreated,
   orderStatusChanged,
+  problemReported,
   reportFailure,
 } from "./client";
 import { deps } from "./deps";
@@ -200,7 +202,29 @@ export const reportsWeekly = inngest.createFunction(
   async () => ({ skipped: "weekly report not built (T-062)" }),
 );
 
+// A guest's problem report (T-046) to the venue and the platform; one step per mail, so a retry never
+// sends the first one twice.
+export const problemReportEmail = inngest.createFunction(
+  {
+    id: "order-problem-report-email",
+    triggers: [{ event: problemReported }],
+    onFailure: reportFailure,
+  },
+  async ({ event, step }) => {
+    const { orderId, index } = event.data;
+    const mails = await step.run("load", async () => {
+      await connectJobsDb();
+      return problemReportMails(orderId, index, deps.problems.links);
+    });
+    for (const [i, mail] of mails.entries()) {
+      await step.run(`send-${i}`, () => deps.problems.sendMail(mail));
+    }
+    return mails.length;
+  },
+);
+
 export const functions = [
+  problemReportEmail,
   paymentTimeout,
   pickupReminder,
   expire,

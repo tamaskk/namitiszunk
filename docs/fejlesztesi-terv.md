@@ -56,7 +56,7 @@ Feltételek:
 | 25 | Zod sémák és OpenAPI | `packages/validators/` | Nincs | Ugyanaz a validáció kell kliensen, szerveren és a mobil API-ban | 🔴 | S |
 | 26 | Audit napló | `packages/core/src/audit/` | Nincs | Visszatérítés, díjváltozás és a klub nevében végzett belépés csak naplózva engedhető | 🔴 | S |
 | 27 | Seed adatok | `packages/db/src/seed.ts` | Nincs | Fejlesztés, E2E teszt és demó mintaadat nélkül lassú | 🟠 | S |
-| 28 | Automatikus adattörlés (megőrzési idők) | `apps/api/src/inngest/retention.ts` | Nincs | A döntött megőrzési idők (telefonszám 30 nap, inaktív fiók 2 év) GDPR-kötelezettség | 🟠 | S |
+| 28 | Automatikus adattörlés (megőrzési idők) | `apps/api/src/inngest/retention.ts` | Nincs | A döntött megőrzési idők (telefonszám 30 nap, problémajelzés e-mail-címe 90 nap, inaktív fiók 2 év) GDPR-kötelezettség | 🟠 | S |
 
 ### D. Backend és integrációk
 
@@ -1018,15 +1018,15 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 
 | # | Feladat | Hol (fájl/modul) | Probléma | Miért fontos | Súly | Méret |
 | --- | --- | --- | --- | --- | --- | --- |
-| 28 | Automatikus adattörlés (megőrzési idők) | `apps/api/src/inngest/retention.ts` | Nincs | A döntött megőrzési idők (telefonszám 30 nap, inaktív fiók 2 év) GDPR-kötelezettség | 🟠 | S |
+| 28 | Automatikus adattörlés (megőrzési idők) | `apps/api/src/inngest/retention.ts` | Nincs | A döntött megőrzési idők (telefonszám 30 nap, problémajelzés e-mail-címe 90 nap, inaktív fiók 2 év) GDPR-kötelezettség | 🟠 | S |
 
-**Jelenlegi állapot.** Döntés: rendelés- és pénzügyi adat 8 év; a vendég telefonszáma a rendelés után 30 nap; inaktív fiók 2 év után törlődik.
+**Jelenlegi állapot.** Döntés: rendelés- és pénzügyi adat 8 év; a vendég telefonszáma a rendelés után 30 nap; a problémajelzés e-mail-címe 90 nap; inaktív fiók 2 év után törlődik.
 
 **Probléma.** A tájékoztatóban vállalt megőrzési idő automatikus törlés nélkül ígéret marad. A telefonszám a Twilio üzenetnaplójában is megmarad.
 
 **Megoldás.** Inngest-cron naponta 07:00-kor (`Europe/Budapest`), a kritikus éjszakai idősávon kívül:
 
-1. 30 napnál régebbi rendelésekből a `guestPhone` törlése; a 30 napnál régebbi Twilio-üzenetek törlése a Twilio API-val.
+1. 30 napnál régebbi rendelésekből a `guestPhone` törlése; a 30 napnál régebbi Twilio-üzenetek törlése a Twilio API-val. 90 napnál régebbi problémajelzésekből (`problemReports[].email`, 46.) a vendég e-mail-címének törlése.
 2. Fiókok, ahol az utolsó belépés és az utolsó rendelés is 2 évnél régebbi: a User, a munkamenetek és a push tokenek törlése; a rendelésekben `userId: null`.
 3. 8 évnél régebbi rendelések, fizetések, visszatérítések és audit bejegyzések törlése.
 4. Próbafázis (`dryRun`): csak darabszámot naplóz; az éles futás eredménye audit bejegyzésként (system szereplő).

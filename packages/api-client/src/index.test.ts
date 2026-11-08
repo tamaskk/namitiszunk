@@ -131,7 +131,7 @@ describe("createApiClient", () => {
   });
 
   it("rejects an invalid id before sending", async () => {
-    const error = await caught(client.orders.get("not-an-id"));
+    const error = await caught(client.orders.get("not-an-id", "token"));
 
     expect(error).toMatchObject({ status: 0, code: "invalid_input" });
   });

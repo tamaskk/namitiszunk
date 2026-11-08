@@ -32,6 +32,7 @@ vi.mock("server-only", () => ({}));
 // Stripe and Ably are the boundaries; signatures use the real SDK.
 const api = vi.hoisted(() => ({
   paymentIntents: { create: vi.fn(), retrieve: vi.fn() },
+  charges: { retrieve: vi.fn() },
   refunds: { create: vi.fn() },
 }));
 vi.mock("./stripe-client", () => ({ stripe: () => api }));
@@ -177,6 +178,7 @@ function intentEvent(
     orderId: string;
     currency?: string;
     applicationFee?: number;
+    latestCharge?: string;
   },
   account = accountId,
 ) {
@@ -197,6 +199,7 @@ function intentEvent(
         amount: intent.amount,
         currency: intent.currency ?? "huf",
         application_fee_amount: intent.applicationFee ?? null,
+        latest_charge: intent.latestCharge ?? null,
         status:
           type === "payment_intent.succeeded"
             ? "succeeded"
@@ -448,6 +451,57 @@ describe("payment_intent webhooks", () => {
       await AuditLog.countDocuments({ action: "order.payment_succeeded" }),
     ).toBe(1);
     expect(await StripeEvent.countDocuments({ eventId: "evt_paid_1" })).toBe(1);
+  });
+
+  it("stores the card brand, last 4 digits and wallet from the charge for the confirmation", async () => {
+    const { orderId } = await create();
+    const payment = await Payment.findOne({ orderId }).lean();
+    api.charges.retrieve.mockResolvedValueOnce({
+      payment_method_details: {
+        card: { brand: "visa", last4: "4242", wallet: { type: "apple_pay" } },
+      },
+    });
+
+    await processConnectWebhook(
+      ...intentEvent("evt_card", "payment_intent.succeeded", {
+        id: payment!.stripePaymentIntentId,
+        amount: payment!.amountHuf * 100,
+        orderId,
+        applicationFee: payment!.applicationFeeHuf * 100,
+        latestCharge: "ch_1",
+      }),
+    );
+
+    expect(api.charges.retrieve).toHaveBeenCalledWith(
+      "ch_1",
+      {},
+      { stripeAccount: accountId },
+    );
+    expect(await Payment.findById(payment!._id).lean()).toMatchObject({
+      status: "succeeded",
+      cardBrand: "visa",
+      cardLast4: "4242",
+      wallet: "apple_pay",
+    });
+  });
+
+  it("still pays the order when the card details cannot be read", async () => {
+    const { orderId } = await create();
+    const payment = await Payment.findOne({ orderId }).lean();
+    api.charges.retrieve.mockRejectedValueOnce(new Error("stripe down"));
+
+    await processConnectWebhook(
+      ...intentEvent("evt_card_fail", "payment_intent.succeeded", {
+        id: payment!.stripePaymentIntentId,
+        amount: payment!.amountHuf * 100,
+        orderId,
+        applicationFee: payment!.applicationFeeHuf * 100,
+        latestCharge: "ch_2",
+      }),
+    );
+
+    expect(await status(orderId)).toBe("new");
+    expect(reported).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the status on a failed payment, and a later success still pays the order", async () => {

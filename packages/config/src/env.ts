@@ -87,6 +87,11 @@ const appSchemas = {
       ...server,
       ...signIn(d),
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: stripeKey("pk", d),
+      // The guest's browser calls apps/api for order status, cancel and the Ably token (T-043).
+      NEXT_PUBLIC_API_URL:
+        d === "production"
+          ? z.url({ protocol: /^https$/, message: "must be an https URL" })
+          : z.url({ message: "must be a URL" }),
     }),
   admin: (d: DeploymentEnv) =>
     z.object({ ...browserMonitoring(d), ...server, ...signIn(d) }),
@@ -106,6 +111,11 @@ const appSchemas = {
           ? z.undefined({ message: "must not be set in production" }).optional()
           : z.literal("1").optional(),
       STRIPE_SECRET_KEY: stripeKey("sk", d),
+      // The platform's copy of every guest problem report (T-046).
+      PLATFORM_ALERT_EMAIL: monitoring(
+        z.email({ message: "must be an e-mail address" }),
+        d,
+      ),
       STRIPE_WEBHOOK_SECRET: required.refine((v) => v.startsWith("whsec_"), {
         message: "must start with whsec_",
       }),

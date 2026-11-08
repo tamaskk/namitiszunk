@@ -1,2 +1,4 @@
 # Test-only literal used to sign values in packages/auth tests; not a real credential.
 73fe00124d2bf7a63402453e8624f3dda1c646f7:packages/auth/src/test-db.ts:generic-api-key:5
+# Made-up guest token in the guest link unit test; not a real credential.
+50465bc01c2424cf9b351ba5ca015e0de8eef22e:apps/order/lib/guest-link.test.ts:generic-api-key:6

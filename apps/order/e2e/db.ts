@@ -84,3 +84,11 @@ export function exhaustRateLimit(bucket: string) {
     );
   }
 }
+
+/** Inserts (or replaces the fields of) one document, given in EJSON ({ $oid }, { $date }). */
+export function upsertDocument(
+  collection: string,
+  doc: { _id: object } & Record<string, unknown>,
+) {
+  update(collection, { _id: doc._id }, { $set: doc }, true);
+}

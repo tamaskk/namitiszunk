@@ -7,6 +7,7 @@ Read before changing auth, payments, data handling, uploads, secrets or deletion
 | Data | Examples | Sensitivity | Where stored | Retention |
 | --- | --- | --- | --- | --- |
 | Guest phone numbers | SMS "ready" opt-in | personal data | orders | 30 days, then deleted (Inngest retention job) |
+| Guest email on a problem report | optional reply address (T-046) | personal data | orders (`problemReports[].email`) | 90 days, then removed (Inngest retention job, T-028) |
 | Guest accounts | email, name, order history | personal data | users | until deletion; inactive accounts after 2 years |
 | Staff | name, PIN hash, email (Manager/Owner) | personal data, credentials | staff / users | while employed at the venue |
 | Orders and payments | items, amounts, Stripe ids | financial | orders | per accounting rules (confirm with the accountant) |
@@ -27,6 +28,8 @@ Card data never touches our servers: Stripe Elements / Payment Request and Payme
 - Provider: Better Auth. Session cookie httpOnly, secure, sameSite=lax, per-app names on the `.namitiszunk.hu` parent domain in production; apps/api accepts a cookie only with an allowlisted `Origin` of the app that owns it (CSRF check), the mobile app uses a Bearer token. Sign-in: Apple, Google, email link.
 - HQ requires 2FA for every platform role. Staff on the bar view use a PIN on a device signed in by a Manager.
 - Guests access their order with a per-order guest token, never with a guessable order id.
+- Guest links (`/o/[orderId]?t=…`, `/r/[orderId]?t=…`) carry the token once: the order app proxy moves it into an httpOnly, secure, sameSite=lax cookie named per order (30 days) and redirects to the URL without it, so the address bar, history and print never show it. Guest pages also send no Referer and are not indexed.
+- The confirmation e-mail (T-044) links with the token, so the guest can open it on another device. Accepted risk: a mistyped address gives that person the guest's access to this one order (view, report, rate; no payment or refund). At most 3 such mails per order and 30 per IP per minute.
 - Roles: venue roles Owner, Manager, Bartender, VIP host; platform roles Admin, Support, Finance. Every check runs on the server through `packages/core/src/auth/permissions.ts`, with venue ownership checked on every resource.
 - Refunds after hand-over: Manager or Owner only. Impersonation from HQ is read-only by default and always audit-logged.
 - Refund status gate (`refundOrder`, read inside the transaction): staff refund only Picked up or Expired orders; a Cancelled order that was paid after the timeout only HQ Support or Admin with the write confirmation, or the system (automatic late-payment refund). The system also refunds Rejected and Expired orders. Anything else is 409 `refund_not_allowed_in_status`. A Manager's limit applies to the sum of the Manager refunds on the order (pending and succeeded), not to each refund.

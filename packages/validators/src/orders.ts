@@ -1,12 +1,7 @@
 import { z } from "zod";
 
 import { MAX_QUANTITY_PER_LINE } from "./cart-limits";
-import {
-  dateTimeSchema,
-  hufSchema,
-  huPhoneSchema,
-  objectIdSchema,
-} from "./shared";
+import { hufSchema, huPhoneSchema, locales, objectIdSchema } from "./shared";
 import { venueSlugSchema } from "./venues";
 
 export { MAX_QUANTITY_PER_LINE };
@@ -98,44 +93,70 @@ export const createOrderResponseSchema = z.object({
   guestToken: z.string().optional(),
 });
 
-export const orderItemResponseSchema = z.object({
-  itemId: objectIdSchema,
-  name: z.string(),
-  nameEn: z.string().optional(),
-  unitPriceHuf: hufSchema,
-  quantity: z.int().min(1),
-  options: z.array(
-    z.object({
-      groupName: z.string(),
-      name: z.string(),
-      priceDeltaHuf: hufSchema,
-    }),
-  ),
-  lineTotalHuf: hufSchema,
-  status: z.enum(["ok", "rejected"]),
-});
-
+/** GET /v1/orders/{id}: what the guest of the order sees (T-043, T-088). No token, phone or venue ids. */
 export const orderResponseSchema = z.object({
   id: objectIdSchema,
-  venueId: objectIdSchema,
-  barId: objectIdSchema,
-  shortNumber: z.int().min(1),
-  businessDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** The short order number as shown, e.g. "#214". */
+  number: z.string(),
   status: z.enum(orderStatuses),
-  items: z.array(orderItemResponseSchema),
-  subtotalHuf: hufSchema,
-  serviceFeeHuf: hufSchema,
-  tipHuf: hufSchema,
-  discountHuf: hufSchema,
+  /** Order.updatedAt in epoch ms; a realtime message older than this is ignored. */
+  version: z.int().min(0),
+  items: z.array(
+    z.object({
+      name: z.string(),
+      nameEn: z.string().optional(),
+      quantity: z.int().min(1),
+      lineTotalHuf: hufSchema,
+    }),
+  ),
   totalHuf: hufSchema,
-  pickupCode: z.string(),
-  smsRequested: z.boolean(),
+  barName: z.string(),
   isVip: z.boolean(),
+  /** Only before acceptance, which happens only at a manual-acceptance venue. */
+  canCancel: z.boolean(),
   rejectionReason: z.string().optional(),
-  createdAt: dateTimeSchema,
-  paidAt: dateTimeSchema.optional(),
-  readyAt: dateTimeSchema.optional(),
-  pickedUpAt: dateTimeSchema.optional(),
+  refundedHuf: hufSchema,
+});
+
+// Same literals as packages/db; packages/core/src/validators-sync.test.ts keeps them equal.
+export const problemCategories = [
+  "not_received",
+  "wrong_order",
+  "payment",
+  "other",
+] as const;
+
+/** POST /v1/orders/{id}/report: the guest reports a problem with a paid order (T-046). */
+export const reportProblemInputSchema = z.object({
+  category: z.enum(problemCategories, { error: "validation.required" }),
+  message: z
+    .string()
+    .trim()
+    .max(1000, { error: "validation.tooLong" })
+    .optional(),
+  email: z.email({ error: "validation.email.invalid" }).optional(),
+});
+
+export const reportProblemResponseSchema = z.object({
+  reported: z.literal(true),
+});
+
+/** POST /v1/orders/{id}/review: the guest rates a picked-up order once (T-045). */
+export const reviewInputSchema = z.object({
+  stars: z.int().min(1).max(5),
+  text: z.string().trim().max(500, { error: "validation.tooLong" }).optional(),
+});
+
+export const reviewResponseSchema = z.object({ reviewed: z.literal(true) });
+
+/** POST /v1/orders/{id}/confirmation-email: the guest sends the confirmation to an address (T-044). */
+export const confirmationEmailInputSchema = z.object({
+  email: z.email({ error: "validation.email.invalid" }),
+  locale: z.enum(locales),
+});
+
+export const confirmationEmailResponseSchema = z.object({
+  sent: z.literal(true),
 });
 
 export type CartLine = z.infer<typeof cartLineSchema>;
@@ -144,3 +165,8 @@ export type TipChoiceInput = z.infer<typeof tipChoiceSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
 export type CreateOrderResponse = z.infer<typeof createOrderResponseSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
+export type ReportProblemInput = z.infer<typeof reportProblemInputSchema>;
+export type ReviewInput = z.infer<typeof reviewInputSchema>;
+export type ConfirmationEmailInput = z.infer<
+  typeof confirmationEmailInputSchema
+>;

@@ -26,8 +26,13 @@ const droppedSpanAttribute =
   /^(?:user\.|client\.address|http\.request\.(?:header|body)|http\.response\.(?:header|body)|url\.query)/;
 const maxDepth = 10;
 
+// The guest token rides in the order status URL (/o/[orderId]?t=...): never let it reach Sentry (T-043).
+const guestTokenParam = /(^|[?&])t=[^&#\s"']*/g;
+
 function maskString(text: string): string {
-  let masked = text.replace(emailPattern, "[email]");
+  let masked = text
+    .replace(guestTokenParam, "$1t=[Filtered]")
+    .replace(emailPattern, "[email]");
   for (const pattern of phonePatterns)
     masked = masked.replace(pattern, "[phone]");
   return masked;
