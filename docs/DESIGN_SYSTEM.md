@@ -117,7 +117,7 @@ Dialogs and sheets
 
 Other primitives in `packages/ui`: Select, Tabs, Table, Badge (order status), Toast (Sonner), Form, EmptyState. Table takes a translated `label` for its keyboard-focusable scroll region. Toasts sit top-center so they never cover the guest bottom bar. Active tabs carry a 1px primary ring.
 
-Order status badges: New = primary outline, In progress = warning, Ready = primary solid, Picked up = success, Rejected / Refunded = danger.
+Order status badges: New = primary outline, In progress = warning, Ready = primary solid, Picked up = success, Rejected / Refunded = danger. Neutral (border outline, muted text) labels a non-order state such as "Sold out".
 
 Empty states
 - One line saying what belongs here, plus one primary action. Never a blank panel.

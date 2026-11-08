@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import {
   claimIdempotencyKey,
+  clientIp,
   connectDb,
   hitRateLimit,
   holdIdempotencyKey,
@@ -79,11 +80,6 @@ const IDEMPOTENCY_KEY = /^[\x21-\x7e]{1,255}$/;
 
 const sha256 = (value: string) =>
   createHash("sha256").update(value).digest("hex");
-
-// Vercel overwrites x-forwarded-for with the real client address, so it cannot be spoofed there.
-function clientIp(request: Request): string | null {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
-}
 
 /** The route as written in app/ (`/v1/orders/[id]`), so all ids share one bucket. */
 function routeTemplate(pathname: string, params: Params): string {
@@ -165,11 +161,8 @@ export function handler<
 
       if (options.rateLimit) {
         const ip = clientIp(request);
-        // Vercel always sets the address; without one in production nobody could be told apart.
-        if (ip === null && process.env.NODE_ENV === "production") {
-          return fail(400, "client_unknown");
-        }
-        const limited = await limit(`ip:${ip ?? "local"}`);
+        if (ip === null) return fail(400, "client_unknown");
+        const limited = await limit(`ip:${ip}`);
         if (limited) return limited;
       }
 

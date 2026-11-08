@@ -6,6 +6,7 @@ export {
   type IdempotencyClaim,
   type StoredResponse,
 } from "./idempotency";
+export { clientIp } from "./client-ip";
 export {
   hitRateLimit,
   undoRateLimitHit,
