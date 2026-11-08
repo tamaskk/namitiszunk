@@ -18,6 +18,7 @@ import { ensureDb } from "@/lib/db";
 import { getMenu } from "@/lib/menu-cache";
 
 import { AgeGate } from "./age-gate";
+import { ageGatePrePaintScript } from "./age-gate-ids";
 import { MenuBrowser } from "./menu-browser";
 
 // A malformed or tampered QR parameter is dropped, never an error: the guest still gets the menu.
@@ -93,60 +94,62 @@ export default async function MenuPage({
 
   return (
     <main className="mx-auto min-h-dvh max-w-120 bg-bg pb-12 text-text">
-      <header>
-        {menu.venue.coverUrl && (
-          <div className="relative aspect-3/1 w-full">
-            <Image
-              src={menu.venue.coverUrl}
-              alt=""
-              fill
-              priority
-              sizes="(max-width: 480px) 100vw, 480px"
-              className="object-cover"
-            />
-          </div>
-        )}
-        <div className="flex items-start gap-4 px-4 pt-4">
-          {menu.venue.logoUrl && (
-            <Image
-              src={menu.venue.logoUrl}
-              alt={t("logoAlt", { name: menu.venue.name })}
-              width={48}
-              height={48}
-              className="size-12 shrink-0 rounded-full border border-border object-cover"
-            />
+      <AgeGate>
+        <header>
+          {menu.venue.coverUrl && (
+            <div className="relative aspect-3/1 w-full">
+              <Image
+                src={menu.venue.coverUrl}
+                alt=""
+                fill
+                priority
+                sizes="(max-width: 480px) 100vw, 480px"
+                className="object-cover"
+              />
+            </div>
           )}
-          <div className="min-w-0 flex-1">
-            <h1 className="text-h2">{menu.venue.name}</h1>
-            {menu.bar && (
-              <p className="text-small text-text-muted">
-                {t("bar", { name: menu.bar.name })}
-              </p>
+          <div className="flex items-start gap-4 px-4 pt-4">
+            {menu.venue.logoUrl && (
+              <Image
+                src={menu.venue.logoUrl}
+                alt={t("logoAlt", { name: menu.venue.name })}
+                width={48}
+                height={48}
+                className="size-12 shrink-0 rounded-full border border-border object-cover"
+              />
             )}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-h2">{menu.venue.name}</h1>
+              {menu.bar && (
+                <p className="text-small text-text-muted">
+                  {t("bar", { name: menu.bar.name })}
+                </p>
+              )}
+            </div>
+            <Link
+              href={`/${otherLocale}/v/${slug}${search ? `?${search}` : ""}`}
+              hrefLang={otherLocale}
+              lang={otherLocale}
+              aria-label={t("otherLanguageLabel")}
+              className={cn(
+                "inline-flex h-12 shrink-0 items-center rounded-md px-4 text-small font-medium text-text hover:bg-surface",
+                focusRing,
+              )}
+            >
+              {t("otherLanguage")}
+            </Link>
           </div>
-          <Link
-            href={`/${otherLocale}/v/${slug}${search ? `?${search}` : ""}`}
-            hrefLang={otherLocale}
-            lang={otherLocale}
-            aria-label={t("otherLanguageLabel")}
-            className={cn(
-              "inline-flex h-12 shrink-0 items-center rounded-md px-4 text-small font-medium text-text hover:bg-surface",
-              focusRing,
-            )}
-          >
-            {t("otherLanguage")}
-          </Link>
-        </div>
-      </header>
+        </header>
 
-      <MenuBrowser
-        slug={slug}
-        barId={menu.bar?.id ?? null}
-        categories={menu.categories}
-        initialStatus={live.status}
-        renderedAt={live.at}
-      />
-      <AgeGate />
+        <MenuBrowser
+          slug={slug}
+          barId={menu.bar?.id ?? null}
+          categories={menu.categories}
+          initialStatus={live.status}
+          renderedAt={live.at}
+        />
+      </AgeGate>
+      <script dangerouslySetInnerHTML={{ __html: ageGatePrePaintScript }} />
     </main>
   );
 }

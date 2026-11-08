@@ -60,8 +60,6 @@
       "noResults": "Nincs találat erre: {query}",
       "categories": "Kategóriák",
       "soldOut": "Elfogyott",
-      "add": "Kosárba",
-      "addLabel": "{name} a kosárba",
       "empty": "Ezen a menün még nincs tétel.",
       "otherLanguage": "English",
       "otherLanguageLabel": "Switch to English",
@@ -76,7 +74,9 @@
         "underageTitle": "Nem rendelhetsz",
         "underageBody": "A rendelés 18 év felett érhető el.",
         "back": "Vissza"
-      }
+      },
+      "offline": "Nincs kapcsolat, az állapot elavult lehet.",
+      "clearSearch": "Keresés törlése"
     }
   },
   "admin": {

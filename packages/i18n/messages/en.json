@@ -60,8 +60,6 @@
       "noResults": "No results for {query}",
       "categories": "Categories",
       "soldOut": "Sold out",
-      "add": "Add",
-      "addLabel": "Add {name}",
       "empty": "This menu has no items yet.",
       "otherLanguage": "Magyar",
       "otherLanguageLabel": "Váltás magyarra",
@@ -76,7 +74,9 @@
         "underageTitle": "You cannot order",
         "underageBody": "Ordering is for guests aged 18 and over.",
         "back": "Back"
-      }
+      },
+      "offline": "No connection, the status may be out of date.",
+      "clearSearch": "Clear search"
     }
   },
   "admin": {

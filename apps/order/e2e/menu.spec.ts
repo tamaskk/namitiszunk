@@ -82,7 +82,7 @@ test("a category pill jumps to its section and becomes active", async ({
   await expect(page.getByRole("heading", { name: "Üdítők" })).toBeInViewport();
   await expect(nav.getByRole("link", { name: "Üdítők" })).toHaveAttribute(
     "aria-current",
-    "true",
+    "location",
   );
 });
 
@@ -140,4 +140,68 @@ test("the page refreshes the live status when the tab becomes visible", async ({
     data: { status: "open", soldOutItemIds: expect.any(Array) },
   });
   await expect(page.getByText(hu.statusOpen)).toBeVisible();
+});
+
+const pollNow = (page: Page) =>
+  page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+
+test("an item switched to sold out shows on the next poll", async ({
+  page,
+}) => {
+  await page.goto(qrUrl);
+  await passAgeGate(page);
+  const mojito = page.getByRole("listitem").filter({
+    has: page.getByRole("heading", { name: "Mojito" }),
+  });
+  await expect(mojito.getByText(hu.soldOut)).toHaveCount(0);
+  await page.route("**/api/venues/demo/status**", (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          status: "open",
+          pausedUntil: null,
+          estimatedWaitMinutes: null,
+          soldOutItemIds: [seedId("item:Mojito")],
+        },
+      },
+    }),
+  );
+
+  await pollNow(page);
+
+  await expect(mojito.getByText(hu.soldOut)).toBeVisible();
+});
+
+test("a failed poll keeps the status and says the connection is down", async ({
+  page,
+}) => {
+  await page.goto(qrUrl);
+  await passAgeGate(page);
+  await page.route("**/api/venues/demo/status**", (route) => route.abort());
+
+  await pollNow(page);
+
+  await expect(page.getByText(hu.offline)).toBeVisible();
+  await expect(page.getByText(hu.statusOpen)).toBeVisible();
+  await page.unroute("**/api/venues/demo/status**");
+  await pollNow(page);
+  await expect(page.getByText(hu.offline)).toHaveCount(0);
+});
+
+test("the menu behind the age gate cannot be reached", async ({ page }) => {
+  await page.goto(qrUrl);
+
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+
+  const gated = await page.evaluate(() => {
+    const content = document.getElementById("age-gated-content");
+    return {
+      inert: content?.inert,
+      focusBehindGate: content?.contains(document.activeElement) ?? false,
+    };
+  });
+  expect(gated).toEqual({ inert: true, focusBehindGate: false });
 });
