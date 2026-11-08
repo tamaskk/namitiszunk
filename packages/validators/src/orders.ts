@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-import {
-  dateTimeSchema,
-  hufSchema,
-  huPhoneSchema,
-  objectIdSchema,
-} from "./shared";
+import { hufSchema, huPhoneSchema, objectIdSchema } from "./shared";
 
 // Same literals as packages/db and packages/core; packages/core/src/validators-sync.test.ts keeps them equal.
 export const orderStatuses = [
@@ -78,44 +73,29 @@ export const createOrderResponseSchema = z.object({
   guestToken: z.string().optional(),
 });
 
-export const orderItemResponseSchema = z.object({
-  itemId: objectIdSchema,
-  name: z.string(),
-  nameEn: z.string().optional(),
-  unitPriceHuf: hufSchema,
-  quantity: z.int().min(1),
-  options: z.array(
-    z.object({
-      groupName: z.string(),
-      name: z.string(),
-      priceDeltaHuf: hufSchema,
-    }),
-  ),
-  lineTotalHuf: hufSchema,
-  status: z.enum(["ok", "rejected"]),
-});
-
+/** GET /v1/orders/{id}: what the guest of the order sees (T-043, T-088). No token, phone or venue ids. */
 export const orderResponseSchema = z.object({
   id: objectIdSchema,
-  venueId: objectIdSchema,
-  barId: objectIdSchema,
-  shortNumber: z.int().min(1),
-  businessDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** The short order number as shown, e.g. "#214". */
+  number: z.string(),
   status: z.enum(orderStatuses),
-  items: z.array(orderItemResponseSchema),
-  subtotalHuf: hufSchema,
-  serviceFeeHuf: hufSchema,
-  tipHuf: hufSchema,
-  discountHuf: hufSchema,
+  /** Order.updatedAt in epoch ms; a realtime message older than this is ignored. */
+  version: z.int().min(0),
+  items: z.array(
+    z.object({
+      name: z.string(),
+      nameEn: z.string().optional(),
+      quantity: z.int().min(1),
+      lineTotalHuf: hufSchema,
+    }),
+  ),
   totalHuf: hufSchema,
-  pickupCode: z.string(),
-  smsRequested: z.boolean(),
+  barName: z.string(),
   isVip: z.boolean(),
+  /** Only before acceptance, which happens only at a manual-acceptance venue. */
+  canCancel: z.boolean(),
   rejectionReason: z.string().optional(),
-  createdAt: dateTimeSchema,
-  paidAt: dateTimeSchema.optional(),
-  readyAt: dateTimeSchema.optional(),
-  pickedUpAt: dateTimeSchema.optional(),
+  refundedHuf: hufSchema,
 });
 
 export type CartLine = z.infer<typeof cartLineSchema>;

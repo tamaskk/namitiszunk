@@ -183,9 +183,21 @@ export function createApiClient(options: ApiClientOptions) {
           parseInput(refundOrderInputSchema, input),
         );
       },
-      /** GET /v1/orders/{id}. Not on the server yet (guest order status, T-043). */
-      get: async (orderId: string) =>
-        request("GET", `/v1/orders/${id(orderId)}`, orderResponseSchema),
+      /** GET /v1/orders/{id}: the guest's view of their order, proven by its guest token (T-043). */
+      get: async (orderId: string, guestToken: string) =>
+        request("GET", `/v1/orders/${id(orderId)}`, orderResponseSchema, {
+          headers: { "x-guest-token": guestToken },
+        }),
+      /** POST /v1/orders/{id}/cancel: the guest cancels before acceptance. Not retried: a repeat answers 409. */
+      cancel: async (orderId: string, guestToken: string) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/cancel`,
+          orderResponseSchema,
+          {
+            headers: { "x-guest-token": guestToken },
+          },
+        ),
     },
     menu: {
       /** GET /v1/venues/{venueId}/menu. Not on the server yet (guest menu, T-040). */

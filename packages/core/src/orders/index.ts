@@ -1,4 +1,9 @@
 export * from "./state-machine";
+export {
+  cancelGuestOrder,
+  getGuestOrder,
+  type GuestOrderView,
+} from "./guest-order";
 // transitionWith stays internal: callers outside this package always go through RBAC.
 export {
   onStatusChanged,

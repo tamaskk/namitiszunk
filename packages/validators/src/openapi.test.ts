@@ -21,6 +21,8 @@ describe("buildOpenApiDocument", () => {
 
     expect(Object.keys(paths)).toEqual([
       "/v1/orders",
+      "/v1/orders/{id}",
+      "/v1/orders/{id}/cancel",
       "/v1/orders/{id}/refunds",
       "/v1/venues",
       "/v1/stripe/connect/account",
@@ -33,6 +35,20 @@ describe("buildOpenApiDocument", () => {
     expect(createOrder.requestBody.content["application/json"]?.schema).toEqual(
       { $ref: "#/components/schemas/CreateOrderInput" },
     );
+  });
+
+  it("asks the guest token header and declares 404 on the guest order routes", () => {
+    const { paths } = buildOpenApiDocument();
+
+    const getOrder = paths["/v1/orders/{id}"]?.get as {
+      parameters: { name: string; in: string }[];
+      responses: Record<string, unknown>;
+    };
+
+    expect(getOrder.parameters).toContainEqual(
+      expect.objectContaining({ name: "x-guest-token", in: "header" }),
+    );
+    expect(Object.keys(getOrder.responses)).toContain("404");
   });
 
   it("declares the staff session and the 401, 403 and 409 answers on the refund route", () => {
