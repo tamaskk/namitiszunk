@@ -105,6 +105,33 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** Breaks "https://" so mail clients do not turn a link the sender typed into something to click. */
+const defang = (value: string) => value.replaceAll("://", "[:]//");
+
+/**
+ * Free text from a guest or a visitor, sent from our domain: boxed and labelled as theirs, with links
+ * broken, so it cannot pass for a message from us (phishing).
+ */
+function UntrustedField({
+  label,
+  note,
+  children,
+}: {
+  label: string;
+  note: string;
+  children: string;
+}) {
+  return (
+    <Section style={styles.untrusted}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={{ ...styles.muted, margin: "0 0 8px" }}>{note}</Text>
+      <Text style={{ ...styles.text, margin: 0, whiteSpace: "pre-line" }}>
+        {defang(children)}
+      </Text>
+    </Section>
+  );
+}
+
 const venueReplyTo = (data: { venueEmail: string }) => data.venueEmail;
 const platformReplyTo = (data: { platformEmail: string }) => data.platformEmail;
 
@@ -220,7 +247,12 @@ export const templates: { [N in keyof EmailData]: Template<EmailData[N]> } = {
         </Field>
         <Field label={t("total")}>{formatHuf(data.totalHuf)}</Field>
         {data.message && (
-          <Field label={t("problemReport.message")}>{data.message}</Field>
+          <UntrustedField
+            label={t("problemReport.message")}
+            note={t("untrustedText")}
+          >
+            {data.message}
+          </UntrustedField>
         )}
         {data.guestEmail && (
           <Field label={t("problemReport.guestEmail")}>{data.guestEmail}</Field>
@@ -246,7 +278,12 @@ export const templates: { [N in keyof EmailData]: Template<EmailData[N]> } = {
         </Field>
         {data.phone && <Field label={t("newLead.phone")}>{data.phone}</Field>}
         {data.message && (
-          <Field label={t("newLead.message")}>{data.message}</Field>
+          <UntrustedField
+            label={t("newLead.message")}
+            note={t("untrustedText")}
+          >
+            {data.message}
+          </UntrustedField>
         )}
       </>
     ),

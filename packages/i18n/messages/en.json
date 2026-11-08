@@ -330,7 +330,8 @@
       "orders": "Orders",
       "revenue": "Revenue",
       "button": "Open the report"
-    }
+    },
+    "untrustedText": "Written by the sender, not by us. Links in it are not from us."
   },
   "sms": {
     "ready": "Na mit iszunk: #{shortNumber} is ready. Pick it up at {barName}. {link}",

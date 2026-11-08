@@ -330,7 +330,8 @@
       "orders": "Rendelések",
       "revenue": "Bevétel",
       "button": "Riport megnyitása"
-    }
+    },
+    "untrustedText": "A feladó írta, nem mi. A benne lévő linkeket nem mi küldtük."
   },
   "sms": {
     "ready": "Na mit iszunk: #{shortNumber} kesz! Vedd fel {article} {barName} pultnal. {link}",

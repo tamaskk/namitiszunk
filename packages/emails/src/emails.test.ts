@@ -124,6 +124,19 @@ describe("renderEmail", () => {
     expect(email.html).toContain("&lt;script&gt;");
   });
 
+  it("labels guest-written text as theirs and breaks its links", async () => {
+    const data = {
+      ...dataFor("problemReport", "hu"),
+      message: "Visszatérítés itt: https://evil.example/refund",
+    };
+
+    const email = await renderEmail("problemReport", data);
+
+    expect(email.html).toContain("A feladó írta, nem mi.");
+    expect(email.html).toContain("https[:]//evil.example/refund");
+    expect(email.html).not.toContain("https://evil.example");
+  });
+
   it("replies to the venue on order mail and to the platform on problem and lead mail", async () => {
     const order = await renderEmail(
       "orderRejected",
