@@ -59,10 +59,8 @@ export function OrderStatus({
   // Picked up: the thanks page (T-045) takes over, with the rating and the confirmation link.
   useEffect(() => {
     if (order.status === "picked_up")
-      router.replace(
-        `/${locale}/o/${order.id}/thanks?t=${encodeURIComponent(token)}`,
-      );
-  }, [locale, order.id, order.status, router, token]);
+      router.replace(`/${locale}/o/${order.id}/thanks`);
+  }, [locale, order.id, order.status, router]);
 
   async function confirmCancel() {
     setCancelling(true);
@@ -159,11 +157,7 @@ export function OrderStatus({
           order.status !== "cancelled" && (
             <>
               <Button variant="ghost" asChild>
-                <a
-                  href={`/${locale}/r/${order.id}?t=${encodeURIComponent(token)}`}
-                >
-                  {t("confirmationLink")}
-                </a>
+                <a href={`/${locale}/r/${order.id}`}>{t("confirmationLink")}</a>
               </Button>
               <ReportProblem orderId={order.id} token={token} />
             </>

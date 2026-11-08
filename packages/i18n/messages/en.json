@@ -55,7 +55,7 @@
   "order": {
     "menuTitle": "Menu",
     "status": {
-      "pageTitle": "Order {number}",
+      "pageTitle": "Your order",
       "number": "Order number",
       "keepOpen": "Keep this page open, or we cannot let you know.",
       "soundOn": "Turn on sound",

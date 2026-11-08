@@ -55,7 +55,7 @@
   "order": {
     "menuTitle": "Menü",
     "status": {
-      "pageTitle": "Rendelés {number}",
+      "pageTitle": "Rendelésed",
       "number": "Rendelésszám",
       "keepOpen": "Hagyd nyitva az oldalt, különben nem tudunk szólni.",
       "soundOn": "Hang bekapcsolása",

@@ -1,7 +1,7 @@
 import { getGuestOrder } from "@namitiszunk/core/orders";
 import type { Locale } from "@namitiszunk/i18n";
 import type { Metadata } from "next";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -10,13 +10,23 @@ import { loadForGuest } from "@/lib/guest-data";
 import { OrderLoading } from "./order-loading";
 import { OrderStatus } from "./order-status";
 
-// The guest token is in the URL: never send it on as a Referer, never index the page.
-export const metadata: Metadata = {
-  referrer: "no-referrer",
-  robots: { index: false, follow: false },
-};
+// Guest pages: never send the URL on as a Referer, never index them.
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/o/[orderId]">): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale: locale as Locale,
+    namespace: "order.status",
+  });
+  return {
+    title: t("pageTitle"),
+    referrer: "no-referrer",
+    robots: { index: false, follow: false },
+  };
+}
 
-// The live order status (T-043): /o/[orderId]?t=[guest token], from checkout and the SMS link.
+// The live order status (T-043): /o/[orderId], from checkout and the SMS link. Token: see proxy.ts.
 export default function OrderStatusPage(
   props: PageProps<"/[locale]/o/[orderId]">,
 ) {
@@ -27,17 +37,13 @@ export default function OrderStatusPage(
   );
 }
 
-async function LiveOrder({
-  params,
-  searchParams,
-}: PageProps<"/[locale]/o/[orderId]">) {
+async function LiveOrder({ params }: PageProps<"/[locale]/o/[orderId]">) {
   const { locale, orderId } = await params;
-  const { t: token } = await searchParams;
   setRequestLocale(locale as Locale);
-  const order = await loadForGuest(orderId, token, (actor) =>
+  const guest = await loadForGuest(orderId, (actor) =>
     getGuestOrder(actor, orderId),
   );
-  if (!order) notFound();
+  if (!guest) notFound();
 
-  return <OrderStatus initial={order} token={token as string} />;
+  return <OrderStatus initial={guest.data} token={guest.token} />;
 }

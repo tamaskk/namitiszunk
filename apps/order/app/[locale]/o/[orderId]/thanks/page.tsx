@@ -12,11 +12,21 @@ import { loadForGuest } from "@/lib/guest-data";
 import { OrderLoading } from "../order-loading";
 import { ReviewForm } from "./review-form";
 
-// The guest token is in the URL: never send it on as a Referer, never index the page.
-export const metadata: Metadata = {
-  referrer: "no-referrer",
-  robots: { index: false, follow: false },
-};
+// Guest pages: never send the URL on as a Referer, never index them.
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/o/[orderId]/thanks">): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale: locale as Locale,
+    namespace: "order.thanks",
+  });
+  return {
+    title: t("pageTitle"),
+    referrer: "no-referrer",
+    robots: { index: false, follow: false },
+  };
+}
 
 // Thanks and rating (T-045): the live page sends the guest here once the order is picked up.
 export default function ThanksPage(
@@ -29,21 +39,16 @@ export default function ThanksPage(
   );
 }
 
-async function Thanks({
-  params,
-  searchParams,
-}: PageProps<"/[locale]/o/[orderId]/thanks">) {
+async function Thanks({ params }: PageProps<"/[locale]/o/[orderId]/thanks">) {
   const { locale, orderId } = await params;
-  const { t: token } = await searchParams;
   setRequestLocale(locale as Locale);
-  const thanks = await loadForGuest(orderId, token, (actor) =>
+  const guest = await loadForGuest(orderId, (actor) =>
     getGuestThanks(actor, orderId),
   );
-  if (!thanks || typeof token !== "string") notFound();
-  const query = `?t=${encodeURIComponent(token)}`;
+  if (!guest) notFound();
+  const { data: thanks, token } = guest;
   // Not picked up yet: the live page is the right place.
-  if (thanks.order.status !== "picked_up")
-    redirect(`/${locale}/o/${orderId}${query}`);
+  if (thanks.order.status !== "picked_up") redirect(`/${locale}/o/${orderId}`);
   const t = await getTranslations("order.thanks");
 
   return (
@@ -62,9 +67,7 @@ async function Thanks({
 
       <div className="flex flex-col gap-3">
         <Button variant="ghost" asChild>
-          <a href={`/${locale}/r/${orderId}${query}`}>
-            {t("confirmationLink")}
-          </a>
+          <a href={`/${locale}/r/${orderId}`}>{t("confirmationLink")}</a>
         </Button>
         <ReportProblem orderId={orderId} token={token} />
       </div>

@@ -10,13 +10,23 @@ import { loadForGuest } from "@/lib/guest-data";
 import { OrderLoading } from "../../o/[orderId]/order-loading";
 import { ConfirmationActions } from "./confirmation-actions";
 
-// The guest token is in the URL: never send it on as a Referer, never index the page.
-export const metadata: Metadata = {
-  referrer: "no-referrer",
-  robots: { index: false, follow: false },
-};
+// Guest pages: never send the URL on as a Referer, never index them.
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/r/[orderId]">): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale: locale as Locale,
+    namespace: "order.confirmation",
+  });
+  return {
+    title: t("pageTitle"),
+    referrer: "no-referrer",
+    robots: { index: false, follow: false },
+  };
+}
 
-// The payment confirmation (T-044): /r/[orderId]?t=[guest token]. Not a receipt, and says so first.
+// The payment confirmation (T-044): /r/[orderId]. Not a receipt, and says so first.
 export default function ConfirmationPage(
   props: PageProps<"/[locale]/r/[orderId]">,
 ) {
@@ -38,17 +48,14 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-async function Confirmation({
-  params,
-  searchParams,
-}: PageProps<"/[locale]/r/[orderId]">) {
+async function Confirmation({ params }: PageProps<"/[locale]/r/[orderId]">) {
   const { locale, orderId } = await params;
-  const { t: token } = await searchParams;
   setRequestLocale(locale as Locale);
-  const c = await loadForGuest(orderId, token, (actor) =>
+  const guest = await loadForGuest(orderId, (actor) =>
     getGuestConfirmation(actor, orderId),
   );
-  if (!c) notFound();
+  if (!guest) notFound();
+  const { data: c, token } = guest;
   const t = await getTranslations("order.confirmation");
   const at = (date: Date) => formatDateTime(date, locale);
 
@@ -149,8 +156,8 @@ async function Confirmation({
 
       <ConfirmationActions
         orderId={orderId}
-        token={token as string}
-        backHref={`/${locale}/o/${orderId}?t=${encodeURIComponent(token as string)}`}
+        token={token}
+        backHref={`/${locale}/o/${orderId}`}
       />
     </main>
   );
