@@ -92,9 +92,12 @@ export function useStripePayment({
     return !error;
   }, [elements]);
 
-  /** Pays the order's PaymentIntent; null on success, else Stripe's message in the page language. */
+  /**
+   * Pays the order's PaymentIntent. null only when paid; otherwise a string, Stripe's message in the
+   * page language or "" when there is none (the caller shows its own text). Never "" for success.
+   */
   const confirm = useCallback(
-    async (clientSecret: string, returnUrl: string) => {
+    async (clientSecret: string, returnUrl: string): Promise<string | null> => {
       if (!stripe || !elements) return "";
       const { error } = await stripe.confirmPayment({
         elements,

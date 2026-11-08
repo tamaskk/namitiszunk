@@ -159,6 +159,7 @@
       "pay": "Pay {total}",
       "paying": "Payment in progress. Keep this page open.",
       "quoteFailed": "We could not work out the total.",
+      "paymentLoadFailed": "The payment form did not load. Check your connection and try again.",
       "retry": "Try again",
       "payFailed": "The payment did not go through. Try again.",
       "backToCart": "Back to the cart"

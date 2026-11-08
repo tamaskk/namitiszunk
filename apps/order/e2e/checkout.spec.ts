@@ -24,15 +24,20 @@ const orderId = "6a0f1c2b3d4e5f6a7b8c9d0e";
 const guestToken = "g".repeat(22);
 const colaHuf = 690;
 
-/** A Payment Element that is ready at once and pays every card. */
+/**
+ * A Payment Element that is ready at once and pays every card. `__stripeFails` (set by an earlier
+ * init script) makes it fail to load ("load") or decline with no message ("confirm").
+ */
 function fakeStripe() {
   const calls: string[] = [];
+  const fails = (window as unknown as { __stripeFails?: string }).__stripeFails;
   (window as unknown as { __stripeCalls: string[] }).__stripeCalls = calls;
   (window as unknown as { Stripe: unknown }).Stripe = () => ({
     elements: () => ({
       create: () => ({
         on: (event: string, handler: () => void) => {
-          if (event === "ready") setTimeout(handler, 0);
+          if (event === (fails === "load" ? "loaderror" : "ready"))
+            setTimeout(handler, 0);
         },
         mount: () => calls.push("mount"),
         destroy: () => {},
@@ -42,7 +47,9 @@ function fakeStripe() {
     }),
     confirmPayment: async () => {
       calls.push("confirm");
-      return { paymentIntent: { status: "succeeded" } };
+      return fails === "confirm"
+        ? { error: {} }
+        : { paymentIntent: { status: "succeeded" } };
     },
   });
 }
@@ -56,8 +63,10 @@ function json(route: Route, status: number, body: unknown) {
 }
 
 /** Prices like the server for one Coca-Cola: subtotal plus the chosen tip. */
-async function answerQuote(page: Page, tips: number[] = []) {
+async function answerQuote(page: Page, tips: number[] = [], delayMs = 0) {
   await page.route("**/v1/orders/quote", async (route) => {
+    if (tips.length > 0 && delayMs > 0)
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     const body = route.request().postDataJSON() as {
       tip: { type: string; bps?: number; amountHuf?: number };
     };
@@ -92,7 +101,15 @@ async function answerQuote(page: Page, tips: number[] = []) {
  * Menu → cart → checkout. `answer` registers the API stand-ins only on the way to checkout: a route
  * set before the menu loads keeps the product sheet from settling (Playwright's interception).
  */
-async function cartToCheckout(page: Page, answer: () => Promise<void>) {
+async function cartToCheckout(
+  page: Page,
+  answer: () => Promise<void>,
+  stripeFails?: "load" | "confirm",
+) {
+  if (stripeFails)
+    await page.addInitScript((fails) => {
+      (window as unknown as { __stripeFails: string }).__stripeFails = fails;
+    }, stripeFails);
   await page.addInitScript(fakeStripe);
   // The Next.js dev badge sits over the fixed pay bar in dev; it never ships to production.
   await page.addInitScript(() => {
@@ -236,4 +253,53 @@ test("an empty cart sends the guest back to the menu", async ({ page }) => {
 
   await expect(page.getByText(checkout.empty)).toBeVisible();
   await expect(page.getByRole("link", { name: checkout.back })).toBeVisible();
+});
+
+test("keeps Pay disabled until the new tip is priced", async ({ page }) => {
+  const tips: number[] = [];
+  await cartToCheckout(page, () => answerQuote(page, tips, 1500));
+  await expect(payButton(page, colaHuf)).toBeEnabled();
+
+  await page.getByText(fill(checkout.tipPercent, { percent: 10 })).click();
+
+  // The old total is still on the button, but it cannot be paid any more.
+  await expect(payButton(page, colaHuf)).toBeDisabled();
+  await expect(payButton(page, colaHuf + 69)).toBeEnabled();
+});
+
+test("says the payment form did not load and offers a retry", async ({
+  page,
+}) => {
+  await cartToCheckout(page, () => answerQuote(page), "load");
+
+  await expect(page.getByText(checkout.paymentLoadFailed)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: checkout.retry, exact: true }),
+  ).toBeVisible();
+  await expect(payButton(page, colaHuf)).toBeDisabled();
+});
+
+test("a declined payment without a message stays on the checkout and keeps the cart", async ({
+  page,
+}) => {
+  await cartToCheckout(
+    page,
+    async () => {
+      await answerQuote(page);
+      await page.route("**/v1/orders", (route) =>
+        json(route, 201, {
+          data: { orderId, clientSecret: "pi_1_secret_x", guestToken },
+        }),
+      );
+    },
+    "confirm",
+  );
+  await page.getByLabel(checkout.adult).check();
+  await page.getByLabel(checkout.terms).check();
+
+  await payButton(page, colaHuf).click();
+
+  await expect(page.getByText(checkout.payFailed)).toBeVisible();
+  await expect(page).toHaveURL(/\/checkout/);
+  await expect(payButton(page, colaHuf)).toBeEnabled();
 });

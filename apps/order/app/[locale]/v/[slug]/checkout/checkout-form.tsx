@@ -82,6 +82,8 @@ export function CheckoutForm({
   const [adult, setAdult] = useState(false);
   const [terms, setTerms] = useState(false);
   const [quote, setQuote] = useState<OrderQuoteResponse | null>(null);
+  // The cart and tip the quote was made for: Pay waits until it matches what the guest sees.
+  const [quotedKey, setQuotedKey] = useState<string | null>(null);
   const [quoteProblem, setQuoteProblem] = useState<Problem>(null);
   const [retries, setRetries] = useState(0);
   const [missing, setMissing] = useState<string[]>([]);
@@ -110,6 +112,7 @@ export function CheckoutForm({
         .then((next) => {
           if (!current) return;
           setQuote(next);
+          setQuotedKey(cartKey);
           setQuoteProblem(null);
         })
         .catch((error: unknown) => {
@@ -159,6 +162,7 @@ export function CheckoutForm({
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneValid = /^\d{8,9}$/.test(phoneDigits);
   const blocked = paused || quoteProblem?.code === "bar_paused";
+  const quoteCurrent = quote !== null && quotedKey === cartKey;
 
   async function pay(event: FormEvent) {
     event.preventDefault();
@@ -169,7 +173,14 @@ export function CheckoutForm({
     ];
     setMissing(nextMissing);
     setPayProblem(null);
-    if (nextMissing.length > 0 || !quote || !paymentReady || paying) return;
+    if (
+      nextMissing.length > 0 ||
+      !quote ||
+      !quoteCurrent ||
+      !paymentReady ||
+      paying
+    )
+      return;
 
     setPaying(true);
     const input: CreateOrderInput = {
@@ -197,8 +208,8 @@ export function CheckoutForm({
       });
       const liveUrl = `${window.location.origin}/${locale}/o/${created.orderId}?t=${encodeURIComponent(created.guestToken)}`;
       const error = await confirmPayment(created.clientSecret, liveUrl);
-      if (error) {
-        setPayProblem(error);
+      if (error !== null) {
+        setPayProblem(error || t("payFailed"));
         return setPaying(false);
       }
       update(() => []);
@@ -224,230 +235,248 @@ export function CheckoutForm({
   const customChecked = tip.type === "custom";
 
   return (
-    <form onSubmit={pay} noValidate className="flex flex-col gap-6">
-      <p className="text-body">{t("pickup", { bar: bar.name })}</p>
-
-      <section
-        aria-labelledby="checkout-summary"
-        className="rounded-lg border border-border bg-surface p-6"
+    <>
+      {/* inert while paying: no tap, Tab or screen reader reaches the form until Stripe answers. */}
+      <form
+        onSubmit={pay}
+        noValidate
+        inert={paying}
+        className="flex flex-col gap-6"
       >
-        <h2 id="checkout-summary" className="text-h3 mb-4">
-          {t("summary")}
-        </h2>
-        {quote ? (
-          <dl className="flex flex-col gap-2 text-body">
-            {quote.lines.map((line, i) => (
-              <div key={i} className="flex justify-between gap-4">
-                <dt>
-                  {line.quantity} ×{" "}
-                  {locale === "en" && line.nameEn ? line.nameEn : line.name}
-                  {line.options.length > 0 && (
-                    <span className="block text-small text-text-muted">
-                      {line.options.join(", ")}
-                    </span>
-                  )}
-                </dt>
-                <dd className="tabular-nums">{formatHuf(line.lineTotalHuf)}</dd>
+        <p className="text-body">{t("pickup", { bar: bar.name })}</p>
+
+        <section
+          aria-labelledby="checkout-summary"
+          className="rounded-lg border border-border bg-surface p-6"
+        >
+          <h2 id="checkout-summary" className="text-h3 mb-4">
+            {t("summary")}
+          </h2>
+          {quote ? (
+            <dl className="flex flex-col gap-2 text-body">
+              {quote.lines.map((line, i) => (
+                <div key={i} className="flex justify-between gap-4">
+                  <dt>
+                    {line.quantity} ×{" "}
+                    {locale === "en" && line.nameEn ? line.nameEn : line.name}
+                    {line.options.length > 0 && (
+                      <span className="block text-small text-text-muted">
+                        {line.options.join(", ")}
+                      </span>
+                    )}
+                  </dt>
+                  <dd className="tabular-nums">
+                    {formatHuf(line.lineTotalHuf)}
+                  </dd>
+                </div>
+              ))}
+              <Row label={t("subtotal")} huf={quote.subtotalHuf} />
+              {quote.discountHuf > 0 && (
+                <Row label={t("discount")} huf={-quote.discountHuf} />
+              )}
+              {quote.serviceFeeHuf > 0 && (
+                <Row label={t("serviceFee")} huf={quote.serviceFeeHuf} />
+              )}
+              {quote.tipHuf > 0 && <Row label={t("tip")} huf={quote.tipHuf} />}
+              <div className="mt-2 flex justify-between gap-4 border-t border-border pt-4 font-semibold">
+                <dt>{t("total")}</dt>
+                <dd className="tabular-nums">{formatHuf(quote.totalHuf)}</dd>
               </div>
-            ))}
-            <Row label={t("subtotal")} huf={quote.subtotalHuf} />
-            {quote.discountHuf > 0 && (
-              <Row label={t("discount")} huf={-quote.discountHuf} />
-            )}
-            {quote.serviceFeeHuf > 0 && (
-              <Row label={t("serviceFee")} huf={quote.serviceFeeHuf} />
-            )}
-            {quote.tipHuf > 0 && <Row label={t("tip")} huf={quote.tipHuf} />}
-            <div className="mt-2 flex justify-between gap-4 border-t border-border pt-4 font-semibold">
-              <dt>{t("total")}</dt>
-              <dd className="tabular-nums">{formatHuf(quote.totalHuf)}</dd>
-            </div>
-          </dl>
-        ) : quoteProblem ? null : (
-          <div
-            aria-busy="true"
-            className="h-24 rounded-sm bg-bg motion-safe:animate-pulse"
-          />
-        )}
-        {quoteProblem && (
-          <div role="alert" className="flex flex-col gap-3">
-            <p className="text-body text-danger">
-              {apiErrorText(quoteProblem.code) ?? t("quoteFailed")}
-            </p>
-            {quoteProblem.code === "items_unavailable" ? (
-              <Link
-                href={menuHref}
-                className={buttonVariants({ variant: "secondary" })}
-              >
-                {t("backToCart")}
-              </Link>
-            ) : (
-              quoteProblem.code !== "bar_paused" && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setRetries((n) => n + 1)}
-                >
-                  {t("retry")}
-                </Button>
-              )
-            )}
-          </div>
-        )}
-      </section>
-
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-2 text-h3">{t("tip")}</legend>
-        <div className="grid grid-cols-5 gap-2">
-          {tipOptions.map((option) => (
-            <ChoiceChip
-              key={option.key}
-              name="tip"
-              checked={option.checked}
-              onChange={option.choose}
-            >
-              {option.label}
-            </ChoiceChip>
-          ))}
-          <ChoiceChip
-            name="tip"
-            checked={customChecked}
-            onChange={() =>
-              setTip({ type: "custom", amountHuf: Number(customTip) || 0 })
-            }
-          >
-            {t("tipCustom")}
-          </ChoiceChip>
-        </div>
-        {customChecked && (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="checkout-tip" className="text-small font-medium">
-              {t("tipCustomLabel")}
-            </Label>
-            <Input
-              id="checkout-tip"
-              inputMode="numeric"
-              value={customTip}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
-                setCustomTip(digits);
-                setTip({ type: "custom", amountHuf: Number(digits) || 0 });
-              }}
+            </dl>
+          ) : quoteProblem ? null : (
+            <div
+              aria-busy="true"
+              className="h-24 rounded-sm bg-bg motion-safe:animate-pulse"
             />
-          </div>
-        )}
-      </fieldset>
+          )}
+          {quoteProblem && (
+            <div role="alert" className="flex flex-col gap-3">
+              <p className="text-body text-danger">
+                {apiErrorText(quoteProblem.code) ?? t("quoteFailed")}
+              </p>
+              {quoteProblem.code === "items_unavailable" ? (
+                <Link
+                  href={menuHref}
+                  className={buttonVariants({ variant: "secondary" })}
+                >
+                  {t("backToCart")}
+                </Link>
+              ) : (
+                quoteProblem.code !== "bar_paused" && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setRetries((n) => n + 1)}
+                  >
+                    {t("retry")}
+                  </Button>
+                )
+              )}
+            </div>
+          )}
+        </section>
 
-      <div className="flex flex-col gap-3">
-        <CheckRow id="checkout-sms" checked={sms} onChange={setSms}>
-          {t("sms")}
-        </CheckRow>
-        {sms && (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="checkout-phone" className="text-small font-medium">
-              {t("phone")}
-            </Label>
-            <div className="flex items-center gap-2">
-              <span className="text-body text-text-muted" aria-hidden="true">
-                +36
-              </span>
+        <fieldset className="flex flex-col gap-3">
+          <legend className="mb-2 text-h3">{t("tip")}</legend>
+          <div className="grid grid-cols-5 gap-2">
+            {tipOptions.map((option) => (
+              <ChoiceChip
+                key={option.key}
+                name="tip"
+                checked={option.checked}
+                onChange={option.choose}
+              >
+                {option.label}
+              </ChoiceChip>
+            ))}
+            <ChoiceChip
+              name="tip"
+              checked={customChecked}
+              onChange={() =>
+                setTip({ type: "custom", amountHuf: Number(customTip) || 0 })
+              }
+            >
+              {t("tipCustom")}
+            </ChoiceChip>
+          </div>
+          {customChecked && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="checkout-tip" className="text-small font-medium">
+                {t("tipCustomLabel")}
+              </Label>
               <Input
-                id="checkout-phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel-national"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                aria-invalid={missing.includes("phone") || undefined}
-                aria-describedby="checkout-phone-hint"
+                id="checkout-tip"
+                inputMode="numeric"
+                value={customTip}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setCustomTip(digits);
+                  setTip({ type: "custom", amountHuf: Number(digits) || 0 });
+                }}
               />
             </div>
-            <p
-              id="checkout-phone-hint"
-              className={cn(
-                "text-small",
-                missing.includes("phone") ? "text-danger" : "text-text-muted",
-              )}
-            >
-              {missing.includes("phone") ? t("phoneInvalid") : t("phoneHint")}
-            </p>
-          </div>
-        )}
-        <CheckRow
-          id="checkout-adult"
-          checked={adult}
-          onChange={setAdult}
-          error={missing.includes("adult") ? t("adultRequired") : undefined}
-        >
-          {t("adult")}
-        </CheckRow>
-        {/* shortcut: plain text until T-003 publishes the terms page to link here. */}
-        <CheckRow
-          id="checkout-terms"
-          checked={terms}
-          onChange={setTerms}
-          error={missing.includes("terms") ? t("termsRequired") : undefined}
-        >
-          {t("terms")}
-        </CheckRow>
-      </div>
+          )}
+        </fieldset>
 
-      <section
-        aria-labelledby="checkout-payment"
-        className="flex flex-col gap-3"
-      >
-        <h2 id="checkout-payment" className="text-h3">
-          {t("payment")}
-        </h2>
-        {/* Stripe mounts the Payment Element here (card, Apple Pay, Google Pay, Link). */}
-        <div ref={attachPayment} className="min-h-24" />
-        {paymentFailed && (
-          <p role="alert" className="text-body text-danger">
-            {t("quoteFailed")}
-          </p>
-        )}
-      </section>
-
-      <div aria-live="polite" className="text-body text-danger empty:hidden">
-        {blocked && quoteProblem?.code !== "bar_paused"
-          ? tError("bar_paused")
-          : (payProblem ?? "")}
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-bg p-4">
-        <div className="mx-auto max-w-120">
-          <Button
-            type="submit"
-            className="w-full"
-            loading={paying}
-            disabled={
-              blocked || !quote || !paymentReady || quoteProblem !== null
-            }
+        <div className="flex flex-col gap-3">
+          <CheckRow id="checkout-sms" checked={sms} onChange={setSms}>
+            {t("sms")}
+          </CheckRow>
+          {sms && (
+            <div className="flex flex-col gap-2">
+              <Label
+                htmlFor="checkout-phone"
+                className="text-small font-medium"
+              >
+                {t("phone")}
+              </Label>
+              <div className="flex items-center gap-2">
+                <span className="text-body text-text-muted" aria-hidden="true">
+                  +36
+                </span>
+                <Input
+                  id="checkout-phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  aria-invalid={missing.includes("phone") || undefined}
+                  aria-describedby="checkout-phone-hint"
+                />
+              </div>
+              <p
+                id="checkout-phone-hint"
+                className={cn(
+                  "text-small",
+                  missing.includes("phone") ? "text-danger" : "text-text-muted",
+                )}
+              >
+                {missing.includes("phone") ? t("phoneInvalid") : t("phoneHint")}
+              </p>
+            </div>
+          )}
+          <CheckRow
+            id="checkout-adult"
+            checked={adult}
+            onChange={setAdult}
+            error={missing.includes("adult") ? t("adultRequired") : undefined}
           >
-            {quote
-              ? t("pay", { total: formatHuf(quote.totalHuf) })
-              : t("title")}
-          </Button>
+            {t("adult")}
+          </CheckRow>
+          {/* shortcut: plain text until T-003 publishes the terms page to link here. */}
+          <CheckRow
+            id="checkout-terms"
+            checked={terms}
+            onChange={setTerms}
+            error={missing.includes("terms") ? t("termsRequired") : undefined}
+          >
+            {t("terms")}
+          </CheckRow>
         </div>
-      </div>
 
+        <section
+          aria-labelledby="checkout-payment"
+          className="flex flex-col gap-3"
+        >
+          <h2 id="checkout-payment" className="text-h3">
+            {t("payment")}
+          </h2>
+          {/* Stripe mounts the Payment Element here (card, Apple Pay, Google Pay, Link). */}
+          <div ref={attachPayment} className="min-h-24" />
+          {paymentFailed && (
+            <div role="alert" className="flex flex-col gap-3">
+              <p className="text-body text-danger">{t("paymentLoadFailed")}</p>
+              {/* A fresh load retries Stripe.js; the cart is kept in storage. */}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => window.location.reload()}
+              >
+                {t("retry")}
+              </Button>
+            </div>
+          )}
+        </section>
+
+        <div aria-live="polite" className="text-body text-danger empty:hidden">
+          {blocked && quoteProblem?.code !== "bar_paused"
+            ? tError("bar_paused")
+            : (payProblem ?? "")}
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 border-t border-border bg-bg p-4">
+          <div className="mx-auto max-w-120">
+            <Button
+              type="submit"
+              className="w-full"
+              loading={paying}
+              disabled={
+                blocked ||
+                !quoteCurrent ||
+                !paymentReady ||
+                quoteProblem !== null
+              }
+            >
+              {quote
+                ? t("pay", { total: formatHuf(quote.totalHuf) })
+                : t("title")}
+            </Button>
+          </div>
+        </div>
+      </form>
       {paying && (
-        // Blocks every tap until Stripe answers: one tap, one charge.
+        // Covers the page until Stripe answers: one tap, one charge.
         <div
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="checkout-paying"
+          role="status"
           className="fixed inset-0 z-20 flex items-center justify-center bg-overlay p-4"
         >
-          <p
-            id="checkout-paying"
-            className="rounded-lg bg-surface p-6 text-center text-body"
-          >
+          <p className="rounded-lg bg-surface p-6 text-center text-body">
             {t("paying")}
           </p>
         </div>
       )}
-    </form>
+    </>
   );
 }
 

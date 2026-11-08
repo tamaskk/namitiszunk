@@ -159,6 +159,7 @@
       "pay": "Fizetés: {total}",
       "paying": "Fizetés folyamatban. Ne zárd be az oldalt.",
       "quoteFailed": "Nem sikerült kiszámolni a végösszeget.",
+      "paymentLoadFailed": "A fizetési rész nem töltődött be. Ellenőrizd a kapcsolatot, és próbáld újra.",
       "retry": "Újra",
       "payFailed": "A fizetés nem sikerült. Próbáld újra.",
       "backToCart": "Vissza a kosárhoz"
