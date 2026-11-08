@@ -29,3 +29,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 ## Done
 - [x] T-040 Guest menu page (`apps/order/app/[locale]/v/[slug]`); JS budget redefined as framework baseline + 50 KB gzip; LCP with images measured in T-049
 - [x] T-041 Product sheet and cart (`apps/order/components/product-sheet`, `cart`); item note hidden until T-047
+- [x] T-043 Live order status page (`apps/order/app/[locale]/o/[orderId]`); on-device checks (Ready within 2 s, sound, vibration, lock and unlock, motion) still to do on a real phone
+- [x] T-044 Payment confirmation, not a receipt (`apps/order/app/[locale]/r/[orderId]`), print and e-mail, 3 per order
+- [x] T-045 Thanks page and rating, once per picked-up order; reorder buttons deferred (see above), the Admin reviews list comes with T-064
+- [x] T-046 Problem report, 3 per order, mail to the venue and the platform; real Resend delivery not checked yet, the Admin order page shows it with T-056
