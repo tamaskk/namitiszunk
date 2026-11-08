@@ -14,6 +14,7 @@ import {
 } from "@namitiszunk/core/api";
 import type { RequestActor } from "@namitiszunk/auth";
 import { AppError } from "@namitiszunk/core/errors";
+import { objectIdSchema } from "@namitiszunk/validators";
 import * as Sentry from "@sentry/nextjs";
 import type { z } from "zod";
 
@@ -100,7 +101,13 @@ function routeTemplate(pathname: string, params: Params): string {
 
 function issueFields(error: z.ZodError): Record<string, string> {
   return Object.fromEntries(
-    error.issues.map((issue) => [issue.path.map(String).join("."), issue.code]),
+    error.issues.map((issue) => [
+      issue.path.map(String).join("."),
+      // Our schemas carry i18n keys; Zod's own English messages map to the generic key.
+      issue.message.startsWith("validation.")
+        ? issue.message
+        : "validation.invalid",
+    ]),
   );
 }
 
@@ -137,7 +144,7 @@ export function handler<
         !IDEMPOTENCY_KEY.test(idempotencyHeader)
       ) {
         return fail(400, "validation_failed", {
-          fields: { "Idempotency-Key": "invalid" },
+          fields: { "Idempotency-Key": "validation.invalid" },
         });
       }
 
@@ -178,6 +185,16 @@ export function handler<
       if (actor) {
         const limited = await limit(`actor:${actor.id}`);
         if (limited) return limited;
+      }
+
+      // Every `[id]` segment is an ObjectId (T-025): a malformed one never reaches a service.
+      if (
+        params.id !== undefined &&
+        !objectIdSchema.safeParse(params.id).success
+      ) {
+        return fail(400, "validation_failed", {
+          fields: { id: "validation.objectId.invalid" },
+        });
       }
 
       const bodyText = QUERY_METHODS.has(request.method)
@@ -233,7 +250,7 @@ export function handler<
             : null;
         if (scope === null) {
           return fail(400, "validation_failed", {
-            fields: { "X-Session-Id": "required" },
+            fields: { "X-Session-Id": "validation.required" },
           });
         }
         const key = sha256(`${url.pathname}|${scope}|${idempotencyHeader}`);
