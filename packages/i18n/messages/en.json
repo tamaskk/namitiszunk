@@ -1,7 +1,15 @@
 {
   "common": {
     "appName": "Na, mit iszunk?",
-    "loading": "Loading…"
+    "loading": "Loading",
+    "notFound": {
+      "message": "This page does not exist, or the link is no longer valid.",
+      "action": "Home"
+    },
+    "error": {
+      "message": "Something went wrong. Try again.",
+      "retry": "Try again"
+    }
   },
   "apiErrors": {
     "validation_failed": "Some fields are not valid.",
@@ -45,7 +53,71 @@
     "tagline": "Order and pay on your phone"
   },
   "order": {
-    "menuTitle": "Menu"
+    "menuTitle": "Menu",
+    "status": {
+      "pageTitle": "Order {number}",
+      "number": "Order number",
+      "keepOpen": "Keep this page open, or we cannot let you know.",
+      "soundOn": "Turn on sound",
+      "soundEnabled": "Sound on",
+      "pickupAt": "Pick up at {bar}",
+      "items": "Items",
+      "total": "Total",
+      "offline": "No connection. Trying again.",
+      "loadFailed": "Could not refresh. Trying again.",
+      "reason": "Reason: {reason}",
+      "refundedAmount": "Refunded: {amount}",
+      "clock": "Current time",
+      "readyTabTitle": "Your order is ready",
+      "cancel": {
+        "button": "Cancel order",
+        "title": "Cancel your order?",
+        "body": "We refund the full amount.",
+        "confirm": "Cancel order",
+        "keep": "Keep it",
+        "failed": "Could not cancel. Try again.",
+        "accepted": "The bar has accepted it already, so it can no longer be cancelled."
+      },
+      "views": {
+        "awaiting_payment": {
+          "title": "Processing payment",
+          "body": "A few seconds, keep this page open."
+        },
+        "new": {
+          "title": "Received",
+          "body": "The bar will start it soon."
+        },
+        "preparing": {
+          "title": "Being made",
+          "body": "We will tell you when it is ready."
+        },
+        "ready": {
+          "title": "Ready",
+          "body": "Come to the bar and show this screen.",
+          "vip": "We bring it to your table."
+        },
+        "picked_up": {
+          "title": "Thank you",
+          "body": "Enjoy your night."
+        },
+        "rejected": {
+          "title": "Rejected",
+          "body": "The bar cannot make this order. We refund the money."
+        },
+        "refunded": {
+          "title": "Refunded",
+          "body": "We refunded the money."
+        },
+        "expired": {
+          "title": "Expired",
+          "body": "It was not picked up in time."
+        },
+        "cancelled": {
+          "title": "Cancelled",
+          "body": "The payment did not go through, nothing was charged."
+        }
+      }
+    }
   },
   "admin": {
     "title": "Club admin",

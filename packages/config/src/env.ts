@@ -87,6 +87,11 @@ const appSchemas = {
       ...server,
       ...signIn(d),
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: stripeKey("pk", d),
+      // The guest's browser calls apps/api for order status, cancel and the Ably token (T-043).
+      NEXT_PUBLIC_API_URL:
+        d === "production"
+          ? z.url({ protocol: /^https$/, message: "must be an https URL" })
+          : z.url({ message: "must be a URL" }),
     }),
   admin: (d: DeploymentEnv) =>
     z.object({ ...browserMonitoring(d), ...server, ...signIn(d) }),

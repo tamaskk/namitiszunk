@@ -1,3 +1,27 @@
 @import "tailwindcss";
 @import "@namitiszunk/config/tailwind/theme.css";
 @source "../../../packages/ui/src";
+
+/* T-043 Ready screen: a moving background so the bartender can tell a live page from a screenshot.
+   It stays on with reduced motion (it is the proof), only slower. */
+@keyframes ready-shift {
+  to {
+    background-position: 300% 0;
+  }
+}
+.ready-motion {
+  background-image: linear-gradient(
+    120deg,
+    var(--color-primary),
+    var(--color-success),
+    var(--color-primary-hover),
+    var(--color-primary)
+  );
+  background-size: 300% 100%;
+  animation: ready-shift 3s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ready-motion {
+    animation-duration: 12s;
+  }
+}

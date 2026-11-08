@@ -148,6 +148,7 @@ Rules:
 - Duration: 150ms micro interactions, 250ms sheets and panels.
 - A new order in the bar view: one highlight pulse plus a sound; no continuous animation.
 - Respect `prefers-reduced-motion`: disable non-essential animation.
+- Exception: the guest Ready screen (T-043) keeps its moving background and ticking clock under reduced motion, only slower (12s loop instead of 3s). The motion is the proof that the screen is live, not a screenshot (`.ready-motion` in `apps/order/app/globals.css`).
 
 ## 10 Implementation
 

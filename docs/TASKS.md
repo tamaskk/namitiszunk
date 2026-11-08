@@ -17,6 +17,9 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [ ] T-022 Pricing (subtotal, service fee, tip, discount, commission)
 - [ ] T-023 RBAC permissions
 
+## Open decisions
+- [ ] Guest cancel abuse (from the T-043 review): at a manual-acceptance venue a guest can pay and cancel repeatedly, and each refund leaves the Stripe fee with the venue. Decide whether to cap guest cancels per device or phone per business day.
+
 ## Later (after these)
 - [ ] Remaining v1 tasks in `docs/fejlesztesi-terv.md` sections C–I (#17–#83)
 

@@ -1,7 +1,15 @@
 {
   "common": {
     "appName": "Na, mit iszunk?",
-    "loading": "Betöltés…"
+    "loading": "Betöltés",
+    "notFound": {
+      "message": "Ez az oldal nem létezik, vagy a link már nem érvényes.",
+      "action": "Főoldal"
+    },
+    "error": {
+      "message": "Valami nem sikerült. Próbáld újra.",
+      "retry": "Újra"
+    }
   },
   "apiErrors": {
     "validation_failed": "Néhány mező nem megfelelő.",
@@ -45,7 +53,71 @@
     "tagline": "Rendelés és fizetés a telefonodon"
   },
   "order": {
-    "menuTitle": "Menü"
+    "menuTitle": "Menü",
+    "status": {
+      "pageTitle": "Rendelés {number}",
+      "number": "Rendelésszám",
+      "keepOpen": "Hagyd nyitva az oldalt, különben nem tudunk szólni.",
+      "soundOn": "Hang bekapcsolása",
+      "soundEnabled": "Hang bekapcsolva",
+      "pickupAt": "Átvétel: {bar}",
+      "items": "Tételek",
+      "total": "Összesen",
+      "offline": "Nincs kapcsolat. Újrapróbálom.",
+      "loadFailed": "Nem sikerült frissíteni. Újrapróbálom.",
+      "reason": "Ok: {reason}",
+      "refundedAmount": "Visszautalva: {amount}",
+      "clock": "Pontos idő",
+      "readyTabTitle": "Kész a rendelésed",
+      "cancel": {
+        "button": "Rendelés lemondása",
+        "title": "Lemondod a rendelést?",
+        "body": "A teljes összeget visszautaljuk.",
+        "confirm": "Lemondom",
+        "keep": "Mégse",
+        "failed": "Nem sikerült lemondani. Próbáld újra.",
+        "accepted": "A pult már elfogadta, ezért nem tudod lemondani."
+      },
+      "views": {
+        "awaiting_payment": {
+          "title": "Fizetés feldolgozása",
+          "body": "Pár másodperc, ne zárd be az oldalt."
+        },
+        "new": {
+          "title": "Megkaptuk",
+          "body": "A pult hamarosan elkezdi."
+        },
+        "preparing": {
+          "title": "Készül",
+          "body": "Szólunk, amikor kész."
+        },
+        "ready": {
+          "title": "Kész",
+          "body": "Gyere a pulthoz, és mutasd ezt a képernyőt.",
+          "vip": "Az asztalodhoz visszük."
+        },
+        "picked_up": {
+          "title": "Köszönjük",
+          "body": "Jó szórakozást."
+        },
+        "rejected": {
+          "title": "Elutasítva",
+          "body": "A pult nem tudja teljesíteni a rendelést. A pénzt visszautaljuk."
+        },
+        "refunded": {
+          "title": "Visszatérítve",
+          "body": "A pénzt visszautaltuk."
+        },
+        "expired": {
+          "title": "Lejárt",
+          "body": "Nem vetted át időben."
+        },
+        "cancelled": {
+          "title": "Megszakítva",
+          "body": "A fizetés nem fejeződött be, nem vontunk le pénzt."
+        }
+      }
+    }
   },
   "admin": {
     "title": "Klubadmin",
