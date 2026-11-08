@@ -16,6 +16,7 @@ import type { OrderResponse } from "@namitiszunk/validators";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { ReportProblem } from "@/components/report-problem/report-problem";
 import { forgetOpenOrder, rememberOpenOrder } from "@/lib/open-orders";
 import { statusView } from "@/lib/status-view";
 
@@ -146,13 +147,16 @@ export function OrderStatus({
         {/* Paid orders only: before payment, or after a timeout, there is nothing to confirm. */}
         {order.status !== "awaiting_payment" &&
           order.status !== "cancelled" && (
-            <Button variant="ghost" asChild>
-              <a
-                href={`/${locale}/r/${order.id}?t=${encodeURIComponent(token)}`}
-              >
-                {t("confirmationLink")}
-              </a>
-            </Button>
+            <>
+              <Button variant="ghost" asChild>
+                <a
+                  href={`/${locale}/r/${order.id}?t=${encodeURIComponent(token)}`}
+                >
+                  {t("confirmationLink")}
+                </a>
+              </Button>
+              <ReportProblem orderId={order.id} token={token} />
+            </>
           )}
 
         {order.canCancel && (

@@ -155,6 +155,28 @@
         "invalid": "Adj meg egy érvényes e-mail-címet.",
         "failed": "Nem sikerült elküldeni. Próbáld újra."
       }
+    },
+    "report": {
+      "button": "Problémát jelzek",
+      "title": "Mi a probléma?",
+      "description": "A klub és a Na, mit iszunk? csapata is megkapja.",
+      "category": "Kategória",
+      "categories": {
+        "not_received": "Nem kaptam meg",
+        "wrong_order": "Rossz vagy hiányos rendelés",
+        "payment": "Fizetési probléma",
+        "other": "Egyéb"
+      },
+      "message": "Részletek (nem kötelező)",
+      "email": "E-mail-címed (nem kötelező)",
+      "emailHint": "Ide válaszolunk.",
+      "send": "Elküldöm",
+      "sent": "Megkaptuk. A klub és mi is látjuk, hamarosan jelentkezünk.",
+      "categoryRequired": "Válassz kategóriát.",
+      "invalid": "Nézd át a mezőket.",
+      "limit": "Ehhez a rendeléshez már nem küldhetsz több jelzést.",
+      "failed": "Nem sikerült elküldeni. Próbáld újra.",
+      "close": "Bezárás"
     }
   },
   "admin": {
@@ -250,7 +272,28 @@
       "heading": "Problémajelzés",
       "body": "Egy vendég problémát jelzett. Hely: {venueName}, rendelés: {shortNumber}.",
       "message": "Üzenet",
-      "guestEmail": "A vendég e-mail-címe"
+      "guestEmail": "A vendég e-mail-címe",
+      "bar": "Pult",
+      "status": "Állapot",
+      "category": "Kategória",
+      "open": "Rendelés megnyitása az adminban",
+      "categories": {
+        "not_received": "Nem kaptam meg",
+        "wrong_order": "Rossz vagy hiányos rendelés",
+        "payment": "Fizetési probléma",
+        "other": "Egyéb"
+      },
+      "statuses": {
+        "awaiting_payment": "Fizetésre vár",
+        "new": "Új",
+        "preparing": "Készül",
+        "ready": "Kész",
+        "picked_up": "Átvéve",
+        "cancelled": "Megszakítva",
+        "rejected": "Elutasítva",
+        "expired": "Lejárt",
+        "refunded": "Visszatérítve"
+      }
     },
     "newLead": {
       "subject": "Új lead: {venueName}",

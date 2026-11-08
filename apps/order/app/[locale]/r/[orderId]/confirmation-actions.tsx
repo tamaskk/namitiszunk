@@ -4,6 +4,7 @@ import { Button, Input, Label } from "@namitiszunk/ui";
 import { useLocale, useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
+import { ReportProblem } from "@/components/report-problem/report-problem";
 import { orderApi, OrderApiError } from "@/lib/order-api";
 
 type SendState = "idle" | "sending" | "sent" | "limit" | "invalid" | "failed";
@@ -76,6 +77,8 @@ export function ConfirmationActions({
         </Button>
         {message}
       </form>
+
+      <ReportProblem orderId={orderId} token={token} />
 
       <Button variant="ghost" asChild>
         <a href={backHref}>{t("back")}</a>
