@@ -6,6 +6,7 @@ import {
   lockRateLimit,
   rateLimitLockedFor,
 } from "@namitiszunk/core/api";
+import { reportError } from "@namitiszunk/core/errors";
 import { connectDb, Types } from "@namitiszunk/db";
 import { sendEmail } from "@namitiszunk/emails";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
@@ -123,13 +124,18 @@ export function createAuth(app: AuthApp, db: Db) {
             data: { ...session, app, twoFactorVerified: false },
           }),
           // Sessions are deleted on sign-out, so the user carries the last sign-in for retention (T-028).
+          // A failed stamp must not fail the sign-in: retention also counts live sessions and orders.
           after: async (session) => {
-            await db
-              .collection<{ _id: Types.ObjectId | string }>("user")
-              .updateOne(
-                { _id: { $in: userIdForms(session.userId) } },
-                { $set: { lastSignInAt: new Date() } },
-              );
+            try {
+              await db
+                .collection<{ _id: Types.ObjectId | string }>("user")
+                .updateOne(
+                  { _id: { $in: userIdForms(session.userId) } },
+                  { $set: { lastSignInAt: new Date() } },
+                );
+            } catch (error) {
+              reportError(error);
+            }
           },
         },
       },

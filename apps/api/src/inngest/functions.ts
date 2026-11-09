@@ -12,7 +12,11 @@ import {
 } from "@namitiszunk/core/jobs";
 import { AppError } from "@namitiszunk/core/errors";
 import { problemReportMails } from "@namitiszunk/core/orders";
-import { runRetention, runSmsLogRetention } from "@namitiszunk/core/retention";
+import {
+  runAccountRetention,
+  runRetention,
+  runSmsLogRetention,
+} from "@namitiszunk/core/retention";
 import * as Sentry from "@sentry/nextjs";
 import { RetryAfterError } from "inngest";
 
@@ -191,10 +195,15 @@ export const retentionDaily = inngest.createFunction(
       await connectJobsDb();
       return runRetention({ now: new Date(), dryRun: false });
     });
+    // Own steps: a failure in one never rolls back or blocks the others, and a retry repeats only it.
+    const accounts = await step.run("delete-inactive-accounts", async () => {
+      await connectJobsDb();
+      return runAccountRetention({ now: new Date(), dryRun: false });
+    });
     const smsDeleted = await step.run("delete-old-sms", () =>
       runSmsLogRetention(new Date()),
     );
-    return { ...counts, smsDeleted };
+    return { ...counts, ...accounts, smsDeleted };
   },
 );
 

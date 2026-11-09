@@ -169,31 +169,59 @@ export async function sendSms(
   }
 }
 
-// shortcut: bounds one run; the daily retention job deletes a larger backlog over the next days.
-const SMS_LOG_DELETES_PER_RUN = 1000;
+// shortcut: bounds one run (one Inngest step, sequential HTTP calls); the daily job deletes a larger
+// backlog over the next days. Messages of other senders on the account count toward the page.
+const SMS_LOG_PAGE = 200;
+// Twilio's "not found": already deleted, which is the goal.
+const TWILIO_NOT_FOUND = 20404;
+
+const twilioCode = (error: unknown) =>
+  typeof error === "object" && error !== null && "code" in error
+    ? String(error.code)
+    : "unknown";
 
 /**
- * Deletes Twilio's copies of the messages sent before `cutoff` (T-028): its message log keeps the
- * guest's number and the text. Returns how many were deleted.
+ * Deletes Twilio's copies of our ready and reminder SMS sent before `cutoff` (T-028): its message log
+ * keeps the guest's number and the text. Only outbound messages of our messaging service: an account
+ * shared with another sender or environment keeps its own log. Returns how many were deleted.
  */
 export async function deleteSmsSentBefore(cutoff: Date): Promise<number> {
+  const messagingServiceSid = requiredEnv("TWILIO_MESSAGING_SERVICE_SID");
   const client = twilio(
     requiredEnv("TWILIO_ACCOUNT_SID"),
     requiredEnv("TWILIO_AUTH_TOKEN"),
   );
+  let old;
   try {
-    const old = await client.messages.list({
+    old = await client.messages.list({
       dateSentBefore: cutoff,
-      limit: SMS_LOG_DELETES_PER_RUN,
+      limit: SMS_LOG_PAGE,
     });
-    for (const message of old) await client.messages(message.sid).remove();
-    return old.length;
   } catch (error) {
     // As in sendSms: a Twilio error can quote a number, so only its code travels on.
-    const code =
-      typeof error === "object" && error !== null && "code" in error
-        ? String(error.code)
-        : "unknown";
-    throw new Error(`Twilio message deletion failed (code ${code})`);
+    throw new Error(`Twilio message list failed (code ${twilioCode(error)})`);
   }
+  let deleted = 0;
+  const failedCodes: string[] = [];
+  for (const message of old) {
+    if (
+      message.messagingServiceSid !== messagingServiceSid ||
+      message.direction !== "outbound-api"
+    )
+      continue;
+    try {
+      await client.messages(message.sid).remove();
+      deleted++;
+    } catch (error) {
+      const code = twilioCode(error);
+      if (code !== String(TWILIO_NOT_FOUND)) failedCodes.push(code);
+    }
+  }
+  // One stuck message must not block the rest; the run still fails so the job reports it.
+  if (failedCodes.length > 0) {
+    throw new Error(
+      `Twilio message deletion failed for ${failedCodes.length} (codes ${[...new Set(failedCodes)].join(", ")}), ${deleted} deleted`,
+    );
+  }
+  return deleted;
 }

@@ -221,6 +221,8 @@ export async function removeAccount(
   await DeviceToken.deleteMany({ userId }, { session });
   await User.db.collection("session").deleteMany(byUser, { session });
   await User.db.collection("account").deleteMany(byUser, { session });
+  // A guest may have set up TOTP (the plugin runs in every app): its secret and backup codes go too.
+  await User.db.collection("twoFactor").deleteMany(byUser, { session });
   const removed = await User.deleteOne({ _id: userId }, { session });
   if (removed.deletedCount === 0) throw new NotFoundError();
   return detached.modifiedCount;

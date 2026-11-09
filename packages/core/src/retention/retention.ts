@@ -12,15 +12,15 @@ import {
 import type { ClientSession } from "mongoose";
 
 import { removeAccount } from "../account/account";
-import { deleteSmsSentBefore } from "../notify/sms";
-
 import { audit } from "../audit/audit";
+import { NotFoundError } from "../errors";
+import { deleteSmsSentBefore } from "../notify/sms";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const GUEST_PHONE_DAYS = 30;
 const REPORT_EMAIL_DAYS = 90;
 const INACTIVE_ACCOUNT_YEARS = 2;
-// shortcut: bounds one run's transaction; the daily cron catches up on a larger backlog over the next days.
+// shortcut: bounds one run; the daily cron deletes a larger backlog over the next days.
 const ACCOUNTS_PER_RUN = 500;
 // The cancel limit counts one business day; 2 days covers a night that crosses midnight.
 const CARD_FINGERPRINT_DAYS = 2;
@@ -31,7 +31,6 @@ export type RetentionCounts = {
   ordersContactCleared: number;
   // Problem report e-mails; no "email" in the key for the same reason.
   ordersReportContactCleared: number;
-  accountsDeleted: number;
   paymentsFingerprintCleared: number;
   ordersDeleted: number;
   paymentsDeleted: number;
@@ -45,43 +44,108 @@ function yearsBefore(now: Date, years: number): Date {
 }
 
 /**
- * Guest accounts with neither a sign-in nor an order in the last 2 years. Without lastSignInAt (accounts
- * from before T-028) a live session counts as a sign-in, then the account's creation. Staff and platform
- * members keep their accounts: their access is removed by hand first.
+ * Whether the account had neither a sign-in nor an order in the last 2 years. Without lastSignInAt
+ * (accounts from before T-028) a live session counts as a sign-in, then the account's creation.
+ * Staff and platform members keep their accounts: their access is removed by hand first.
  */
-async function inactiveAccounts(
+async function isInactive(
+  userId: Types.ObjectId,
   cutoff: Date,
   session?: ClientSession,
-): Promise<Types.ObjectId[]> {
+): Promise<boolean> {
   const s = session ?? null;
-  const candidates = await User.find({
+  const recent = { $gte: cutoff };
+  // One by one: a transaction's session must not run operations in parallel.
+  const active =
+    (await User.exists({
+      _id: userId,
+      $or: [
+        { lastSignInAt: recent },
+        { lastSignInAt: { $exists: false }, createdAt: recent },
+      ],
+    }).session(s)) ??
+    (await VenueMember.exists({ userId }).session(s)) ??
+    (await PlatformMember.exists({ userId }).session(s)) ??
+    (await Order.exists({ userId, createdAt: recent }).session(s)) ??
+    (await User.db.collection("session").findOne(
+      {
+        userId: { $in: [userId, String(userId)] },
+        $or: [{ createdAt: recent }, { updatedAt: recent }],
+      },
+      { session, projection: { _id: 1 } },
+    ));
+  return !active;
+}
+
+/** Accounts that may be inactive: old sign-in (or creation), members excluded up front so they never fill the batch. */
+async function accountCandidates(cutoff: Date): Promise<Types.ObjectId[]> {
+  const members = [
+    ...(await VenueMember.distinct("userId")),
+    ...(await PlatformMember.distinct("userId")),
+  ];
+  const users = await User.find({
+    _id: { $nin: members },
     $or: [
       { lastSignInAt: { $lt: cutoff } },
       { lastSignInAt: { $exists: false }, createdAt: { $lt: cutoff } },
     ],
   })
+    .sort({ _id: 1 })
     .select("_id")
     .limit(ACCOUNTS_PER_RUN)
-    .session(s)
     .lean();
-  const inactive: Types.ObjectId[] = [];
-  const recent = { $gte: cutoff };
-  for (const { _id: userId } of candidates) {
-    // One by one: a transaction's session must not run operations in parallel.
-    const active =
-      (await VenueMember.exists({ userId }).session(s)) ??
-      (await PlatformMember.exists({ userId }).session(s)) ??
-      (await Order.exists({ userId, createdAt: recent }).session(s)) ??
-      (await User.db.collection("session").findOne(
-        {
-          userId: { $in: [userId, String(userId)] },
-          $or: [{ createdAt: recent }, { updatedAt: recent }],
-        },
-        { session, projection: { _id: 1 } },
-      ));
-    if (!active) inactive.push(userId);
+  return users.map((user) => user._id);
+}
+
+/**
+ * Deletes guest accounts inactive for 2 years (T-028) like a guest's own deletion: orders stay for
+ * the books without the account. One transaction per account, re-checked inside it, so a sign-in
+ * during the run keeps the account and one failure never undoes the others. Each deletion is audited.
+ */
+export async function runAccountRetention({
+  now,
+  dryRun,
+}: {
+  now: Date;
+  dryRun: boolean;
+}): Promise<{ accountsDeleted: number }> {
+  const cutoff = yearsBefore(now, INACTIVE_ACCOUNT_YEARS);
+  const candidates = await accountCandidates(cutoff);
+  let accountsDeleted = 0;
+  const failures: unknown[] = [];
+  for (const userId of candidates) {
+    if (dryRun) {
+      if (await isInactive(userId, cutoff)) accountsDeleted++;
+      continue;
+    }
+    const session = await User.startSession();
+    try {
+      const deleted = await session.withTransaction(async () => {
+        if (!(await isInactive(userId, cutoff, session))) return false;
+        const ordersDetached = await removeAccount(userId, session);
+        await audit(session, {
+          actor: { type: "system", name: "retention" },
+          action: "account.deleted",
+          target: { type: "user", id: userId },
+          after: { ordersDetached, reason: "inactive_2_years" },
+        });
+        return true;
+      });
+      if (deleted) accountsDeleted++;
+    } catch (error) {
+      // Deleted meanwhile by the guest: nothing left to do.
+      if (!(error instanceof NotFoundError)) failures.push(error);
+    } finally {
+      await session.endSession();
+    }
   }
-  return inactive;
+  if (failures.length > 0) {
+    throw new Error(
+      `account retention: ${failures.length} of ${candidates.length} deletions failed`,
+      { cause: failures[0] },
+    );
+  }
+  return { accountsDeleted };
 }
 
 /**
@@ -113,7 +177,6 @@ export async function runRetention({
     createdAt: { $lt: reportEmailCutoff },
   };
   const reportEmailFilter = { problemReports: { $elemMatch: oldReportEmail } };
-  const accountCutoff = yearsBefore(now, INACTIVE_ACCOUNT_YEARS);
   const financialFilter = {
     createdAt: { $lt: yearsBefore(now, FINANCIAL_YEARS) },
   };
@@ -122,7 +185,6 @@ export async function runRetention({
     const [
       ordersContactCleared,
       ordersReportContactCleared,
-      accounts,
       paymentsFingerprintCleared,
       ordersDeleted,
       paymentsDeleted,
@@ -130,7 +192,6 @@ export async function runRetention({
     ] = await Promise.all([
       Order.countDocuments(phoneFilter),
       Order.countDocuments(reportEmailFilter),
-      inactiveAccounts(accountCutoff),
       Payment.countDocuments(fingerprintFilter),
       Order.countDocuments(financialFilter),
       Payment.countDocuments(financialFilter),
@@ -139,7 +200,6 @@ export async function runRetention({
     return {
       ordersContactCleared,
       ordersReportContactCleared,
-      accountsDeleted: accounts.length,
       paymentsFingerprintCleared,
       ordersDeleted,
       paymentsDeleted,
@@ -169,9 +229,6 @@ export async function runRetention({
           ],
         },
       );
-      // Before the 8-year deletion, so an old account's orders are detached, not counted twice.
-      const accounts = await inactiveAccounts(accountCutoff, session);
-      for (const userId of accounts) await removeAccount(userId, session);
       const fingerprints = await Payment.updateMany(
         fingerprintFilter,
         { $unset: { cardFingerprint: 1 } },
@@ -183,7 +240,6 @@ export async function runRetention({
       const counts: RetentionCounts = {
         ordersContactCleared: cleared.modifiedCount,
         ordersReportContactCleared: reportEmails.modifiedCount,
-        accountsDeleted: accounts.length,
         paymentsFingerprintCleared: fingerprints.modifiedCount,
         ordersDeleted: orders.deletedCount,
         paymentsDeleted: payments.deletedCount,

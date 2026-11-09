@@ -247,10 +247,16 @@ describe("sendSms", () => {
 
 describe("deleteSmsSentBefore", () => {
   const cutoff = new Date("2026-10-08T05:00:00Z");
+  const ours = (sid: string) => ({
+    sid,
+    messagingServiceSid: "MG_test",
+    direction: "outbound-api",
+  });
 
   beforeEach(() => {
     vi.stubEnv("TWILIO_ACCOUNT_SID", "AC_test");
     vi.stubEnv("TWILIO_AUTH_TOKEN", "token_test");
+    vi.stubEnv("TWILIO_MESSAGING_SERVICE_SID", "MG_test");
     list.mockReset();
     remove.mockReset();
   });
@@ -259,8 +265,17 @@ describe("deleteSmsSentBefore", () => {
     vi.unstubAllEnvs();
   });
 
-  it("deletes every message Twilio lists as sent before the cutoff", async () => {
-    list.mockResolvedValue([{ sid: "SM1" }, { sid: "SM2" }]);
+  it("deletes our outbound messages sent before the cutoff, and nothing else", async () => {
+    list.mockResolvedValue([
+      ours("SM1"),
+      ours("SM2"),
+      {
+        sid: "SM3",
+        messagingServiceSid: "MG_other",
+        direction: "outbound-api",
+      },
+      { sid: "SM4", messagingServiceSid: "MG_test", direction: "inbound" },
+    ]);
     remove.mockResolvedValue(true);
 
     const deleted = await deleteSmsSentBefore(cutoff);
@@ -272,19 +287,31 @@ describe("deleteSmsSentBefore", () => {
     expect(deleted).toBe(2);
   });
 
-  it("reports a Twilio failure by its code only", async () => {
-    list.mockResolvedValue([{ sid: "SM1" }]);
-    remove.mockRejectedValue(
-      Object.assign(new Error("Cannot delete message to +36301234567"), {
-        code: 20009,
-      }),
-    );
+  it("goes on past a failed message, then reports the failure by its code only", async () => {
+    list.mockResolvedValue([ours("SM1"), ours("SM2"), ours("SM3")]);
+    remove
+      .mockRejectedValueOnce(
+        Object.assign(new Error("Cannot delete message to +36301234567"), {
+          code: 20009,
+        }),
+      )
+      .mockRejectedValueOnce(Object.assign(new Error("gone"), { code: 20404 }))
+      .mockResolvedValueOnce(true);
 
     const error: unknown = await deleteSmsSentBefore(cutoff).catch(
       (e: unknown) => e,
     );
 
+    expect(remove).toHaveBeenCalledTimes(3);
     expect(String(error)).toContain("20009");
+    expect(String(error)).toContain("1 deleted");
     expect(String(error)).not.toContain("301234567");
+  });
+
+  it("treats an already deleted message as done", async () => {
+    list.mockResolvedValue([ours("SM1")]);
+    remove.mockRejectedValue(Object.assign(new Error("gone"), { code: 20404 }));
+
+    await expect(deleteSmsSentBefore(cutoff)).resolves.toBe(0);
   });
 });

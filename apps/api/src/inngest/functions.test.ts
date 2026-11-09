@@ -1,6 +1,10 @@
 import { InngestTestEngine } from "@inngest/test";
 import * as jobs from "@namitiszunk/core/jobs";
-import { runRetention, runSmsLogRetention } from "@namitiszunk/core/retention";
+import {
+  runAccountRetention,
+  runRetention,
+  runSmsLogRetention,
+} from "@namitiszunk/core/retention";
 import * as Sentry from "@sentry/nextjs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -31,6 +35,7 @@ vi.mock("@namitiszunk/core/retention", () => ({
     paymentsDeleted: 2,
     refundsDeleted: 0,
   })),
+  runAccountRetention: vi.fn(async () => ({ accountsDeleted: 4 })),
   runSmsLogRetention: vi.fn(async () => 3),
 }));
 const problemMail = {
@@ -361,12 +366,17 @@ describe("retentionDaily", () => {
       now: expect.any(Date),
       dryRun: false,
     });
+    expect(runAccountRetention).toHaveBeenCalledWith({
+      now: expect.any(Date),
+      dryRun: false,
+    });
     expect(runSmsLogRetention).toHaveBeenCalledWith(expect.any(Date));
     expect(result).toEqual({
       ordersContactCleared: 1,
       ordersDeleted: 2,
       paymentsDeleted: 2,
       refundsDeleted: 0,
+      accountsDeleted: 4,
       smsDeleted: 3,
     });
   });

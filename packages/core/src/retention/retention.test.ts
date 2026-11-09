@@ -4,6 +4,7 @@ import {
   DeviceToken,
   Order,
   Payment,
+  PlatformMember,
   Refund,
   Types,
   User,
@@ -20,7 +21,7 @@ import {
   vi,
 } from "vitest";
 
-import { runRetention } from "./retention";
+import { runAccountRetention, runRetention } from "./retention";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
@@ -74,12 +75,20 @@ describe("runRetention", () => {
     replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     mongoose = await connectDb(replSet.getUri("namitiszunk_retention_test"));
     await Promise.all(
-      [Order, Payment, Refund, AuditLog, User, VenueMember, DeviceToken].map(
-        (m) => m.createCollection(),
-      ),
+      [
+        Order,
+        Payment,
+        Refund,
+        AuditLog,
+        User,
+        VenueMember,
+        PlatformMember,
+        DeviceToken,
+      ].map((m) => m.createCollection()),
     );
     await User.db.createCollection("session");
     await User.db.createCollection("account");
+    await User.db.createCollection("twoFactor");
   });
 
   afterAll(async () => {
@@ -89,9 +98,16 @@ describe("runRetention", () => {
 
   beforeEach(async () => {
     await Promise.all(
-      [Order, Payment, Refund, AuditLog, User, VenueMember, DeviceToken].map(
-        (m) => m.collection.deleteMany({}),
-      ),
+      [
+        Order,
+        Payment,
+        Refund,
+        AuditLog,
+        User,
+        VenueMember,
+        PlatformMember,
+        DeviceToken,
+      ].map((m) => m.collection.deleteMany({})),
     );
     await User.db.collection("session").deleteMany({});
   });
@@ -150,7 +166,6 @@ describe("runRetention", () => {
     expect(counts).toEqual({
       ordersContactCleared: 0,
       ordersReportContactCleared: 0,
-      accountsDeleted: 0,
       paymentsFingerprintCleared: 0,
       ordersDeleted: 1,
       paymentsDeleted: 1,
@@ -233,8 +248,11 @@ describe("runRetention", () => {
         userId: older,
         token: "push-older",
       });
+      await User.db
+        .collection("twoFactor")
+        .insertOne({ userId: older, secret: "totp-secret" });
 
-      const counts = await runRetention({ now, dryRun: false });
+      const counts = await runAccountRetention({ now, dryRun: false });
 
       expect(counts.accountsDeleted).toBe(1);
       expect(await userExists(older)).toBe(false);
@@ -247,6 +265,44 @@ describe("runRetention", () => {
         await User.db.collection("session").countDocuments({ userId: older }),
       ).toBe(0);
       expect(await DeviceToken.collection.countDocuments()).toBe(0);
+      expect(await User.db.collection("twoFactor").countDocuments()).toBe(0);
+      // One audit entry per deleted account, by the system, without personal data.
+      const entries = await AuditLog.find({ action: "account.deleted" }).lean();
+      expect(entries).toHaveLength(1);
+      expect(entries[0]?.actor?.type).toBe("system");
+      expect(String(entries[0]?.target?.id)).toBe(String(older));
+      expect(JSON.stringify(entries[0])).not.toContain("@example.com");
+    });
+
+    it("keeps an account created less than 2 years ago that never stamped a sign-in", async () => {
+      const userId = await insertUser({ createdAt: yearsAgo(2, 1) });
+
+      await runAccountRetention({ now, dryRun: false });
+
+      expect(await userExists(userId)).toBe(true);
+    });
+
+    it("counts a live session stored with a string user id", async () => {
+      const userId = await insertUser({ createdAt: yearsAgo(3) });
+      await User.db.collection("session").insertOne({
+        userId: String(userId),
+        createdAt: daysAgo(1),
+        updatedAt: daysAgo(1),
+      });
+
+      await runAccountRetention({ now, dryRun: false });
+
+      expect(await userExists(userId)).toBe(true);
+    });
+
+    it("keeps a platform member's account, however old", async () => {
+      const userId = await insertUser({ lastSignInAt: yearsAgo(4) });
+      await PlatformMember.collection.insertOne({ userId, role: "support" });
+
+      const counts = await runAccountRetention({ now, dryRun: false });
+
+      expect(counts.accountsDeleted).toBe(0);
+      expect(await userExists(userId)).toBe(true);
     });
 
     it("keeps an account with an order in the last 2 years", async () => {
@@ -254,7 +310,7 @@ describe("runRetention", () => {
       const orderId = await insertOrder(daysAgo(10));
       await Order.collection.updateOne({ _id: orderId }, { $set: { userId } });
 
-      await runRetention({ now, dryRun: false });
+      await runAccountRetention({ now, dryRun: false });
 
       expect(await userExists(userId)).toBe(true);
     });
@@ -265,7 +321,7 @@ describe("runRetention", () => {
         .collection("session")
         .insertOne({ userId, createdAt: daysAgo(5), updatedAt: daysAgo(5) });
 
-      await runRetention({ now, dryRun: false });
+      await runAccountRetention({ now, dryRun: false });
 
       expect(await userExists(userId)).toBe(true);
     });
@@ -279,7 +335,7 @@ describe("runRetention", () => {
         displayName: "Owner",
       });
 
-      const counts = await runRetention({ now, dryRun: false });
+      const counts = await runAccountRetention({ now, dryRun: false });
 
       expect(counts.accountsDeleted).toBe(0);
       expect(await userExists(userId)).toBe(true);
@@ -288,7 +344,7 @@ describe("runRetention", () => {
     it("only counts inactive accounts in a dry run", async () => {
       const userId = await insertUser({ lastSignInAt: yearsAgo(3) });
 
-      const counts = await runRetention({ now, dryRun: true });
+      const counts = await runAccountRetention({ now, dryRun: true });
 
       expect(counts.accountsDeleted).toBe(1);
       expect(await userExists(userId)).toBe(true);
@@ -335,7 +391,6 @@ describe("runRetention", () => {
     expect(second).toEqual({
       ordersContactCleared: 0,
       ordersReportContactCleared: 0,
-      accountsDeleted: 0,
       paymentsFingerprintCleared: 0,
       ordersDeleted: 0,
       paymentsDeleted: 0,
@@ -355,7 +410,6 @@ describe("runRetention", () => {
     expect(counts).toEqual({
       ordersContactCleared: 1,
       ordersReportContactCleared: 0,
-      accountsDeleted: 0,
       paymentsFingerprintCleared: 0,
       ordersDeleted: 1,
       paymentsDeleted: 1,
