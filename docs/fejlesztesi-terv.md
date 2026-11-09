@@ -1034,7 +1034,7 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 **Elfogadási feltételek.**
 
 - [x] A 31 napos teszt rendelésből eltűnik a telefonszám, a 29 naposból nem.
-- [ ] A törölt fiók rendelései megmaradnak a riportokban, személyes adat nélkül.
+- [x] A törölt fiók rendelései megmaradnak a riportokban, személyes adat nélkül.
 - [x] A feladat ismételt futtatása nem töröl többet és nem hibázik.
 
 **Tesztelés.** Vitest rögzített órával és memóriabeli adatbázissal, határeseti fixture-ökkel (29, 30, 31 nap; 2 év ± 1 nap). Inngest dev szerverrel kézi indítás.

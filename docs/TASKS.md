@@ -38,7 +38,6 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 
 - [ ] Status audit 2026-11-08 (T-017–T-039, criteria ticked in fejlesztesi-terv.md). Code gaps:
   - T-018 PostHog not built (only `posthogId` in the PaymentIntent metadata; `apps/order/lib/analytics.ts` is a stub).
-  - T-028 inactive-account deletion (2 years), Twilio message deletion and the 90-day `problemReports[].email` cleanup are missing; the job runs at 05:00, the plan says 07:00.
   - T-030 no real magic-link e2e through a Resend test address.
   - Waiting on Admin: T-026 `impersonatedBy` (T-070), T-031 bar view reconnect and the 2 s latency (T-054), T-032 Payouts page (T-059).
   - Manual (owner): T-017 Sentry/Better Stack production checks (`/health` now answers 503 when MongoDB does not answer the ping), T-019 snapshot restore drill, T-030 Apple/Google sign-in, T-32–34 Stripe Dashboard checks (including the prorated fee on a partial refund), T-037 Gmail/Apple Mail rendering and inbox delivery.
