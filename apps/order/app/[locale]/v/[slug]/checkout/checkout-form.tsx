@@ -17,12 +17,14 @@ import type {
 } from "@namitiszunk/validators";
 import {
   HU_PHONE_PATTERN,
+  SITE_URL,
   TIP_PERCENT_BPS,
 } from "@namitiszunk/validators/cart-limits";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   type FormEvent,
+  type ReactNode,
   useEffect,
   useState,
   useSyncExternalStore,
@@ -424,14 +426,26 @@ export function CheckoutForm({
           >
             {t("adult")}
           </CheckRow>
-          {/* shortcut: plain text until T-003 publishes the terms page to link here. */}
           <CheckRow
             id="checkout-terms"
             checked={terms}
             onChange={setTerms}
             error={missing.includes("terms") ? t("termsRequired") : undefined}
           >
-            {t("terms")}
+            {t.rich("terms", {
+              // A new tab keeps the checkout (cart, tip, phone) as the guest left it.
+              link: (text) => (
+                <a
+                  href={`${SITE_URL}/${locale}/aszf`}
+                  target="_blank"
+                  rel="noopener"
+                  className={cn("text-primary underline", focusRing)}
+                >
+                  {text}
+                  <span className="sr-only"> {t("newTab")}</span>
+                </a>
+              ),
+            })}
           </CheckRow>
         </div>
 
@@ -584,7 +598,7 @@ function CheckRow({
   checked: boolean;
   onChange: (checked: boolean) => void;
   error?: string;
-  children: string;
+  children: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1">

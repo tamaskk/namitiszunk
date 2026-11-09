@@ -79,6 +79,7 @@ Base unit: 4px. Only use values from this scale.
 
 Layout:
 - Guest app: single column, max width 480px, 16px side padding, sticky bottom action bar.
+- Landing legal pages: one prose column, max width 720px (`max-w-180`, about 75 characters a line), 16px side padding.
 - Admin and HQ: max content width 1280px, side navigation from `lg`.
 - Bar view: full-screen landscape tablet, three columns (New / In progress / Ready).
 

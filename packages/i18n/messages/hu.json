@@ -52,7 +52,14 @@
     "terms_outdated": "A feltételek közben frissültek. Töltsd újra az oldalt, és fogadd el az új változatot."
   },
   "landing": {
-    "tagline": "Rendelés és fizetés a telefonodon"
+    "tagline": "Rendelés és fizetés a telefonodon",
+    "legal": {
+      "version": "Verzió: {version}",
+      "draft": "Tervezet. Ügyvédi átnézés alatt, még nincs hatályban.",
+      "effective": "Hatályos: {date}",
+      "terms": "Általános szerződési feltételek",
+      "privacy": "Adatkezelési tájékoztató"
+    }
   },
   "order": {
     "menuTitle": "Menü",
@@ -159,7 +166,8 @@
       "phoneInvalid": "Adj meg egy magyar mobilszámot, például 30 123 4567.",
       "adult": "Elmúltam 18 éves.",
       "adultRequired": "A rendeléshez jelöld be, hogy elmúltál 18.",
-      "terms": "Elfogadom az ÁSZF-et.",
+      "terms": "Elfogadom az <link>ÁSZF-et</link>.",
+      "newTab": "(új lapon nyílik)",
       "termsRequired": "A rendeléshez fogadd el az ÁSZF-et.",
       "payment": "Fizetési mód",
       "pay": "Fizetés: {total}",

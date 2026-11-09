@@ -294,7 +294,7 @@ Az e-nyugta kiesett, mert italszolgáltatásnál nem engedélyezett. Ha a könyv
 - [ ] Mind a négy dokumentumot az ügyvéd írásban jóváhagyta.
 - [ ] Az ÁSZF és a tájékoztató elérhető a namitiszunk.hu-n, verzióval és hatályba lépési dátummal.
 - [ ] Az adatfeldolgozók listája egyezik a ténylegesen használt szolgáltatásokkal (14. feladat env listája).
-- [ ] A pénztár 18+ és ÁSZF jelölője az aktuális ÁSZF-verzióra linkel, és a rendelés tárolja az elfogadott verziót.
+- [x] A pénztár 18+ és ÁSZF jelölője az aktuális ÁSZF-verzióra linkel, és a rendelés tárolja az elfogadott verziót.
 
 **Tesztelés.** Linkellenőrzés a landing, a pénztár és a fiók oldalon (Playwright, 78.). A tájékoztató szolgáltatáslistáját összevetni a Vercel env változókkal.
 

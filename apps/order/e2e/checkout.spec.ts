@@ -16,7 +16,6 @@ const fill = (template: string, values: Record<string, string | number>) =>
     (text, [key, value]) => text.replace(`{${key}}`, String(value)),
     template,
   );
-
 const { checkout } = messages.hu.order;
 type Locale = "hu" | "en";
 /** The fixed part of a message before its first placeholder, as a "starts with" pattern. */
@@ -208,8 +207,26 @@ for (const locale of ["hu", "en"] as const) {
     await expect(page.getByText(checkout.termsRequired)).toBeVisible();
     expect(created).toBe(0);
 
+    // T-003: the terms box links the published terms in the guest's language, in a new tab,
+    // and following the link does not tick the box.
+    const termsLink = page.locator("label[for=checkout-terms] a");
+    await expect(termsLink).toHaveAttribute(
+      "href",
+      `https://namitiszunk.hu/${locale}/aszf`,
+    );
+    await page
+      .context()
+      .route("https://namitiszunk.hu/**", (route) =>
+        route.fulfill({ body: "" }),
+      );
+    const [terms] = await Promise.all([
+      page.waitForEvent("popup"),
+      termsLink.click(),
+    ]);
+    await terms.close();
+    await expect(page.locator("#checkout-terms")).not.toBeChecked();
     await page.getByLabel(checkout.adult).check();
-    await page.getByLabel(checkout.terms).check();
+    await page.locator("#checkout-terms").check();
     await pay.dblclick();
 
     // The live page may compile on first use in dev.
@@ -237,7 +254,7 @@ test("takes only a Hungarian mobile number for the SMS", async ({ page }) => {
   });
   await page.getByLabel(checkout.sms).check();
   await page.getByLabel(checkout.adult).check();
-  await page.getByLabel(checkout.terms).check();
+  await page.locator("#checkout-terms").check();
 
   await page.getByLabel(checkout.phone).fill("12 34");
   await payButton(page, colaHuf).click();
@@ -321,7 +338,7 @@ for (const locale of ["hu", "en"] as const) {
     );
     const { checkout } = messages[locale].order;
     await page.getByLabel(checkout.adult).check();
-    await page.getByLabel(checkout.terms).check();
+    await page.locator("#checkout-terms").check();
 
     await payButton(page, colaHuf, locale).click();
 
