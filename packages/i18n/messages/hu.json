@@ -167,6 +167,7 @@
       "adult": "Elmúltam 18 éves.",
       "adultRequired": "A rendeléshez jelöld be, hogy elmúltál 18.",
       "terms": "Elfogadom az <link>ÁSZF-et</link>.",
+      "newTab": "(új lapon nyílik)",
       "termsRequired": "A rendeléshez fogadd el az ÁSZF-et.",
       "payment": "Fizetési mód",
       "pay": "Fizetés: {total}",

@@ -439,9 +439,10 @@ export function CheckoutForm({
                   href={`${SITE_URL}/${locale}/aszf`}
                   target="_blank"
                   rel="noopener"
-                  className={cn("underline", focusRing)}
+                  className={cn("text-primary underline", focusRing)}
                 >
                   {text}
+                  <span className="sr-only"> {t("newTab")}</span>
                 </a>
               ),
             })}

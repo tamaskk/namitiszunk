@@ -80,8 +80,8 @@ export function TermsEn() {
           </li>
           <li>If the club rejects your order, we refund the full amount.</li>
           <li>
-            After pickup, only the club&apos;s manager can give a refund, based
-            on your problem report.
+            After pickup, only the club (its manager or owner) can give a
+            refund, based on your problem report.
           </li>
           <li>
             If you do not pick up a ready drink, the receipt stays valid and

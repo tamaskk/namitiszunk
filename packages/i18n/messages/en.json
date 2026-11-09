@@ -167,6 +167,7 @@
       "adult": "I am over 18.",
       "adultRequired": "To order, confirm that you are over 18.",
       "terms": "I accept the <link>terms and conditions</link>.",
+      "newTab": "(opens in a new tab)",
       "termsRequired": "To order, accept the terms and conditions.",
       "payment": "Payment method",
       "pay": "Pay {total}",

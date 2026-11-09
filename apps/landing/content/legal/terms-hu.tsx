@@ -84,8 +84,8 @@ export function TermsHu() {
             visszatérítjük.
           </li>
           <li>
-            Átadás után visszatérítést csak a klub menedzsere adhat, a
-            problémajelzésed alapján.
+            Átadás után visszatérítést csak a klub (menedzsere vagy tulajdonosa)
+            adhat, a problémajelzésed alapján.
           </li>
           <li>
             Ha a kész italt nem veszed át, a nyugta érvényes marad, és nincs
