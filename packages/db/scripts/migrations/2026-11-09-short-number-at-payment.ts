@@ -25,7 +25,12 @@ try {
   console.log(`database ${db.databaseName} on ${hosts}`);
   const orders = db.collection("orders");
 
-  const old = (await orders.indexes()).find(
+  // A database without orders yet (a fresh preview) has no collection and so no old index.
+  const existing = await orders.indexes().catch((error: unknown) => {
+    if ((error as { code?: number }).code === 26) return [];
+    throw error;
+  });
+  const old = existing.find(
     (index) =>
       JSON.stringify(index.key) ===
         JSON.stringify({ venueId: 1, businessDate: 1, shortNumber: 1 }) &&
