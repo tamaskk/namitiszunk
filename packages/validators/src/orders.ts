@@ -19,7 +19,7 @@ export const orderStatuses = [
   "refunded",
 ] as const;
 /** The ÁSZF version a guest accepts at checkout; createOrder refuses any other (409 terms_outdated). */
-// shortcut: draft until T-003 publishes the real terms and their version.
+// shortcut: draft until the lawyer approves the terms (T-003 step 5); then the dated version.
 export const CURRENT_TERMS_VERSION = "draft-2026-11";
 // A sanity cap only; the venue's maxItemsPerOrder is checked on the server (spec 25, item 2).
 const MAX_CART_LINES = 50;

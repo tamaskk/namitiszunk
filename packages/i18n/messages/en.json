@@ -52,7 +52,14 @@
     "terms_outdated": "The terms have been updated. Reload the page and accept the new version."
   },
   "landing": {
-    "tagline": "Order and pay on your phone"
+    "tagline": "Order and pay on your phone",
+    "legal": {
+      "version": "Version: {version}",
+      "draft": "Draft. Under legal review, not yet in force.",
+      "effective": "In force from {date}",
+      "terms": "Terms and conditions",
+      "privacy": "Privacy notice"
+    }
   },
   "order": {
     "menuTitle": "Menu",
@@ -159,7 +166,7 @@
       "phoneInvalid": "Enter a Hungarian mobile number, for example 30 123 4567.",
       "adult": "I am over 18.",
       "adultRequired": "To order, confirm that you are over 18.",
-      "terms": "I accept the terms and conditions.",
+      "terms": "I accept the <link>terms and conditions</link>.",
       "termsRequired": "To order, accept the terms and conditions.",
       "payment": "Payment method",
       "pay": "Pay {total}",

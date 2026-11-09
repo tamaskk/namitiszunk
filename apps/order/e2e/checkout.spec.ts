@@ -16,6 +16,8 @@ const fill = (template: string, values: Record<string, string | number>) =>
     (text, [key, value]) => text.replace(`{${key}}`, String(value)),
     template,
   );
+/** A rich message as the page shows it: `<link>ÁSZF</link>` → `ÁSZF`. */
+const plain = (template: string) => template.replace(/<\/?\w+>/g, "");
 
 const { checkout } = messages.hu.order;
 type Locale = "hu" | "en";
@@ -208,8 +210,12 @@ for (const locale of ["hu", "en"] as const) {
     await expect(page.getByText(checkout.termsRequired)).toBeVisible();
     expect(created).toBe(0);
 
+    // T-003: the terms box links the published terms in the guest's language.
+    await expect(
+      page.locator("label[for=checkout-terms] a"),
+    ).toHaveAttribute("href", `https://namitiszunk.hu/${locale}/aszf`);
     await page.getByLabel(checkout.adult).check();
-    await page.getByLabel(checkout.terms).check();
+    await page.getByLabel(plain(checkout.terms)).check();
     await pay.dblclick();
 
     // The live page may compile on first use in dev.
@@ -237,7 +243,7 @@ test("takes only a Hungarian mobile number for the SMS", async ({ page }) => {
   });
   await page.getByLabel(checkout.sms).check();
   await page.getByLabel(checkout.adult).check();
-  await page.getByLabel(checkout.terms).check();
+  await page.getByLabel(plain(checkout.terms)).check();
 
   await page.getByLabel(checkout.phone).fill("12 34");
   await payButton(page, colaHuf).click();
@@ -321,7 +327,7 @@ for (const locale of ["hu", "en"] as const) {
     );
     const { checkout } = messages[locale].order;
     await page.getByLabel(checkout.adult).check();
-    await page.getByLabel(checkout.terms).check();
+    await page.getByLabel(plain(checkout.terms)).check();
 
     await payButton(page, colaHuf, locale).click();
 
