@@ -5,6 +5,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 ## Now
 - [ ] T-001 Stripe platform account and Connect setup (business, not code)
 - [ ] T-005 DNS to Vercel and email sending domain (business, not code)
+- [ ] T-003 Legal documents: guest terms (`/[locale]/aszf`) and privacy notice (`/[locale]/adatvedelem`) drafted in hu + en on the landing (`apps/landing/content/legal/`, TSX instead of MDX: no new dependency), the checkout terms box links `/aszf`. Open: the owner fills the bracketed company details, the lawyer approves (then a dated version and effective date replace `draft-2026-11`), the pilot agreement and the DPA (DOCX), PostHog on the processor list goes live with T-018.
 - [x] T-012 Monorepo scaffold: Turborepo + pnpm, 5 Next.js apps, empty Expo shell, packages
 - [x] T-013 CI (GitHub Actions): lint, typecheck, test, build, gitleaks
 
@@ -27,7 +28,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 
 - [ ] T-047 guest account, the parts code cannot prove: Google and Apple sign-in with real credentials, a magic link e-mail through Resend, the signed-in history, export, delete and new sign-in after delete on a phone (e2e covers only the signed-out page; a signed session needs a real Better Auth cookie).
 
-- [ ] T-042 checkout, the parts code cannot prove: a Stripe test-mode run with a real card, 3D Secure and a declined card (`stripe listen`), the terms link (T-003), and Apple Pay / Google Pay on real devices in the closed test (T-008).
+- [ ] T-042 checkout, the parts code cannot prove: a Stripe test-mode run with a real card, 3D Secure and a declined card (`stripe listen`), and Apple Pay / Google Pay on real devices in the closed test (T-008). The terms link is in (T-003); it points at namitiszunk.hu, so it works once the landing is deployed there (T-005).
 
 - [ ] T-049 screen-reader walkthrough on real phones: a full order with VoiceOver (iPhone) and TalkBack (Android) in Stripe test mode, by the checklist in fejlesztesi-terv.md §49.
 
