@@ -25,7 +25,6 @@ import {
 import { openingState } from "../menu/opening-hours";
 import { publicModifierGroups } from "../menu/public-menu";
 import { businessDate } from "../orders/business-date";
-import { allocateShortNumber } from "../orders/short-number";
 import { applicationFeeOf, calculateOrder } from "../pricing/calculate-order";
 import { AppError, ConflictError, NotFoundError } from "../errors";
 import { assertVenueCanCharge } from "./connect";
@@ -253,15 +252,13 @@ export async function createOrder(
   let orderId = "";
   try {
     await session.withTransaction(async () => {
-      // shortcut: Order.shortNumber is required and uniquely indexed, so it is allocated here, not at payment (T-024 wants no gaps); an abandoned payment skips a number until the schema allows an unnumbered order.
-      const shortNumber = await allocateShortNumber(venue._id, date, session);
       const [order] = await Order.create(
         [
           {
             venueId: venue._id,
             barId: bar._id,
             zoneId: input.zoneId,
-            shortNumber,
+            // Provisional: payment sets the final business day with the short number (T-024).
             businessDate: date,
             items: lines,
             subtotalHuf: calc.subtotalHuf,

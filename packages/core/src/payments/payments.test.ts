@@ -341,9 +341,10 @@ describe("createOrder", () => {
       serviceFeeHuf: 647,
       tipHuf: 647,
       totalHuf: 7764,
-      shortNumber: 1,
       businessDate: "2026-11-07",
     });
+    // Numbered at payment, not at checkout (T-024).
+    expect(order?.shortNumber).toBeUndefined();
     expect(order!.items[0]!.options).toMatchObject([
       { groupName: "Garnish", name: "Lime", priceDeltaHuf: 100 },
     ]);
@@ -569,6 +570,7 @@ describe("payment_intent webhooks", () => {
     await processConnectWebhook(...event);
 
     expect(await status(orderId)).toBe("new");
+    expect((await Order.findById(orderId).lean())?.shortNumber).toBe(1);
     expect((await Payment.findOne({ orderId }).lean())!.status).toBe(
       "succeeded",
     );

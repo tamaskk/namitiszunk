@@ -20,7 +20,8 @@ export const claimOrdersResponseSchema = z.object({ claimed: z.int().min(0) });
 
 export const accountOrderSchema = z.object({
   id: objectIdSchema,
-  number: z.string(),
+  /** "#214"; null for an order that was never paid (T-024). */
+  number: z.string().nullable(),
   venueName: z.string(),
   venueSlug: z.string(),
   status: z.enum(orderStatuses),

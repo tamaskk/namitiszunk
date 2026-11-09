@@ -157,9 +157,11 @@ export function AccountView({ orders }: { orders: AccountOrder[] }) {
               >
                 <div className="flex items-baseline justify-between gap-4">
                   <p className="text-body font-medium">{order.venueName}</p>
-                  <p className="text-small text-text-muted tabular-nums">
-                    {order.number}
-                  </p>
+                  {order.number && (
+                    <p className="text-small text-text-muted tabular-nums">
+                      {order.number}
+                    </p>
+                  )}
                 </div>
                 <p className="text-small text-text-muted">
                   {format.dateTime(new Date(order.createdAt), {
@@ -182,7 +184,12 @@ export function AccountView({ orders }: { orders: AccountOrder[] }) {
                 </p>
                 <ReorderButton
                   orderId={order.id}
-                  label={t("reorderLabel", { number: order.number })}
+                  // A never-paid order has no number: the button's own label then.
+                  label={
+                    order.number
+                      ? t("reorderLabel", { number: order.number })
+                      : undefined
+                  }
                 />
               </li>
             ))}

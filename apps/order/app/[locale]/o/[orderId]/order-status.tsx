@@ -103,8 +103,15 @@ export function OrderStatus({
         )}
 
         <header className="flex flex-col gap-2 text-center">
-          <p className="text-label text-text-muted uppercase">{t("number")}</p>
-          <p className="text-order tabular-nums">{order.number}</p>
+          {/* The number comes with the payment (T-024): none while it is still processing. */}
+          {order.number && (
+            <>
+              <p className="text-label text-text-muted uppercase">
+                {t("number")}
+              </p>
+              <p className="text-order tabular-nums">{order.number}</p>
+            </>
+          )}
           <h1 className={`text-h1 ${toneClass[view.tone]}`}>{title}</h1>
           <p className="text-body text-text-muted">
             {view.ready && order.isVip
@@ -206,7 +213,7 @@ export function OrderStatus({
         )}
       </div>
 
-      {view.ready && (
+      {view.ready && order.number && (
         <ReadyScreen
           number={order.number}
           barName={order.barName}

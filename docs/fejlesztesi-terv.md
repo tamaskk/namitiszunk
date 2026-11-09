@@ -924,7 +924,7 @@ A szerver mindig újraszámol a friss árakból; a kliens összege csak megjelen
 **Elfogadási feltételek.**
 
 - [x] 100 párhuzamos fizetés 1-től 100-ig egyedi számokat kap.
-- [ ] 5:59-kor fizetett rendelés az előző üzleti naphoz tartozik, 6:00-kor fizetett az újhoz.
+- [x] 5:59-kor fizetett rendelés az előző üzleti naphoz tartozik, 6:00-kor fizetett az újhoz.
 - [x] A nyári és téli időszámítás váltásának éjszakáján is helyes az üzleti nap.
 
 **Tesztelés.** Vitest rögzített órával a határesetekre (5:59, 6:00, március és október utolsó vasárnapja), párhuzamossági teszt `MongoMemoryReplSet`-en.

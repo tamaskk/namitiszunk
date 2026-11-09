@@ -125,8 +125,8 @@ export const createOrderResponseSchema = z.object({
 /** GET /v1/orders/{id}: what the guest of the order sees (T-043, T-088). No token, phone or venue ids. */
 export const orderResponseSchema = z.object({
   id: objectIdSchema,
-  /** The short order number as shown, e.g. "#214". */
-  number: z.string(),
+  /** The short order number as shown, e.g. "#214"; null until the payment succeeded (T-024). */
+  number: z.string().nullable(),
   status: z.enum(orderStatuses),
   /** Order.updatedAt in epoch ms; a realtime message older than this is ignored. */
   version: z.int().min(0),

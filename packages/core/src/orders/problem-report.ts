@@ -10,7 +10,7 @@ import {
 
 import type { Actor } from "../auth/permissions";
 import { AppError, NotFoundError } from "../errors";
-import { formatShortNumber } from "./short-number";
+import { formatShortNumber, requireShortNumber } from "./short-number";
 
 type GuestActor = Extract<Actor, { kind: "guest" }>;
 
@@ -113,7 +113,7 @@ export async function problemReportMails(
     locale: "hu",
     venueName: venue?.name ?? "",
     barName: bar?.name ?? "",
-    shortNumber: formatShortNumber(order.shortNumber),
+    shortNumber: formatShortNumber(requireShortNumber(order.shortNumber)),
     status: order.status,
     totalHuf: order.totalHuf,
     category: report.category,

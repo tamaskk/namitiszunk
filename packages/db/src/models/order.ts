@@ -63,7 +63,8 @@ const orderSchema = new Schema(
     eventId: { type: objectId, ref: "Event" },
     userId: { type: objectId, ref: "User" },
     // Restarts per venue every business day (ARCHITECTURE §06); unique with businessDate.
-    shortNumber: { type: Number, required: true, min: 1 },
+    // Given at payment (T-024), so an order awaiting payment has none and abandoned payments leave no gaps.
+    shortNumber: { type: Number, min: 1 },
     businessDate: {
       type: String,
       required: true,
@@ -117,7 +118,11 @@ const orderSchema = new Schema(
 );
 orderSchema.index(
   { venueId: 1, businessDate: 1, shortNumber: 1 },
-  { unique: true },
+  {
+    name: "short_number",
+    unique: true,
+    partialFilterExpression: { shortNumber: { $type: "number" } },
+  },
 );
 // Bar view: the active orders of one bar on the current business day, oldest first.
 orderSchema.index(

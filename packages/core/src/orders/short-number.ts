@@ -22,13 +22,13 @@ export async function allocateShortNumber(
     return (await increment()).seq;
   } catch (error) {
     // Two first calls of the day may both insert; the loser retries once and increments.
-    // Inside a transaction the duplicate key aborted it, so the caller's withTransaction decides.
+    // Inside a transaction the duplicate key aborted it: the caller reruns the transaction (transition.ts).
     if (session?.inTransaction() || !isDuplicateKey(error)) throw error;
     return (await increment()).seq;
   }
 }
 
-function isDuplicateKey(error: unknown): boolean {
+export function isDuplicateKey(error: unknown): boolean {
   return (
     typeof error === "object" &&
     error !== null &&
@@ -37,6 +37,21 @@ function isDuplicateKey(error: unknown): boolean {
   );
 }
 
-export function formatShortNumber(shortNumber: number): string {
-  return `#${shortNumber}`;
+/** "#12"; null before payment, when the order has no number yet (T-024). */
+export function formatShortNumber(shortNumber: number): string;
+export function formatShortNumber(
+  shortNumber: number | null | undefined,
+): string | null;
+export function formatShortNumber(
+  shortNumber: number | null | undefined,
+): string | null {
+  return shortNumber == null ? null : `#${shortNumber}`;
+}
+
+/** The number of an order that must be paid by now (e-mails, SMS, reports); a missing one is a bug. */
+export function requireShortNumber(
+  shortNumber: number | null | undefined,
+): number {
+  if (shortNumber == null) throw new Error("paid order without a short number");
+  return shortNumber;
 }
