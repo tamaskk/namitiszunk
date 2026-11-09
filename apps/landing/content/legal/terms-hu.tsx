@@ -6,9 +6,11 @@ export function TermsHu() {
       <section>
         <h2>1. Kik vagyunk, és mit csinálunk</h2>
         <p>
-          A Na, mit iszunk? (a továbbiakban: platform) üzemeltetője [cégnév,
-          székhely, cégjegyzékszám, adószám, e-mail cím]. A platformon a
-          vendégek a klubban QR-kóddal rendelhetnek és fizethetnek italt.
+          A Na, mit iszunk? (a továbbiakban: platform) üzemeltetője Kálmán Tamás
+          Krisztián egyéni vállalkozó (székhely: 1108 Budapest, Agyagfejtő utca
+          20.; nyilvántartási szám: [később]; adószám: [később]; e-mail:
+          kalman.tamaskrisztian@gmail.com). A platformon a vendégek a klubban
+          QR-kóddal rendelhetnek és fizethetnek italt.
         </p>
         <p>
           A platform közvetítő. Az italt a klub adja el: vele jön létre az
@@ -108,8 +110,8 @@ export function TermsHu() {
         <p>
           Ha baj van a rendeléseddel, a rendelés oldalán a „Problémát jelzek”
           gombbal jelezd. A jelzést a klub kapja meg, és ő dönt róla. A
-          platformmal kapcsolatos panaszt a(z) [e-mail cím] címre küldheted; 30
-          napon belül írásban válaszolunk.
+          platformmal kapcsolatos panaszt a kalman.tamaskrisztian@gmail.com
+          címre küldheted; 30 napon belül írásban válaszolunk.
         </p>
         <p>
           Ha a panaszod rendezése nem sikerül, a lakóhelyed szerinti békéltető

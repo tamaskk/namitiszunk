@@ -10,10 +10,11 @@ export function TermsEn() {
       <section>
         <h2>1. Who we are and what we do</h2>
         <p>
-          Na, mit iszunk? (the platform) is operated by [company name,
-          registered office, company registration number, tax number, email
-          address]. On the platform, guests in a club order and pay for drinks
-          with a QR code.
+          Na, mit iszunk? (the platform) is operated by Kálmán Tamás Krisztián,
+          sole trader (registered office: 1108 Budapest, Agyagfejtő utca 20.,
+          Hungary; registration number: [to follow]; tax number: [to follow];
+          email: kalman.tamaskrisztian@gmail.com). On the platform, guests in a
+          club order and pay for drinks with a QR code.
         </p>
         <p>
           The platform is an intermediary. The club sells the drinks: your
@@ -104,8 +105,8 @@ export function TermsEn() {
         <p>
           If something is wrong with your order, tap “Report a problem” on the
           order page. The club receives the report and decides on it. Send
-          complaints about the platform to [email address]; we reply in writing
-          within 30 days.
+          complaints about the platform to kalman.tamaskrisztian@gmail.com; we
+          reply in writing within 30 days.
         </p>
         <p>
           If your complaint is not resolved, you can turn to the conciliation

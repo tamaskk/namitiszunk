@@ -18,8 +18,9 @@ export function PrivacyEn() {
           </li>
           <li>
             <strong>Your account, website and analytics data</strong>: the
-            controller is the platform operator, [company name, registered
-            office, email address].
+            controller is the platform operator, Kálmán Tamás Krisztián, sole
+            trader (1108 Budapest, Agyagfejtő utca 20., Hungary; email:
+            kalman.tamaskrisztian@gmail.com).
           </li>
         </ul>
       </section>
@@ -99,7 +100,7 @@ export function PrivacyEn() {
           <li>Erasure: delete your account in your account, at once.</li>
           <li>
             Rectification, restriction, objection, withdrawing consent: write to
-            [email address]; we reply within 30 days.
+            kalman.tamaskrisztian@gmail.com; we reply within 30 days.
           </li>
           <li>
             Complaints: the Hungarian data protection authority (NAIH, naih.hu),

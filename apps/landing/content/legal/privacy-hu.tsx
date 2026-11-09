@@ -14,7 +14,9 @@ export function PrivacyHu() {
           </li>
           <li>
             <strong>A fiókod, a weboldal és az analitika adatai</strong>: az
-            adatkezelő a platform üzemeltetője, [cégnév, székhely, e-mail cím].
+            adatkezelő a platform üzemeltetője, Kálmán Tamás Krisztián egyéni
+            vállalkozó (1108 Budapest, Agyagfejtő utca 20.; e-mail:
+            kalman.tamaskrisztian@gmail.com).
           </li>
         </ul>
       </section>
@@ -96,7 +98,8 @@ export function PrivacyHu() {
           <li>Törlés: a fiókodat a fiókodban azonnal törölheted.</li>
           <li>
             Helyesbítés, korlátozás, tiltakozás, a hozzájárulás visszavonása:
-            írj a(z) [e-mail cím] címre; 30 napon belül válaszolunk.
+            írj a kalman.tamaskrisztian@gmail.com címre; 30 napon belül
+            válaszolunk.
           </li>
           <li>
             Panasz: a Nemzeti Adatvédelmi és Információszabadság Hatóságnál
