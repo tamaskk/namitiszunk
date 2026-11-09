@@ -1,10 +1,14 @@
 import {
   AuditLog,
   connectDb,
+  DeviceToken,
   Order,
   Payment,
+  PlatformMember,
   Refund,
   Types,
+  User,
+  VenueMember,
 } from "@namitiszunk/db";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import {
@@ -17,7 +21,7 @@ import {
   vi,
 } from "vitest";
 
-import { runRetention } from "./retention";
+import { runAccountRetention, runRetention } from "./retention";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
@@ -71,8 +75,20 @@ describe("runRetention", () => {
     replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     mongoose = await connectDb(replSet.getUri("namitiszunk_retention_test"));
     await Promise.all(
-      [Order, Payment, Refund, AuditLog].map((m) => m.createCollection()),
+      [
+        Order,
+        Payment,
+        Refund,
+        AuditLog,
+        User,
+        VenueMember,
+        PlatformMember,
+        DeviceToken,
+      ].map((m) => m.createCollection()),
     );
+    await User.db.createCollection("session");
+    await User.db.createCollection("account");
+    await User.db.createCollection("twoFactor");
   });
 
   afterAll(async () => {
@@ -82,10 +98,18 @@ describe("runRetention", () => {
 
   beforeEach(async () => {
     await Promise.all(
-      [Order, Payment, Refund, AuditLog].map((m) =>
-        m.collection.deleteMany({}),
-      ),
+      [
+        Order,
+        Payment,
+        Refund,
+        AuditLog,
+        User,
+        VenueMember,
+        PlatformMember,
+        DeviceToken,
+      ].map((m) => m.collection.deleteMany({})),
     );
+    await User.db.collection("session").deleteMany({});
   });
 
   it("removes the guest phone only from orders older than 30 days", async () => {
@@ -141,6 +165,7 @@ describe("runRetention", () => {
 
     expect(counts).toEqual({
       ordersContactCleared: 0,
+      ordersReportContactCleared: 0,
       paymentsFingerprintCleared: 0,
       ordersDeleted: 1,
       paymentsDeleted: 1,
@@ -155,6 +180,175 @@ describe("runRetention", () => {
     expect(await Payment.collection.countDocuments({ orderId: younger })).toBe(
       1,
     );
+  });
+
+  it("removes a problem report's e-mail only after 90 days, keeps the report", async () => {
+    const orderId = await insertOrder(daysAgo(120));
+    const report = (days: number, email?: string) => ({
+      category: "wrong_order",
+      message: `report ${days}`,
+      ...(email ? { email } : {}),
+      createdAt: daysAgo(days),
+    });
+    await Order.collection.updateOne(
+      { _id: orderId },
+      {
+        $set: {
+          problemReports: [
+            report(89, "a@example.com"),
+            report(90, "b@example.com"),
+            report(91, "c@example.com"),
+          ],
+        },
+      },
+    );
+
+    const counts = await runRetention({ now, dryRun: false });
+
+    const reports = (await Order.collection.findOne({ _id: orderId }))
+      ?.problemReports as { email?: string; message: string }[];
+    expect(counts.ordersReportContactCleared).toBe(1);
+    expect(reports.map((r) => r.email)).toEqual([
+      "a@example.com",
+      // Exactly 90 days is not "older than 90 days".
+      "b@example.com",
+      undefined,
+    ]);
+    expect(reports[2]?.message).toBe("report 91");
+  });
+
+  describe("inactive accounts", () => {
+    async function insertUser(
+      fields: { lastSignInAt?: Date; createdAt?: Date } = {},
+    ) {
+      const _id = new Types.ObjectId();
+      await User.collection.insertOne({
+        _id,
+        email: `${String(_id)}@example.com`,
+        createdAt: fields.createdAt ?? yearsAgo(5),
+        ...(fields.lastSignInAt ? { lastSignInAt: fields.lastSignInAt } : {}),
+      });
+      return _id;
+    }
+    const userExists = async (id: Types.ObjectId) =>
+      (await User.collection.countDocuments({ _id: id })) === 1;
+
+    it("deletes an account whose last sign-in and last order are older than 2 years", async () => {
+      const older = await insertUser({ lastSignInAt: yearsAgo(2, -1) });
+      const younger = await insertUser({ lastSignInAt: yearsAgo(2, 1) });
+      const orderId = await insertOrder(yearsAgo(3));
+      await Order.collection.updateOne(
+        { _id: orderId },
+        { $set: { userId: older } },
+      );
+      await User.db
+        .collection("session")
+        .insertOne({ userId: older, createdAt: yearsAgo(3) });
+      await DeviceToken.collection.insertOne({
+        userId: older,
+        token: "push-older",
+      });
+      await User.db
+        .collection("twoFactor")
+        .insertOne({ userId: older, secret: "totp-secret" });
+
+      const counts = await runAccountRetention({ now, dryRun: false });
+
+      expect(counts.accountsDeleted).toBe(1);
+      expect(await userExists(older)).toBe(false);
+      expect(await userExists(younger)).toBe(true);
+      // The order stays for the books, without the account.
+      const order = await Order.collection.findOne({ _id: orderId });
+      expect(order).not.toBeNull();
+      expect(order?.userId).toBeUndefined();
+      expect(
+        await User.db.collection("session").countDocuments({ userId: older }),
+      ).toBe(0);
+      expect(await DeviceToken.collection.countDocuments()).toBe(0);
+      expect(await User.db.collection("twoFactor").countDocuments()).toBe(0);
+      // One audit entry per deleted account, by the system, without personal data.
+      const entries = await AuditLog.find({ action: "account.deleted" }).lean();
+      expect(entries).toHaveLength(1);
+      expect(entries[0]?.actor?.type).toBe("system");
+      expect(String(entries[0]?.target?.id)).toBe(String(older));
+      expect(JSON.stringify(entries[0])).not.toContain("@example.com");
+    });
+
+    it("keeps an account created less than 2 years ago that never stamped a sign-in", async () => {
+      const userId = await insertUser({ createdAt: yearsAgo(2, 1) });
+
+      await runAccountRetention({ now, dryRun: false });
+
+      expect(await userExists(userId)).toBe(true);
+    });
+
+    it("counts a live session stored with a string user id", async () => {
+      const userId = await insertUser({ createdAt: yearsAgo(3) });
+      await User.db.collection("session").insertOne({
+        userId: String(userId),
+        createdAt: daysAgo(1),
+        updatedAt: daysAgo(1),
+      });
+
+      await runAccountRetention({ now, dryRun: false });
+
+      expect(await userExists(userId)).toBe(true);
+    });
+
+    it("keeps a platform member's account, however old", async () => {
+      const userId = await insertUser({ lastSignInAt: yearsAgo(4) });
+      await PlatformMember.collection.insertOne({ userId, role: "support" });
+
+      const counts = await runAccountRetention({ now, dryRun: false });
+
+      expect(counts.accountsDeleted).toBe(0);
+      expect(await userExists(userId)).toBe(true);
+    });
+
+    it("keeps an account with an order in the last 2 years", async () => {
+      const userId = await insertUser({ lastSignInAt: yearsAgo(3) });
+      const orderId = await insertOrder(daysAgo(10));
+      await Order.collection.updateOne({ _id: orderId }, { $set: { userId } });
+
+      await runAccountRetention({ now, dryRun: false });
+
+      expect(await userExists(userId)).toBe(true);
+    });
+
+    it("keeps an account from before lastSignInAt that still has a recent session", async () => {
+      const userId = await insertUser({ createdAt: yearsAgo(3) });
+      await User.db
+        .collection("session")
+        .insertOne({ userId, createdAt: daysAgo(5), updatedAt: daysAgo(5) });
+
+      await runAccountRetention({ now, dryRun: false });
+
+      expect(await userExists(userId)).toBe(true);
+    });
+
+    it("keeps a venue member's account, however old", async () => {
+      const userId = await insertUser({ lastSignInAt: yearsAgo(4) });
+      await VenueMember.collection.insertOne({
+        venueId: new Types.ObjectId(),
+        userId,
+        role: "owner",
+        displayName: "Owner",
+      });
+
+      const counts = await runAccountRetention({ now, dryRun: false });
+
+      expect(counts.accountsDeleted).toBe(0);
+      expect(await userExists(userId)).toBe(true);
+    });
+
+    it("only counts inactive accounts in a dry run", async () => {
+      const userId = await insertUser({ lastSignInAt: yearsAgo(3) });
+
+      const counts = await runAccountRetention({ now, dryRun: true });
+
+      expect(counts.accountsDeleted).toBe(1);
+      expect(await userExists(userId)).toBe(true);
+    });
   });
 
   it("logs a live run as one system audit entry without personal data", async () => {
@@ -196,6 +390,7 @@ describe("runRetention", () => {
 
     expect(second).toEqual({
       ordersContactCleared: 0,
+      ordersReportContactCleared: 0,
       paymentsFingerprintCleared: 0,
       ordersDeleted: 0,
       paymentsDeleted: 0,
@@ -214,6 +409,7 @@ describe("runRetention", () => {
 
     expect(counts).toEqual({
       ordersContactCleared: 1,
+      ordersReportContactCleared: 0,
       paymentsFingerprintCleared: 0,
       ordersDeleted: 1,
       paymentsDeleted: 1,

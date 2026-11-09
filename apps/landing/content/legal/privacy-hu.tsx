@@ -54,6 +54,11 @@ export function PrivacyHu() {
           A fiók törlése után a rendeléseid a könyvelés miatt megmaradnak, de
           már nem kapcsolódnak hozzád.
         </p>
+        <p>
+          A törlés naponta automatikusan fut, és az SMS-szolgáltató
+          üzenetnaplóját is törli. A napi biztonsági mentésekben a törölt adat a
+          mentés lejártáig még megmarad.
+        </p>
       </section>
 
       <section>

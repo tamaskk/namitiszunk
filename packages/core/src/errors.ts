@@ -30,3 +30,5 @@ export class ConflictError extends AppError {
     super(409, code);
   }
 }
+
+export { reportError } from "./report-error";

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  deleteSmsSentBefore,
   SMS_MAX_LENGTH,
   normalizeHuPhone,
   reminderSmsText,
@@ -10,9 +11,16 @@ import {
   toGsm7,
 } from "./sms";
 
-const { create, twilioFactory } = vi.hoisted(() => {
+const { create, list, remove, twilioFactory } = vi.hoisted(() => {
   const create = vi.fn();
-  return { create, twilioFactory: vi.fn(() => ({ messages: { create } })) };
+  const list = vi.fn();
+  const remove = vi.fn();
+  // client.messages is both a function (messages(sid).remove()) and holds create and list.
+  const messages = Object.assign(
+    vi.fn(() => ({ remove })),
+    { create, list },
+  );
+  return { create, list, remove, twilioFactory: vi.fn(() => ({ messages })) };
 });
 
 vi.mock("server-only", () => ({}));
@@ -234,5 +242,76 @@ describe("sendSms", () => {
     await expect(sendSms("+36301234567", "x", callback)).rejects.toThrow(
       "TWILIO_MESSAGING_SERVICE_SID is missing",
     );
+  });
+});
+
+describe("deleteSmsSentBefore", () => {
+  const cutoff = new Date("2026-10-08T05:00:00Z");
+  const ours = (sid: string) => ({
+    sid,
+    messagingServiceSid: "MG_test",
+    direction: "outbound-api",
+  });
+
+  beforeEach(() => {
+    vi.stubEnv("TWILIO_ACCOUNT_SID", "AC_test");
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "token_test");
+    vi.stubEnv("TWILIO_MESSAGING_SERVICE_SID", "MG_test");
+    list.mockReset();
+    remove.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("deletes our outbound messages sent before the cutoff, and nothing else", async () => {
+    list.mockResolvedValue([
+      ours("SM1"),
+      ours("SM2"),
+      {
+        sid: "SM3",
+        messagingServiceSid: "MG_other",
+        direction: "outbound-api",
+      },
+      { sid: "SM4", messagingServiceSid: "MG_test", direction: "inbound" },
+    ]);
+    remove.mockResolvedValue(true);
+
+    const deleted = await deleteSmsSentBefore(cutoff);
+
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ dateSentBefore: cutoff }),
+    );
+    expect(remove).toHaveBeenCalledTimes(2);
+    expect(deleted).toBe(2);
+  });
+
+  it("goes on past a failed message, then reports the failure by its code only", async () => {
+    list.mockResolvedValue([ours("SM1"), ours("SM2"), ours("SM3")]);
+    remove
+      .mockRejectedValueOnce(
+        Object.assign(new Error("Cannot delete message to +36301234567"), {
+          code: 20009,
+        }),
+      )
+      .mockRejectedValueOnce(Object.assign(new Error("gone"), { code: 20404 }))
+      .mockResolvedValueOnce(true);
+
+    const error: unknown = await deleteSmsSentBefore(cutoff).catch(
+      (e: unknown) => e,
+    );
+
+    expect(remove).toHaveBeenCalledTimes(3);
+    expect(String(error)).toContain("20009");
+    expect(String(error)).toContain("1 deleted");
+    expect(String(error)).not.toContain("301234567");
+  });
+
+  it("treats an already deleted message as done", async () => {
+    list.mockResolvedValue([ours("SM1")]);
+    remove.mockRejectedValue(Object.assign(new Error("gone"), { code: 20404 }));
+
+    await expect(deleteSmsSentBefore(cutoff)).resolves.toBe(0);
   });
 });

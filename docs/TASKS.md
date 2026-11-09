@@ -5,7 +5,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 ## Now
 - [ ] T-001 Stripe platform account and Connect setup (business, not code)
 - [ ] T-005 DNS to Vercel and email sending domain (business, not code)
-- [ ] T-003 Legal documents: guest terms (`/[locale]/aszf`) and privacy notice (`/[locale]/adatvedelem`) drafted in hu + en on the landing (`apps/landing/content/legal/`, TSX instead of MDX: no new dependency), the checkout terms box links `/aszf`. Open: the operator's registration and tax numbers (`[később]` / `[to follow]` in the four content files), the lawyer approves (then a dated version and effective date replace `draft-2026-11`); the pilot agreement and the DPA are drafted in `docs/legal/*.docx` (Hungarian, club details and lawyer notes in brackets), PostHog on the processor list goes live with T-018 (confirm it runs without cookies). For the lawyer and the accountant: the 8-year retention of order data, the withdrawal exception (45/2014 Korm. rendelet 29. § (1) d)), the no-refund rule for drinks not picked up, and whether Stripe is named as an independent controller.
+- [ ] T-003 Legal documents: guest terms (`/[locale]/aszf`) and privacy notice (`/[locale]/adatvedelem`) drafted in hu + en on the landing (`apps/landing/content/legal/`, TSX instead of MDX: no new dependency), the checkout terms box links `/aszf`. Open: the operator's registration and tax numbers (`[később]` / `[to follow]` in the four content files), the lawyer approves (then a dated version and effective date replace `draft-2026-11`); the pilot agreement and the DPA are drafted in `docs/legal/*.docx` (Hungarian, club details and lawyer notes in brackets), PostHog on the processor list goes live with T-018 (confirm it runs without cookies). For the lawyer and the accountant: the 8-year retention of order data (retention counts it from the order's `createdAt`; Sztv. §169 may count from the close of the financial year), the withdrawal exception (45/2014 Korm. rendelet 29. § (1) d)), the no-refund rule for drinks not picked up, and whether Stripe is named as an independent controller.
 - [x] T-012 Monorepo scaffold: Turborepo + pnpm, 5 Next.js apps, empty Expo shell, packages
 - [x] T-013 CI (GitHub Actions): lint, typecheck, test, build, gitleaks
 
@@ -38,7 +38,6 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 
 - [ ] Status audit 2026-11-08 (T-017–T-039, criteria ticked in fejlesztesi-terv.md). Code gaps:
   - T-018 PostHog not built (only `posthogId` in the PaymentIntent metadata; `apps/order/lib/analytics.ts` is a stub).
-  - T-028 inactive-account deletion (2 years), Twilio message deletion and the 90-day `problemReports[].email` cleanup are missing; the job runs at 05:00, the plan says 07:00.
   - T-030 no real magic-link e2e through a Resend test address.
   - Waiting on Admin: T-026 `impersonatedBy` (T-070), T-031 bar view reconnect and the 2 s latency (T-054), T-032 Payouts page (T-059).
   - Manual (owner): T-017 Sentry/Better Stack production checks (`/health` now answers 503 when MongoDB does not answer the ping), T-019 snapshot restore drill, T-030 Apple/Google sign-in, T-32–34 Stripe Dashboard checks (including the prorated fee on a partial refund), T-037 Gmail/Apple Mail rendering and inbox delivery.

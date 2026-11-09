@@ -12,7 +12,11 @@ import {
 } from "@namitiszunk/core/jobs";
 import { AppError } from "@namitiszunk/core/errors";
 import { problemReportMails } from "@namitiszunk/core/orders";
-import { runRetention } from "@namitiszunk/core/retention";
+import {
+  runAccountRetention,
+  runRetention,
+  runSmsLogRetention,
+} from "@namitiszunk/core/retention";
 import * as Sentry from "@sentry/nextjs";
 import { RetryAfterError } from "inngest";
 
@@ -182,14 +186,25 @@ export const stripeReconcile = inngest.createFunction(
 export const retentionDaily = inngest.createFunction(
   {
     id: "retention-daily",
-    triggers: [{ cron: "TZ=Europe/Budapest 0 5 * * *" }],
+    // 07:00, after the night's last orders and before the day's admin work (spec 28).
+    triggers: [{ cron: "TZ=Europe/Budapest 0 7 * * *" }],
     onFailure: reportFailure,
   },
-  async ({ step }) =>
-    step.run("run-retention", async () => {
+  async ({ step }) => {
+    const counts = await step.run("run-retention", async () => {
       await connectJobsDb();
       return runRetention({ now: new Date(), dryRun: false });
-    }),
+    });
+    // Own steps: a failure in one never rolls back or blocks the others, and a retry repeats only it.
+    const accounts = await step.run("delete-inactive-accounts", async () => {
+      await connectJobsDb();
+      return runAccountRetention({ now: new Date(), dryRun: false });
+    });
+    const smsDeleted = await step.run("delete-old-sms", () =>
+      runSmsLogRetention(new Date()),
+    );
+    return { ...counts, ...accounts, smsDeleted };
+  },
 );
 
 export const reportsWeekly = inngest.createFunction(

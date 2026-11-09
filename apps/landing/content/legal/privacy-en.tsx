@@ -57,6 +57,11 @@ export function PrivacyEn() {
           After you delete your account, your orders stay for accounting but are
           no longer linked to you.
         </p>
+        <p>
+          Deletion runs automatically every day and also clears the SMS
+          provider&apos;s message log. Daily backups keep deleted data until the
+          backup expires.
+        </p>
       </section>
 
       <section>

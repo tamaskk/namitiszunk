@@ -21,6 +21,8 @@ const userSchema = new Schema(
     birthDate: Date,
     locale: { type: String, enum: locales, default: "hu" },
     marketingConsentAt: Date,
+    // Set on every new session (packages/auth); retention deletes accounts inactive for 2 years (T-028).
+    lastSignInAt: Date,
   },
   { collection: "user", strict: false, timestamps: true },
 );

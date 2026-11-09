@@ -6,10 +6,10 @@ Read before changing auth, payments, data handling, uploads, secrets or deletion
 
 | Data | Examples | Sensitivity | Where stored | Retention |
 | --- | --- | --- | --- | --- |
-| Guest phone numbers | SMS "ready" opt-in | personal data | orders | 30 days, then deleted (Inngest retention job) |
+| Guest phone numbers | SMS "ready" opt-in | personal data | orders | 30 days, then deleted (Inngest retention job), Twilio's message log too (only outbound messages of our messaging service) |
 | Guest email on a problem report | optional reply address (T-046) | personal data | orders (`problemReports[].email`) | 90 days, then removed (Inngest retention job, T-028) |
 | Card fingerprint | Stripe `card.fingerprint`, caps guest cancels at 1 per card, venue and business day | pseudonymous personal data | payments (`cardFingerprint`, not selected by default) | 2 days, then removed (Inngest retention job) |
-| Guest accounts | email, name, order history | personal data | users | until the guest deletes it on `/fiok` (`DELETE /v1/me`, immediate, T-047); inactive accounts after 2 years |
+| Guest accounts | email, name, order history | personal data | users | until the guest deletes it on `/fiok` (`DELETE /v1/me`, immediate, T-047); inactive accounts after 2 years without a sign-in (`User.lastSignInAt`, set on every new session) or an order, by the daily 07:00 retention job; venue and platform members are skipped; each deletion is audited as `account.deleted` by the system |
 | Staff | name, PIN hash, email (Manager/Owner) | personal data, credentials | staff / users | while employed at the venue |
 | Orders and payments | items, amounts, Stripe ids | financial | orders | per accounting rules (confirm with the accountant) |
 | Venue payout data | Stripe connected account | financial | Stripe only; we store the account id | while the venue is active |
