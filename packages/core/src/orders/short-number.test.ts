@@ -11,7 +11,11 @@ import {
   vi,
 } from "vitest";
 
-import { allocateShortNumber, formatShortNumber } from "./short-number";
+import {
+  allocateShortNumber,
+  formatShortNumber,
+  requireShortNumber,
+} from "./short-number";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
@@ -20,6 +24,20 @@ describe("formatShortNumber", () => {
   it("prefixes the number with #, no upper bound", () => {
     expect(formatShortNumber(1)).toBe("#1");
     expect(formatShortNumber(12345)).toBe("#12345");
+  });
+});
+
+describe("before payment (T-024)", () => {
+  it("formats a missing number as null", () => {
+    expect(formatShortNumber(undefined)).toBeNull();
+    expect(formatShortNumber(null)).toBeNull();
+  });
+
+  it("refuses a missing number where the order must be paid", () => {
+    expect(requireShortNumber(7)).toBe(7);
+    expect(() => requireShortNumber(undefined)).toThrow(
+      "paid order without a short number",
+    );
   });
 });
 

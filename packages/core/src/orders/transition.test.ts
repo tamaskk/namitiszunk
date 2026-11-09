@@ -55,7 +55,11 @@ let mongoose: Awaited<ReturnType<typeof connectDb>>;
 beforeAll(async () => {
   replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   mongoose = await connectDb(replSet.getUri("namitiszunk_transition_test"));
-  await Promise.all([Order.syncIndexes(), AuditLog.syncIndexes()]);
+  await Promise.all([
+    Order.syncIndexes(),
+    AuditLog.syncIndexes(),
+    Counter.syncIndexes(),
+  ]);
 });
 
 afterAll(async () => {
@@ -206,6 +210,27 @@ describe("transition", () => {
       undefined,
     );
     expect((await Counter.findOne().lean())?.seq).toBe(1);
+  });
+
+  it("gives the day's first two parallel payments numbers 1 and 2", async () => {
+    const first = await createOrder();
+    const [second] = await Order.create([
+      {
+        ...first.toObject(),
+        _id: new Types.ObjectId(),
+        guestTokenHash: "c".repeat(64),
+      },
+    ]);
+
+    await Promise.all(
+      [first._id, second!._id].map((id) =>
+        transitionWith(allow, id, "payment_succeeded", system, { now }),
+      ),
+    );
+
+    const numbers = (await Order.find().lean()).map((o) => o.shortNumber);
+    expect(numbers.sort()).toEqual([1, 2]);
+    expect(await Order.countDocuments({ status: "new" })).toBe(2);
   });
 
   it("lets exactly one of two parallel Ready to Picked up requests succeed", async () => {

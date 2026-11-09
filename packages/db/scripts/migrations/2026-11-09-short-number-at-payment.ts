@@ -1,7 +1,9 @@
 // T-024 migration: the short order number moves from checkout to payment. Safe to run twice.
-// 1. Replaces the unique { venueId, businessDate, shortNumber } index with the partial one the
-//    Order model declares ("short_number"), so orders awaiting payment can exist without a number.
-// 2. Removes the checkout-time number from orders that were never paid; payment gives them a new one.
+// Replaces the unique { venueId, businessDate, shortNumber } index with the partial one the Order
+// model declares ("short_number"), so orders awaiting payment can exist without a number.
+// RUN IT BEFORE DEPLOYING the T-024 code to that database: with the old index the new checkout
+// fails on the day's second unpaid order. The old code works with the new index (it always numbers).
+// Numbers old checkouts gave stay; payment replaces them from the same Counter, so nothing collides.
 // The database name must be passed back, as in check-transaction.ts:
 //   node --env-file=../../apps/api/.env.local scripts/migrations/2026-11-09-short-number-at-payment.ts <database name>
 import { MongoClient } from "mongodb";
@@ -14,11 +16,13 @@ const client = await MongoClient.connect(uri, {
 });
 try {
   const db = client.db();
+  const hosts = client.options.hosts.map(String).join(", ");
   if (process.argv[2] !== db.databaseName) {
     throw new Error(
-      `Refusing to write: pass the database name "${db.databaseName}" as the first argument.`,
+      `Refusing to write to ${hosts}: pass the database name "${db.databaseName}" as the first argument.`,
     );
   }
+  console.log(`database ${db.databaseName} on ${hosts}`);
   const orders = db.collection("orders");
 
   const old = (await orders.indexes()).find(
@@ -39,14 +43,7 @@ try {
       partialFilterExpression: { shortNumber: { $type: "number" } },
     },
   );
-
-  const unnumbered = await orders.updateMany(
-    { paidAt: { $exists: false }, shortNumber: { $exists: true } },
-    { $unset: { shortNumber: "" } },
-  );
-  console.log(
-    `index short_number in place; numbers removed from ${unnumbered.modifiedCount} unpaid orders`,
-  );
+  console.log("index short_number in place");
 } finally {
   await client.close();
 }

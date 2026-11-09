@@ -12,7 +12,7 @@ import { AppError, NotFoundError } from "../errors";
 import { publishStatusChange } from "../realtime";
 import { reportError } from "../report-error";
 import { businessDate } from "./business-date";
-import { allocateShortNumber } from "./short-number";
+import { allocateShortNumber, isDuplicateKey } from "./short-number";
 import {
   type ActorKind,
   actionFor,
@@ -127,96 +127,106 @@ export async function transitionWith(
   const session = await Order.startSession();
   let change: StatusChanged | undefined;
   try {
-    await session.withTransaction(async () => {
-      const order = await Order.findById(orderId)
-        .select("venueId barId status isVip acceptedAt +guestTokenHash")
-        .session(session)
-        .lean();
-      const venueId = String(order?.venueId);
-      const guestId = order?.guestTokenHash ?? "";
-      if (!order || !canSee(actor, { venueId, guestId })) {
-        throw new NotFoundError();
-      }
-      // Without options.resource the manager refund limit stays undefined, so a manager refund is denied (fail closed).
-      await authorize(actor, actionFor(event, order), {
-        ...options.resource,
-        venueId,
-        guestId,
-      });
-
-      const venue = await Venue.findById(order.venueId)
-        .select("orderRules timezone businessDayStart")
-        .session(session)
-        .lean();
-      if (!venue) throw new Error(`venue ${venueId} not found`);
-      const from = order.status;
-      const to = next(from, event, {
-        actorKind: actorKindOf(actor),
-        accepted: order.acceptedAt != null,
-        refundOnExpiry: venue.orderRules?.refundOnExpiry ?? false,
-      });
-
-      const set: Record<string, unknown> = { status: to };
-      if (event === "payment_succeeded") {
-        set.paidAt = now;
-        // T-024: the number and the business day come with the payment, inside this transaction, so a
-        // repeated webhook (InvalidTransition above) or an abandoned payment never uses up a number.
-        set.businessDate = businessDate(now, {
-          timezone: venue.timezone ?? "Europe/Budapest",
-          businessDayStart: venue.businessDayStart ?? "06:00",
-        });
-        set.shortNumber = await allocateShortNumber(
-          order.venueId,
-          set.businessDate as string,
-          session,
-        );
-        if (venue.orderRules?.autoAccept ?? true) set.acceptedAt = now;
-      }
-      // At a manual-acceptance venue, starting the order is the acceptance.
-      if (event === "start_preparing" && !order.acceptedAt) {
-        set.acceptedAt = now;
-      }
-      if (event === "mark_ready") set.readyAt = now;
-      if (event === "pick_up") set.pickedUpAt = now;
-      if (event === "reject" && actorKindOf(actor) === "staff") {
-        if (!options.reason?.trim()) {
-          throw new AppError(400, "reason_required");
+    const run = () =>
+      session.withTransaction(async () => {
+        const order = await Order.findById(orderId)
+          .select("venueId barId status isVip acceptedAt +guestTokenHash")
+          .session(session)
+          .lean();
+        const venueId = String(order?.venueId);
+        const guestId = order?.guestTokenHash ?? "";
+        if (!order || !canSee(actor, { venueId, guestId })) {
+          throw new NotFoundError();
         }
-        set.rejectionReason = options.reason.trim();
-      }
-      if (event === "reject" && actor.kind === "guest") {
-        set.cancelledByGuest = true;
-      }
+        // Without options.resource the manager refund limit stays undefined, so a manager refund is denied (fail closed).
+        await authorize(actor, actionFor(event, order), {
+          ...options.resource,
+          venueId,
+          guestId,
+        });
 
-      // Conditional on the status we read, so a concurrent change cannot be overwritten.
-      const updated = await Order.findOneAndUpdate(
-        { _id: orderId, status: from },
-        { $set: set },
-        { session, returnDocument: "after" },
-      ).lean();
-      if (!updated)
-        throw new InvalidTransition(from, event, actorKindOf(actor));
+        const venue = await Venue.findById(order.venueId)
+          .select("orderRules timezone businessDayStart")
+          .session(session)
+          .lean();
+        if (!venue) throw new Error(`venue ${venueId} not found`);
+        const from = order.status;
+        const to = next(from, event, {
+          actorKind: actorKindOf(actor),
+          accepted: order.acceptedAt != null,
+          refundOnExpiry: venue.orderRules?.refundOnExpiry ?? false,
+        });
 
-      await audit(session, {
-        actor: auditActorOf(actor),
-        venueId: order.venueId,
-        action: `order.${event}`,
-        target: { type: "order", id: order._id },
-        before: { status: from },
-        after: set,
+        const set: Record<string, unknown> = { status: to };
+        if (event === "payment_succeeded") {
+          set.paidAt = now;
+          // T-024: the number and the business day come with the payment, inside this transaction, so a
+          // repeated webhook (InvalidTransition above) or an abandoned payment never uses up a number.
+          const date = businessDate(now, {
+            timezone: venue.timezone ?? "Europe/Budapest",
+            businessDayStart: venue.businessDayStart ?? "06:00",
+          });
+          set.businessDate = date;
+          set.shortNumber = await allocateShortNumber(
+            order.venueId,
+            date,
+            session,
+          );
+          if (venue.orderRules?.autoAccept ?? true) set.acceptedAt = now;
+        }
+        // At a manual-acceptance venue, starting the order is the acceptance.
+        if (event === "start_preparing" && !order.acceptedAt) {
+          set.acceptedAt = now;
+        }
+        if (event === "mark_ready") set.readyAt = now;
+        if (event === "pick_up") set.pickedUpAt = now;
+        if (event === "reject" && actorKindOf(actor) === "staff") {
+          if (!options.reason?.trim()) {
+            throw new AppError(400, "reason_required");
+          }
+          set.rejectionReason = options.reason.trim();
+        }
+        if (event === "reject" && actor.kind === "guest") {
+          set.cancelledByGuest = true;
+        }
+
+        // Conditional on the status we read, so a concurrent change cannot be overwritten.
+        const updated = await Order.findOneAndUpdate(
+          { _id: orderId, status: from },
+          { $set: set },
+          { session, returnDocument: "after" },
+        ).lean();
+        if (!updated)
+          throw new InvalidTransition(from, event, actorKindOf(actor));
+
+        await audit(session, {
+          actor: auditActorOf(actor),
+          venueId: order.venueId,
+          action: `order.${event}`,
+          target: { type: "order", id: order._id },
+          before: { status: from },
+          after: set,
+        });
+        change = {
+          orderId: order._id,
+          venueId: order.venueId,
+          barId: order.barId,
+          isVip: order.isVip ?? false,
+          event,
+          from,
+          to,
+          actor,
+          version: updated.updatedAt.getTime(),
+        };
       });
-      change = {
-        orderId: order._id,
-        venueId: order.venueId,
-        barId: order.barId,
-        isVip: order.isVip ?? false,
-        event,
-        from,
-        to,
-        actor,
-        version: updated.updatedAt.getTime(),
-      };
-    });
+    try {
+      await run();
+    } catch (error) {
+      // The day's first two payments may both insert its Counter; the loser's duplicate key is not a
+      // transient error, so withTransaction does not retry it. Once more finds the Counter (T-024).
+      if (!isDuplicateKey(error)) throw error;
+      await run();
+    }
   } finally {
     await session.endSession();
   }

@@ -46,7 +46,7 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [ ] Remaining v1 tasks in `docs/fejlesztesi-terv.md` sections C–I (#17–#83)
 
 ## Done
-- [x] T-024 Short order number and business day at payment (`transition()` on `payment_succeeded`, partial unique index `short_number`); run `packages/db/scripts/migrations/2026-11-09-short-number-at-payment.ts` on every database before deploying
+- [x] T-024 Short order number and business day at payment (`transition()` on `payment_succeeded`, partial unique index `short_number`); run `packages/db/scripts/migrations/2026-11-09-short-number-at-payment.ts` on every database (dev, `namitiszunk_preview`, production) BEFORE that database gets the T-024 code: with the old index the checkout fails on the day's second unpaid order
 - [x] T-027 Seed data (status audit 2026-11-08)
 - [x] T-029 API skeleton: `/v1` handler, rate limit, idempotency, CORS (status audit 2026-11-08)
 - [x] T-035 Background jobs (Inngest) (status audit 2026-11-08)
