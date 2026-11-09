@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  deleteSmsSentBefore,
   SMS_MAX_LENGTH,
   normalizeHuPhone,
   reminderSmsText,
@@ -10,9 +11,16 @@ import {
   toGsm7,
 } from "./sms";
 
-const { create, twilioFactory } = vi.hoisted(() => {
+const { create, list, remove, twilioFactory } = vi.hoisted(() => {
   const create = vi.fn();
-  return { create, twilioFactory: vi.fn(() => ({ messages: { create } })) };
+  const list = vi.fn();
+  const remove = vi.fn();
+  // client.messages is both a function (messages(sid).remove()) and holds create and list.
+  const messages = Object.assign(
+    vi.fn(() => ({ remove })),
+    { create, list },
+  );
+  return { create, list, remove, twilioFactory: vi.fn(() => ({ messages })) };
 });
 
 vi.mock("server-only", () => ({}));
@@ -234,5 +242,49 @@ describe("sendSms", () => {
     await expect(sendSms("+36301234567", "x", callback)).rejects.toThrow(
       "TWILIO_MESSAGING_SERVICE_SID is missing",
     );
+  });
+});
+
+describe("deleteSmsSentBefore", () => {
+  const cutoff = new Date("2026-10-08T05:00:00Z");
+
+  beforeEach(() => {
+    vi.stubEnv("TWILIO_ACCOUNT_SID", "AC_test");
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "token_test");
+    list.mockReset();
+    remove.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("deletes every message Twilio lists as sent before the cutoff", async () => {
+    list.mockResolvedValue([{ sid: "SM1" }, { sid: "SM2" }]);
+    remove.mockResolvedValue(true);
+
+    const deleted = await deleteSmsSentBefore(cutoff);
+
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ dateSentBefore: cutoff }),
+    );
+    expect(remove).toHaveBeenCalledTimes(2);
+    expect(deleted).toBe(2);
+  });
+
+  it("reports a Twilio failure by its code only", async () => {
+    list.mockResolvedValue([{ sid: "SM1" }]);
+    remove.mockRejectedValue(
+      Object.assign(new Error("Cannot delete message to +36301234567"), {
+        code: 20009,
+      }),
+    );
+
+    const error: unknown = await deleteSmsSentBefore(cutoff).catch(
+      (e: unknown) => e,
+    );
+
+    expect(String(error)).toContain("20009");
+    expect(String(error)).not.toContain("301234567");
   });
 });

@@ -6,7 +6,7 @@ import {
   lockRateLimit,
   rateLimitLockedFor,
 } from "@namitiszunk/core/api";
-import { connectDb } from "@namitiszunk/db";
+import { connectDb, Types } from "@namitiszunk/db";
 import { sendEmail } from "@namitiszunk/emails";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
@@ -78,6 +78,11 @@ export function cookieDomainFor(
     : undefined;
 }
 
+// The adapter stores user ids as ObjectIds; a string id that is not one is matched as is.
+function userIdForms(id: string): (Types.ObjectId | string)[] {
+  return Types.ObjectId.isValid(id) ? [new Types.ObjectId(id), id] : [id];
+}
+
 /** Builds the Better Auth instance for one app on an open database. Tests pass an in-memory database. */
 export function createAuth(app: AuthApp, db: Db) {
   const cookieDomain = cookieDomainFor(process.env.BETTER_AUTH_URL);
@@ -117,6 +122,15 @@ export function createAuth(app: AuthApp, db: Db) {
           before: async (session) => ({
             data: { ...session, app, twoFactorVerified: false },
           }),
+          // Sessions are deleted on sign-out, so the user carries the last sign-in for retention (T-028).
+          after: async (session) => {
+            await db
+              .collection<{ _id: Types.ObjectId | string }>("user")
+              .updateOne(
+                { _id: { $in: userIdForms(session.userId) } },
+                { $set: { lastSignInAt: new Date() } },
+              );
+          },
         },
       },
     },

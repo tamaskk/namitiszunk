@@ -168,3 +168,32 @@ export async function sendSms(
     throw new Error(`Twilio SMS send failed (code ${code})`);
   }
 }
+
+// shortcut: bounds one run; the daily retention job deletes a larger backlog over the next days.
+const SMS_LOG_DELETES_PER_RUN = 1000;
+
+/**
+ * Deletes Twilio's copies of the messages sent before `cutoff` (T-028): its message log keeps the
+ * guest's number and the text. Returns how many were deleted.
+ */
+export async function deleteSmsSentBefore(cutoff: Date): Promise<number> {
+  const client = twilio(
+    requiredEnv("TWILIO_ACCOUNT_SID"),
+    requiredEnv("TWILIO_AUTH_TOKEN"),
+  );
+  try {
+    const old = await client.messages.list({
+      dateSentBefore: cutoff,
+      limit: SMS_LOG_DELETES_PER_RUN,
+    });
+    for (const message of old) await client.messages(message.sid).remove();
+    return old.length;
+  } catch (error) {
+    // As in sendSms: a Twilio error can quote a number, so only its code travels on.
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String(error.code)
+        : "unknown";
+    throw new Error(`Twilio message deletion failed (code ${code})`);
+  }
+}

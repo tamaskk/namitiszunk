@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 
-import { PlatformMember, VenueMember } from "@namitiszunk/db";
+import { PlatformMember, User, VenueMember } from "@namitiszunk/db";
 import { Types } from "mongoose";
 import { beforeAll, describe, expect, it, onTestFinished, vi } from "vitest";
 
@@ -69,6 +69,18 @@ function freezeAtWindowStart() {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(Math.ceil(Date.now() / quarter) * quarter + 1000);
 }
+
+describe("last sign-in", () => {
+  it("stamps the user's lastSignInAt on every new session (T-028 retention)", async () => {
+    const { userId } = await signedInUser("order");
+
+    const user = await User.collection.findOne({
+      _id: new Types.ObjectId(userId),
+    });
+
+    expect(user?.lastSignInAt).toBeInstanceOf(Date);
+  });
+});
 
 describe("session separation", () => {
   it("accepts an admin session in admin", async () => {

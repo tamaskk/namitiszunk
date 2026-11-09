@@ -13,7 +13,7 @@ import {
   Zone,
 } from "@namitiszunk/db";
 import type { AccountOrder, ReorderResponse } from "@namitiszunk/validators";
-import { isValidObjectId, Types } from "mongoose";
+import { type ClientSession, isValidObjectId, Types } from "mongoose";
 
 import { audit } from "../audit/audit";
 import type { Actor } from "../auth/permissions";
@@ -188,29 +188,42 @@ export async function deleteAccount(
   const session = await Order.startSession();
   try {
     return await session.withTransaction(async () => {
-      // Better Auth may store the user id as an ObjectId or a string, depending on the adapter version.
-      const byUser = { userId: { $in: [userId, actor.userId] } };
-      const detached = await Order.updateMany(
-        { userId },
-        { $unset: { userId: 1 } },
-        { session },
-      );
-      await DeviceToken.deleteMany({ userId }, { session });
-      await User.db.collection("session").deleteMany(byUser, { session });
-      await User.db.collection("account").deleteMany(byUser, { session });
-      const removed = await User.deleteOne({ _id: userId }, { session });
-      if (removed.deletedCount === 0) throw new NotFoundError();
+      const ordersDetached = await removeAccount(userId, session);
       await audit(session, {
         actor: { type: "user", id: userId },
         action: "account.deleted",
         target: { type: "user", id: userId },
-        after: { ordersDetached: detached.modifiedCount },
+        after: { ordersDetached },
       });
-      return { ordersDetached: detached.modifiedCount };
+      return { ordersDetached };
     });
   } finally {
     await session.endSession();
   }
+}
+
+/**
+ * Removes a user, its sessions, logins and push tokens, and detaches its orders, inside the caller's
+ * transaction. Shared by the guest's own deletion and retention (T-028); callers check staff membership.
+ * Returns the number of orders detached.
+ */
+export async function removeAccount(
+  userId: Types.ObjectId,
+  session: ClientSession,
+): Promise<number> {
+  // Better Auth may store the user id as an ObjectId or a string, depending on the adapter version.
+  const byUser = { userId: { $in: [userId, String(userId)] } };
+  const detached = await Order.updateMany(
+    { userId },
+    { $unset: { userId: 1 } },
+    { session },
+  );
+  await DeviceToken.deleteMany({ userId }, { session });
+  await User.db.collection("session").deleteMany(byUser, { session });
+  await User.db.collection("account").deleteMany(byUser, { session });
+  const removed = await User.deleteOne({ _id: userId }, { session });
+  if (removed.deletedCount === 0) throw new NotFoundError();
+  return detached.modifiedCount;
 }
 
 /**

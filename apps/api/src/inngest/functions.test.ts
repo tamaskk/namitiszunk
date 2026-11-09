@@ -1,6 +1,6 @@
 import { InngestTestEngine } from "@inngest/test";
 import * as jobs from "@namitiszunk/core/jobs";
-import { runRetention } from "@namitiszunk/core/retention";
+import { runRetention, runSmsLogRetention } from "@namitiszunk/core/retention";
 import * as Sentry from "@sentry/nextjs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -31,6 +31,7 @@ vi.mock("@namitiszunk/core/retention", () => ({
     paymentsDeleted: 2,
     refundsDeleted: 0,
   })),
+  runSmsLogRetention: vi.fn(async () => 3),
 }));
 const problemMail = {
   template: "problemReport",
@@ -360,11 +361,19 @@ describe("retentionDaily", () => {
       now: expect.any(Date),
       dryRun: false,
     });
+    expect(runSmsLogRetention).toHaveBeenCalledWith(expect.any(Date));
     expect(result).toEqual({
       ordersContactCleared: 1,
       ordersDeleted: 2,
       paymentsDeleted: 2,
       refundsDeleted: 0,
+      smsDeleted: 3,
     });
+  });
+
+  it("runs daily at 07:00 Budapest time", () => {
+    expect(retentionDaily.opts.triggers).toEqual([
+      { cron: "TZ=Europe/Budapest 0 7 * * *" },
+    ]);
   });
 });
