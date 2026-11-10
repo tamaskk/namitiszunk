@@ -64,7 +64,11 @@ export const itemInputSchema = z.object({
   priceHuf: menuHufSchema,
   vatRate: z.literal(vatRates, { error: "validation.vatRate.invalid" }),
   imageUrl: blobUrlSchema.optional(),
-  alcoholPercent: z.number().min(0).max(100).optional(),
+  alcoholPercent: z
+    .number({ error: "validation.invalid" })
+    .min(0, { error: "validation.invalid" })
+    .max(100, { error: "validation.invalid" })
+    .optional(),
   allergens: z
     .array(z.enum(allergenCodes))
     .max(allergenCodes.length)
@@ -93,6 +97,11 @@ export const updateItemInputSchema = z.object({
 });
 export const reorderItemsInputSchema = reorderInputSchema.extend({
   categoryId: objectIdSchema,
+});
+/** The menu CSV import (T-052): the file's text, decoded as UTF-8 in the browser. */
+export const MENU_IMPORT_MAX_CHARS = 200_000;
+export const menuImportInputSchema = z.object({
+  csv: z.string().min(1).max(MENU_IMPORT_MAX_CHARS),
 });
 
 export const categoryResponseSchema = z.object({

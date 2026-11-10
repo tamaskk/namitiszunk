@@ -2,7 +2,7 @@ import { toast } from "@namitiszunk/ui";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 
-import type { MenuActionResult } from "./actions";
+import type { MenuActionResult } from "./run-menu-action";
 
 const knownErrors = [
   "validation_failed",
