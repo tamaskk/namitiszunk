@@ -561,6 +561,7 @@ export async function seedDemo(now = new Date()): Promise<void> {
       venueId,
       name: category.name,
       nameEn: category.nameEn,
+      vipOnly: category.vipOnly ?? false,
       sortOrder: index,
     })),
   );

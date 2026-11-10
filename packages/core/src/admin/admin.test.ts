@@ -151,7 +151,7 @@ describe("listAdminVenues and listAdminNotifications", () => {
       member(venueId, "owner") as Extract<Actor, { kind: "user" }>,
     );
     expect(venues).toEqual([
-      { id: venueId, name: "Pilot", ordersPausedAt: null },
+      { id: venueId, name: "Pilot", slug: "pilot", ordersPausedAt: null },
     ]);
   });
 

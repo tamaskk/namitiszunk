@@ -21,6 +21,7 @@ export {
   FormMessage,
   useFormField,
 } from "./components/form";
+export { Checkbox } from "./components/checkbox";
 export { EmptyState } from "./components/empty-state";
 export { Input } from "./components/input";
 export { Label } from "./components/label";

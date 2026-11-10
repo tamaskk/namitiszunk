@@ -1,3 +1,4 @@
+import { Toaster } from "@namitiszunk/ui";
 import { Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -31,6 +32,7 @@ export default async function RootLayout({
     <html lang={locale} className={inter.variable}>
       <body>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <Toaster />
       </body>
     </html>
   );

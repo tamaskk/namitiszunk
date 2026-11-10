@@ -8,6 +8,7 @@ import {
   deviceCookieName,
   hashPin,
   signInStaffWithPin,
+  isStaffDevice,
   staffActorFromRequest,
   staffCookieName,
 } from "./staff-pin";
@@ -218,6 +219,27 @@ describe("signInStaffWithPin", () => {
     );
 
     await expect(attempt).rejects.toMatchObject({ code: "pin_invalid" });
+  });
+});
+
+describe("isStaffDevice", () => {
+  it("recognises a registered tablet until its device cookie expires", () => {
+    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const request = requestWith({ [deviceCookieName]: device });
+
+    const now = isStaffDevice(request, t0);
+    const later = isStaffDevice(request, t0 + 31 * 24 * 60 * 60 * 1000);
+
+    expect(now).toBe(true);
+    expect(later).toBe(false);
+  });
+
+  it("ignores a forged device cookie", () => {
+    const request = requestWith({ [deviceCookieName]: "forged.value" });
+
+    const result = isStaffDevice(request, t0);
+
+    expect(result).toBe(false);
   });
 });
 

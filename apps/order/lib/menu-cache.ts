@@ -2,7 +2,7 @@ import "server-only";
 
 import { getPublicMenu, resolveMenuContext } from "@namitiszunk/core/menu";
 import type { Locale } from "@namitiszunk/i18n";
-import { cacheLife, cacheTag, revalidateTag } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 
 import { ensureDb } from "./db";
@@ -10,18 +10,23 @@ import { ensureDb } from "./db";
 const menuTag = (venueId: string) => `menu:${venueId}`;
 
 // Keyed only on server-resolved values: made-up QR ids cannot multiply cache entries.
+// `menuVersion` is part of the key: an Admin menu change (another app, so no revalidateTag
+// reaches here) makes the next page load miss the cache and read the new menu.
 async function getCachedMenu(
   slug: string,
   locale: Locale,
   barId: string | null,
   isVip: boolean,
+  menuVersion: number,
 ) {
   "use cache";
+  // Read only as a cache key (see above).
+  void menuVersion;
   await ensureDb();
   const menu = await getPublicMenu({ slug, locale, barId, isVip });
   if (menu) {
     cacheTag(menuTag(menu.venue.id));
-    // Edits and sold-out switches revalidate the tag; the hour is only a safety net.
+    // A new menuVersion is a new entry; the hour only drops the old ones.
     cacheLife("hours");
   } else {
     // The venue went offline between the two reads; do not remember that for long.
@@ -45,10 +50,11 @@ export async function getMenu(
   await ensureDb();
   const context = await resolveMenuContext({ slug, zoneId, barId });
   if (!context) return null;
-  return getCachedMenu(slug, locale, context.barId, context.isVip);
-}
-
-/** Drops the cached menu of a venue now; for menu edits (T-051) and the sold-out toggle (T-054). */
-export function revalidateMenu(venueId: string): void {
-  revalidateTag(menuTag(venueId), { expire: 0 });
+  return getCachedMenu(
+    slug,
+    locale,
+    context.barId,
+    context.isVip,
+    context.menuVersion,
+  );
 }

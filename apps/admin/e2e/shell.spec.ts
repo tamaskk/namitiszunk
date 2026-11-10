@@ -1,24 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
-import { type BrowserContext, expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-import {
-  adminSessionCookie,
-  resumeVenueOrders,
-  venueOrdersPausedAt,
-} from "./db";
+import { resumeVenueOrders, signIn, venueOrdersPausedAt } from "./db";
 
 // T-050 acceptance: role-based menu, 403 on owner modules for a manager, the venue-wide pause, 375px.
-
-async function signIn(context: BrowserContext, user: "owner" | "manager") {
-  await context.addCookies([
-    {
-      name: "nmi-admin.session_token",
-      value: adminSessionCookie(user),
-      url: "http://localhost:3102",
-      httpOnly: true,
-    },
-  ]);
-}
 
 const ownerOnly = ["/promos", "/payouts", "/settings", "/billing"];
 

@@ -125,6 +125,9 @@ Dialogs and sheets
 - Dialog max width 480px; on phones, product details and the cart use a bottom Sheet. Both scroll when taller than the screen; `SheetHeader` keeps the title clear of the close button.
 - Overlay `rgba(0, 0, 0, 0.7)`. Close on overlay click and on Escape; destructive dialogs require the explicit button (`<DialogContent destructive>`: no close icon, overlay click and Escape do nothing). Every other dialog and sheet gets a translated `closeLabel`.
 
+Checkbox
+- A native checkbox (`accent-primary`, 20px box) in a 48px label row; the label is always visible and the whole row toggles. An optional hint sits below in muted Small and is read out with the box. Focus: the shared 2px primary ring with offset. Used for multi-choice lists (allergens, bars) and on/off flags in forms (T-051).
+
 Other primitives in `packages/ui`: Select, Tabs, Table, Badge (order status), Toast (Sonner), Form, EmptyState. Table takes a translated `label` for its keyboard-focusable scroll region. Toasts sit top-center so they never cover the guest bottom bar. Active tabs carry a 1px primary ring.
 
 Order status badges: New = primary outline, In progress = warning, Ready = primary solid, Picked up = success, Rejected / Refunded = danger. Neutral (border outline, muted text) labels a non-order state such as "Sold out".

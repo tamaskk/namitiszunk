@@ -5,3 +5,8 @@ packages:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# GHSA-mrhx-c7xc-m3w5: @vercel/blob > @vercel/oidc > @vercel/cli-config pins a vulnerable zod 4 (T-051 review).
+# Remove once @vercel/cli-config ships zod >= 4.6.6 itself.
+overrides:
+  "@vercel/cli-config>zod": 4.6.7

@@ -12,6 +12,8 @@ type UserActor = Extract<Actor, { kind: "user" }>;
 export type AdminVenue = {
   id: string;
   name: string;
+  /** For links to the guest menu (the menu editor's preview). */
+  slug: string;
   /** The venue-wide pause (T-050): set means no bar takes orders until it is switched back. */
   ordersPausedAt: Date | null;
 };
@@ -22,13 +24,14 @@ export async function listAdminVenues(actor: UserActor): Promise<AdminVenue[]> {
   if (ids.length === 0) return [];
   const venues = await Venue.find(
     { _id: { $in: ids } },
-    { name: 1, ordersPausedAt: 1 },
+    { name: 1, slug: 1, ordersPausedAt: 1 },
   )
     .sort({ name: 1 })
     .lean();
   return venues.map((v) => ({
     id: String(v._id),
     name: v.name,
+    slug: v.slug,
     ordersPausedAt: v.ordersPausedAt ?? null,
   }));
 }

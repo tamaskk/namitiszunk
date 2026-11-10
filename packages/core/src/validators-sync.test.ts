@@ -14,6 +14,7 @@ describe("validators stay in sync with the models and pricing", () => {
     "orderStatuses",
     "problemCategories",
     "vatRates",
+    "allergenCodes",
     "discountTypes",
     "venueStatuses",
     "serviceFeeTypes",
