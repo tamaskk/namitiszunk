@@ -50,10 +50,12 @@ test.describe("menu import", () => {
     await expect(page.getByText("2 termék importálva.")).toBeVisible();
     await page.getByRole("link", { name: "Vissza a menühöz" }).last().click();
 
+    // In CI the dev server compiles /menu on this first visit, which can take longer than 5 s.
+    await expect(page).toHaveURL(/\/menu$/, { timeout: 60_000 });
     const category = page.getByRole("region", { name: "E2E Import" });
     await expect(
       category.getByRole("button", { name: /^Szerkesztés: Fröccs/ }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 30_000 });
   });
 
   test("skips an item that is already on the menu", async ({ page }) => {
