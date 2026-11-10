@@ -32,6 +32,8 @@ export async function runMenuAction<D, T>(
       venueId: string;
     },
   ) => Promise<T>,
+  // The page to refresh; the bars module (T-053) shares this wrapper.
+  path = "/menu",
 ): Promise<MenuActionResult<T>> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
@@ -50,7 +52,7 @@ export async function runMenuAction<D, T>(
       ...context,
       venueId: context.venue.id,
     });
-    revalidatePath("/menu");
+    revalidatePath(path);
     return { data };
   } catch (error) {
     if (error instanceof AppError)
