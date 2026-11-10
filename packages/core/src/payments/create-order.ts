@@ -113,7 +113,7 @@ async function priceCart(input: CartToPrice, now: Date) {
   if (!bar) throw new NotFoundError();
   const venue = await Venue.findById(bar.venueId)
     .select(
-      "status timezone businessDayStart openingHours stripeAccountId chargesEnabled orderRules",
+      "status timezone businessDayStart openingHours stripeAccountId chargesEnabled orderRules ordersPausedAt",
     )
     .lean();
   if (!venue) throw new NotFoundError();
@@ -126,6 +126,7 @@ async function priceCart(input: CartToPrice, now: Date) {
   );
   // Outside opening hours or after the last order reads as a closed bar to the guest.
   if (!bar.isOpen || !hours.orderable) throw new ConflictError("bar_closed");
+  if (venue.ordersPausedAt) throw new ConflictError("orders_paused");
   if (bar.pausedUntil && bar.pausedUntil > now) {
     throw new ConflictError("bar_paused");
   }

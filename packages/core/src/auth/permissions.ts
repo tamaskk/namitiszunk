@@ -60,7 +60,7 @@ type Rule = {
   roles: Partial<Record<Role, Cell>>;
 };
 
-// Single source of the permission matrix (product doc, rev 306). Change the product doc with it.
+// Single source of the permission matrix (product doc, rev 307). Change the product doc with it.
 export const permissions = {
   "order.create": { scope: "venue", write: true, roles: { guest: true } },
   // Order transitions: the state machine (T-021) calls requirePermission(actor, "order.<event>").
@@ -108,6 +108,12 @@ export const permissions = {
     scope: "venue",
     write: true,
     roles: { bartender: true, manager: true, owner: true },
+  },
+  // The Admin's venue-wide pause (T-050): every bar, no time limit, so not for bartenders.
+  "venue.pauseOrders": {
+    scope: "venue",
+    write: true,
+    roles: { manager: true, owner: true },
   },
   "order.refund": {
     scope: "venue",

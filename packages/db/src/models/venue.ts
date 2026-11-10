@@ -88,6 +88,8 @@ const venueSchema = new Schema(
     stripeRequirementsDue: { type: [String], default: undefined },
     status: { type: String, enum: venueStatuses, default: "draft" },
     orderRules: { type: orderRulesSchema, default: () => ({}) },
+    // The Admin's venue-wide pause (T-050): no bar takes orders, with no time limit, until it is switched back.
+    ordersPausedAt: Date,
   },
   { timestamps: true },
 );

@@ -11,10 +11,10 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${port}`, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    // The showcase needs no secrets; production builds still refuse the skip (packages/config/src/env.ts).
-    command: `SKIP_ENV_VALIDATION=1 pnpm exec next dev --port ${port}`,
-    url: `http://localhost:${port}/dev/ui`,
+    // Seeds the Demo Klub into an in-memory database first; production builds still refuse the env skip.
+    command: `node e2e/serve.mts ${port}`,
+    url: `http://localhost:${port}/sign-in`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
   },
 });

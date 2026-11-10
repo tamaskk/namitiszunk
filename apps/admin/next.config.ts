@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
   images,
   cacheComponents: true,
   partialPrefetching: true,
+  // forbidden() for the role-gated Admin modules (T-050).
+  experimental: { authInterrupts: true },
   turbopack: {
     rules: {
       "*.css": {

@@ -1705,9 +1705,9 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] Manager-fiókkal a Tulaj-modulok URL-je 403, a menüben nem látszanak.
-- [ ] A globális Szünetel után a rendelős oldal minden pultnál sárga sávot mutat, a fizetés tiltott (48.).
-- [ ] Az Admin 375 px széles telefonon vízszintes görgetés nélkül használható.
+- [x] Manager-fiókkal a Tulaj-modulok URL-je 403, a menüben nem látszanak.
+- [x] A globális Szünetel után a rendelős oldal minden pultnál sárga sávot mutat, a fizetés tiltott (48.).
+- [x] Az Admin 375 px széles telefonon vízszintes görgetés nélkül használható.
 
 **Tesztelés.** Playwright szerepkörönként (Tulaj, Manager): látható menüpontok, tiltott URL-ek, globális szünet; mobil nézet.
 

@@ -146,3 +146,13 @@ export const toVenueStatusResponse = (
   lastOrderAt: status.lastOrderAt?.toISOString() ?? null,
   nextOpenAt: status.nextOpenAt?.toISOString() ?? null,
 });
+
+/** The Admin top bar's venue-wide Open / Paused switch (T-050). */
+export const setOrdersPausedSchema = z.object({
+  /** The venue the user sees; core checks the membership and the role. */
+  venueId: objectIdSchema,
+  paused: z.boolean(),
+});
+
+/** The Admin venue switcher; the server checks the id against the user's memberships. */
+export const selectVenueSchema = z.object({ venueId: objectIdSchema });

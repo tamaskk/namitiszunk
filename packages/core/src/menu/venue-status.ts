@@ -89,7 +89,7 @@ export async function getVenueStatus({
   const status: BarState =
     !bar?.isOpen || !hours.orderable
       ? "closed"
-      : pausedUntil
+      : pausedUntil || venue.ordersPausedAt
         ? "paused"
         : "open";
 

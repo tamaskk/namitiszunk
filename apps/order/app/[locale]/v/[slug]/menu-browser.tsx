@@ -188,7 +188,9 @@ export function MenuBrowser({
             >
               {status.status === "open" && t("statusOpen")}
               {status.status === "paused" &&
-                t("statusPaused", { minutes: pausedMinutes })}
+                (status.pausedUntil
+                  ? t("statusPaused", { minutes: pausedMinutes })
+                  : t("statusPausedNoEnd"))}
               {status.status === "closed" && t("statusClosed")}
             </span>
             {status.status === "open" &&
@@ -203,7 +205,11 @@ export function MenuBrowser({
           )}
           {status.status !== "open" && (
             <p className="rounded-lg border border-warning bg-surface p-4 text-body">
-              {status.status === "paused" ? t("pausedNote") : t("closedNote")}
+              {status.status === "closed"
+                ? t("closedNote")
+                : status.pausedUntil
+                  ? t("pausedNote")
+                  : t("pausedNoteNoEnd")}
             </p>
           )}
           <HoursNote status={status} at={at} />

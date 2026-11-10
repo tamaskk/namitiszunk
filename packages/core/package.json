@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./account": "./src/account/account.ts",
+    "./admin": "./src/admin/index.ts",
     "./audit": "./src/audit/audit.ts",
     "./auth": "./src/auth/permissions.ts",
     "./short-number": "./src/orders/short-number.ts",

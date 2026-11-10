@@ -18,7 +18,7 @@ import {
 // The test reads the role lists from @namitiszunk/db, which is server-only; permissions.ts itself is not.
 vi.mock("server-only", () => ({}));
 
-// The permission matrix from the product doc (rev 306), transcribed by hand so the test
+// The permission matrix from the product doc (rev 307), transcribed by hand so the test
 // does not just restate the code table. "-" denied, "✓" allowed, otherwise a condition.
 const roles = [
   "guest",
@@ -47,6 +47,7 @@ const matrix: Record<Action, readonly string[]> = {
   "order.viewTakeOutList": ["-",  "-",  "✓",       "✓",  "✓",  "-",  "-",  "-",  "-"],
   "product.setSoldOut":    ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "bar.pauseOrders":       ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "venue.pauseOrders":     ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "order.refund":          ["-",  "-",  "limit",   "✓",  "-",  "✓",  "✓",  "-",  "✓"],
   "menu.edit":             ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "venue.manageBars":      ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
