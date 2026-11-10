@@ -173,6 +173,7 @@ describe("resolveMenuContext", () => {
       venueId: ids.venue.toString(),
       barId: ids.bar.toString(),
       isVip: true,
+      menuVersion: 0,
     });
     for (const zoneId of [
       undefined,

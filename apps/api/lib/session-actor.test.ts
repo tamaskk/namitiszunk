@@ -16,6 +16,9 @@ const auth = vi.hoisted(() => ({
         : null;
     },
   ),
+  isStaffDevice: vi.fn((request: Request) =>
+    Boolean(request.headers.get("cookie")?.includes("nmi-device=")),
+  ),
   staffActorFromRequest: vi.fn(async (request: Request) =>
     request.headers.get("cookie")?.includes("nmi-staff=")
       ? { kind: "staff", id: "staff:1", venueId: "v", memberId: "1" }
@@ -88,6 +91,16 @@ describe("getSessionActor", () => {
     expect(actor).toMatchObject({ id: "user:order" });
     const headers = auth.userActorFromHeaders.mock.calls[0]![2];
     expect(headers.get("cookie")).toBeNull();
+  });
+
+  it("never lets a member session act on a staff device without a PIN", async () => {
+    const cookie = "nmi-device=d; nmi-admin.session_token=t";
+
+    const actor = await getSessionActor(
+      request({ origin: "https://admin.namitiszunk.hu", cookie }),
+    );
+
+    expect(actor).toBeNull();
   });
 
   it("falls back to the staff PIN session on the admin bar view only", async () => {

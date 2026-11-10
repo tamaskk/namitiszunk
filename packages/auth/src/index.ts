@@ -17,6 +17,7 @@ export {
   createDeviceSession,
   deviceCookieName,
   hashPin,
+  isStaffDevice,
   signInStaffWithPin,
   staffActorFromRequest,
   staffCookieName,

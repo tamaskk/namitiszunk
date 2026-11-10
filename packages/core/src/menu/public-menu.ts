@@ -52,6 +52,8 @@ export type MenuContext = {
   barId: string | null;
   /** True only for a VIP table zone of this venue at the resolved bar. */
   isVip: boolean;
+  /** Raised by every Admin menu change (T-051); the order app keys its menu cache on it. */
+  menuVersion: number;
 };
 
 /** A venue that exists but takes no orders yet (draft) or any more (suspended), for its own page (T-048). */
@@ -108,6 +110,7 @@ export async function resolveMenuContext({
     barId: bar?._id.toString() ?? null,
     isVip:
       bar !== null && zone?.type === "vip_table" && zone.barId.equals(bar._id),
+    menuVersion: venue.menuVersion ?? 0,
   };
 }
 

@@ -126,6 +126,15 @@ export async function signInStaffWithPin(
   };
 }
 
+/**
+ * True when the request carries a valid staff-device cookie. Such a browser is a shared bar
+ * tablet: only its PIN holder may act there, never a member session left signed in on it
+ * (SECURITY.md §03), so callers fail closed when this is true and no PIN is active.
+ */
+export function isStaffDevice(request: Request, now = Date.now()): boolean {
+  return deviceFrom(readCookie(request, deviceCookieName), now) !== null;
+}
+
 /** The active PIN holder of a staff device request, or null (401). The role is read fresh from the database. */
 export async function staffActorFromRequest(
   request: Request,

@@ -1,12 +1,18 @@
 import "server-only";
 
-import { getAuth, userActorFromHeaders } from "@namitiszunk/auth";
+import {
+  getAuth,
+  isStaffDevice,
+  staffActorFromRequest,
+  userActorFromHeaders,
+} from "@namitiszunk/auth";
 import {
   type AdminModuleKey,
   type AdminVenue,
   canOpenModule,
   listAdminVenues,
 } from "@namitiszunk/core/admin";
+import type { Actor } from "@namitiszunk/core/auth";
 import { AppError } from "@namitiszunk/core/errors";
 import { cookies, headers } from "next/headers";
 import { forbidden, redirect } from "next/navigation";
@@ -24,7 +30,12 @@ export const VENUE_COOKIE =
 type UserActor = NonNullable<Awaited<ReturnType<typeof userActorFromHeaders>>>;
 
 export type AdminContext = {
-  actor: UserActor;
+  /**
+   * Who acts: the signed-in member, or on a shared staff device the active PIN holder
+   * (T-051): a bartender on the manager's tablet acts with the bartender's role and is the one
+   * the audit log names.
+   */
+  actor: Actor;
   venues: AdminVenue[];
   /** null when the user belongs to no venue yet. */
   venue: AdminVenue | null;
@@ -37,7 +48,7 @@ export type AdminContext = {
 export async function loadAdminContext(
   requestHeaders: Headers,
   chosenVenueId: string | undefined,
-): Promise<AdminContext | "signedOut" | "twoFactor"> {
+): Promise<AdminContext | "signedOut" | "twoFactor" | "pinRequired"> {
   await ensureDb();
   let actor: UserActor | null;
   try {
@@ -53,6 +64,18 @@ export async function loadAdminContext(
   }
   if (!actor) return "signedOut";
   const venues = await listAdminVenues(actor);
+  // A bar tablet: only its PIN holder acts, for a venue the device account belongs to;
+  // without a PIN the member session left on it counts for nothing (SECURITY.md §03).
+  const request = new Request("http://admin.local", {
+    headers: requestHeaders,
+  });
+  if (isStaffDevice(request)) {
+    const pin = await staffActorFromRequest(request);
+    const pinVenue = pin && venues.find((v) => v.id === pin.venueId);
+    return pin && pinVenue
+      ? { actor: pin, venues: [pinVenue], venue: pinVenue }
+      : "pinRequired";
+  }
   const venue = venues.find((v) => v.id === chosenVenueId) ?? venues[0] ?? null;
   return { actor, venues, venue };
 }
@@ -76,6 +99,8 @@ export const getAdminContext = cache(async (): Promise<AdminContext> => {
   );
   if (context === "signedOut") redirect("/sign-in");
   if (context === "twoFactor") redirect("/sign-in?step=2fa");
+  // shortcut: a 403 until the bar view's PIN screen exists (T-053), which then takes this case.
+  if (context === "pinRequired") forbidden();
   return context;
 });
 

@@ -6,6 +6,8 @@ import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+import type { BrowserContext } from "@playwright/test";
+
 const E2E_PORT = 3102;
 // Same value as serve.mts.
 const E2E_AUTH_SECRET = "e2e-only-admin-secret-0123456789abcdef";
@@ -80,4 +82,19 @@ export function resumeVenueOrders() {
     `await db.collection("venues").updateOne({ _id: new mongodb.ObjectId(args[0]) }, { $unset: { ordersPausedAt: 1 } });`,
     [seedId("venue:demo")],
   );
+}
+
+/** Signs the browser in as a seeded member through a stored admin session. */
+export async function signIn(
+  context: BrowserContext,
+  user: "owner" | "manager",
+) {
+  await context.addCookies([
+    {
+      name: "nmi-admin.session_token",
+      value: adminSessionCookie(user),
+      url: "http://localhost:3102",
+      httpOnly: true,
+    },
+  ]);
 }

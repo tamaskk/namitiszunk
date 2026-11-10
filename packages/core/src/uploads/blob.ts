@@ -54,7 +54,20 @@ export async function createUploadToken(
   return { clientToken, pathname: options.pathname };
 }
 
-/** True only for an image we issued for this venue and kind: our Blob host and exactly `venues/{venueId}/{kind}/{uuid}`. */
+/**
+ * Our own store's public host. The store id is the third part of the server token
+ * (`vercel_blob_rw_<storeId>_<secret>`); without a token nothing counts as ours (fail closed).
+ */
+function ownBlobHost(): string | null {
+  const storeId = /^vercel_blob_rw_([a-z0-9]+)_/i.exec(
+    process.env.BLOB_READ_WRITE_TOKEN ?? "",
+  )?.[1];
+  return storeId
+    ? `${storeId.toLowerCase()}.public.blob.vercel-storage.com`
+    : null;
+}
+
+/** True only for an image we issued for this venue and kind: our own store's host and exactly `venues/{venueId}/{kind}/{uuid}`. */
 export function isVenueBlobUrl(
   url: string,
   venueId: string,
@@ -63,8 +76,9 @@ export function isVenueBlobUrl(
   // The venue id goes into the RegExp below, so it must be a plain ObjectId first.
   if (!/^[0-9a-f]{24}$/.test(venueId)) return false;
   if (!blobUrlSchema.safeParse(url).success) return false;
-  const { pathname, search, hash } = new URL(url);
+  const { hostname, pathname, search, hash } = new URL(url);
   return (
+    hostname === ownBlobHost() &&
     search === "" &&
     hash === "" &&
     new RegExp(`^/venues/${venueId}/${kind}/${UUID}$`).test(pathname)

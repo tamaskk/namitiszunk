@@ -4,6 +4,23 @@ import { capPercent, defineModel, forbidWrites, huf, objectId } from "./shared";
 
 export const vatRates = [5, 18, 27] as const;
 export const discountTypes = ["percent", "fixed"] as const;
+// The 14 allergens of EU Regulation 1169/2011 Annex II.
+export const allergenCodes = [
+  "gluten",
+  "crustaceans",
+  "eggs",
+  "fish",
+  "peanuts",
+  "soy",
+  "milk",
+  "nuts",
+  "celery",
+  "mustard",
+  "sesame",
+  "sulphites",
+  "lupin",
+  "molluscs",
+] as const;
 
 const categorySchema = new Schema(
   {
@@ -11,6 +28,8 @@ const categorySchema = new Schema(
     name: { type: String, required: true, trim: true },
     nameEn: { type: String, trim: true },
     sortOrder: { type: Number, default: 0 },
+    // Its items show only from a VIP zone; core mirrors it onto each Item.vipOnly, which ordering checks.
+    vipOnly: { type: Boolean, default: false },
     archivedAt: Date,
   },
   { timestamps: true },
@@ -46,7 +65,7 @@ const itemSchema = new Schema(
     vatRate: { type: Number, enum: vatRates, required: true },
     imageUrl: String,
     alcoholPercent: { type: Number, min: 0, max: 100 },
-    allergens: [String],
+    allergens: [{ type: String, enum: allergenCodes }],
     isAvailable: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },
     vipOnly: { type: Boolean, default: false },

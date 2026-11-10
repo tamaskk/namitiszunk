@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   getAuth,
+  isStaffDevice,
   type RequestActor,
   staffActorFromRequest,
   userActorFromHeaders,
@@ -33,12 +34,8 @@ export async function getSessionActor(
   }
   const app = originApp(origin);
   if (app !== "order" && app !== "admin" && app !== "hq") return null;
-  const user = await userActorFromHeaders(
-    await getAuth(app),
-    app,
-    request.headers,
-  );
-  // The bar view runs in admin: a PIN holder on a signed-in staff device.
-  if (user || app !== "admin") return user;
-  return staffActorFromRequest(request);
+  // A registered bar tablet: only its PIN holder counts, never a member session left on it.
+  if (app === "admin" && isStaffDevice(request))
+    return staffActorFromRequest(request);
+  return userActorFromHeaders(await getAuth(app), app, request.headers);
 }

@@ -94,7 +94,18 @@ const appSchemas = {
           : z.url({ message: "must be a URL" }),
     }),
   admin: (d: DeploymentEnv) =>
-    z.object({ ...browserMonitoring(d), ...server, ...signIn(d) }),
+    z.object({
+      ...browserMonitoring(d),
+      ...server,
+      ...signIn(d),
+      // Core checks that a saved product image lives in our own Blob store (T-051).
+      BLOB_READ_WRITE_TOKEN: required,
+      // The menu editor's browser asks apps/api for an image upload token (T-051).
+      NEXT_PUBLIC_API_URL:
+        d === "production"
+          ? z.url({ protocol: /^https$/, message: "must be an https URL" })
+          : z.url({ message: "must be a URL" }),
+    }),
   hq: (d: DeploymentEnv) =>
     z.object({ ...browserMonitoring(d), ...server, ...signIn(d) }),
   api: (d: DeploymentEnv) =>

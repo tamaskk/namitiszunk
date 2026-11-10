@@ -39,6 +39,7 @@ function tokenAccepts(
 }
 
 beforeEach(() => {
+  vi.stubEnv("BLOB_READ_WRITE_TOKEN", "vercel_blob_rw_ABC123_secret");
   del.mockClear();
   generateClientTokenFromReadWriteToken.mockClear();
 });
@@ -119,6 +120,10 @@ describe("deleteBlob", () => {
 
   it.each([
     ["a foreign host", `https://evil.com/venues/${venueId}/product/${uuid}`],
+    [
+      "another Blob store",
+      `https://zzz999.public.blob.vercel-storage.com/venues/${venueId}/product/${uuid}`,
+    ],
     [
       "plain http",
       `http://abc123.public.blob.vercel-storage.com/venues/${venueId}/product/${uuid}`,

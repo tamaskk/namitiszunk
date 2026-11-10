@@ -90,6 +90,9 @@ const venueSchema = new Schema(
     orderRules: { type: orderRulesSchema, default: () => ({}) },
     // The Admin's venue-wide pause (T-050): no bar takes orders, with no time limit, until it is switched back.
     ordersPausedAt: Date,
+    // Raised by every Admin menu change (T-051): the order app's menu cache is keyed on it,
+    // so a new page load shows the change without a call between the apps.
+    menuVersion: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
