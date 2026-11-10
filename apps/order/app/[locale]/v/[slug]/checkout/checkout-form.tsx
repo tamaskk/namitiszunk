@@ -179,10 +179,10 @@ export function CheckoutForm({
 
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneValid = HU_PHONE_PATTERN.test(`+36${phoneDigits}`);
+  // Refusals a retry cannot fix: the bar or the whole venue is paused, or the bar is closed.
+  const pausedOrClosed = ["bar_paused", "orders_paused", "bar_closed"];
   const blocked =
-    !open ||
-    quoteProblem?.code === "bar_paused" ||
-    quoteProblem?.code === "bar_closed";
+    !open || pausedOrClosed.includes(quoteProblem?.code ?? "");
   const quoteCurrent = quote !== null && quotedKey === cartKey;
 
   async function pay(event: FormEvent) {
@@ -323,8 +323,7 @@ export function CheckoutForm({
                   {t("backToCart")}
                 </Link>
               ) : (
-                quoteProblem.code !== "bar_paused" &&
-                quoteProblem.code !== "bar_closed" && (
+                !pausedOrClosed.includes(quoteProblem.code) && (
                   <Button
                     type="button"
                     variant="secondary"
@@ -485,7 +484,9 @@ export function CheckoutForm({
             <p className="rounded-lg border border-warning bg-surface p-4 text-body">
               {live.status.status === "closed"
                 ? t("closed")
-                : tError("bar_paused")}
+                : live.status.pausedUntil
+                  ? tError("bar_paused")
+                  : tError("orders_paused")}
             </p>
           ) : (
             payProblem && <p className="text-body text-danger">{payProblem}</p>
