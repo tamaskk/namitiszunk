@@ -1,6 +1,7 @@
 ---
 paths:
   - "packages/db/**"
+  - "packages/core/**"
   - "**/*.model.ts"
   - "**/*.schema.ts"
   - "scripts/migrations/**"
@@ -11,7 +12,7 @@ paths:
 
 - Schema changes (new collection, removed or renamed field, index change) need approval: docs/ARCHITECTURE.md §08.
 - One cached connection in `packages/db`, reused across hot reloads and serverless invocations. Never connect inside a request handler.
-- Queries live in `packages/db/src/` functions. `packages/core` services call them; nothing else touches the models.
+- Models live in `packages/db/src/`. `packages/core` services may query the models directly; apps never do (they call core).
 - Validate at the boundary with Zod. Never pass `req.body` or query-param objects into a query (NoSQL operator injection). Validate ObjectIds.
 - Amounts are integer forints. Order items store a snapshot of name, price and options. Menu items are archived, never deleted.
 - Never update an order's `status` directly; use `transition()` from `@namitiszunk/core/orders` (`packages/core/src/orders/transition.ts`).
