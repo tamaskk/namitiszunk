@@ -35,7 +35,8 @@ jobs:
       - run: pnpm --filter @namitiszunk/validators lint:openapi
       # Inside `verify` so branch protection needs no new required check.
       - run: pnpm --filter @namitiszunk/admin exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      # One app at a time: two dev servers compiling at once starve the runner and the tests time out.
+      - run: pnpm test:e2e --concurrency=1
       # T-049 on the production build from the step above: the JS budget fails the PR, LCP only warns.
       - run: pnpm --filter @namitiszunk/order test:perf
       # LHCI uses the runner's preinstalled Google Chrome, not Playwright's chromium.

@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import { seedId, signIn } from "./db";
 
@@ -7,6 +7,15 @@ import { seedId, signIn } from "./db";
 // covered in packages/core (admin-menu.test.ts) and by the module check behind this page.
 
 test.describe.configure({ mode: "serial" });
+
+// The editor updates optimistically; a reload before the server action has answered aborts it,
+// and on a slow runner the change is lost (the CI flake). Start waiting before the action fires.
+const menuActionDone = (page: Page) =>
+  page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/menu",
+  );
 
 test.describe("menu editor", () => {
   test.beforeEach(async ({ context, page }) => {
@@ -67,19 +76,25 @@ test.describe("menu editor", () => {
     const row = page.getByRole("button", { name: label, exact: true });
     await expect(row).toHaveAttribute("aria-pressed", "false");
 
+    const saved = menuActionDone(page);
     await row.click();
     await expect(row).toHaveAttribute("aria-pressed", "true");
+    await saved;
     await page.reload();
 
     await expect(row).toHaveAttribute("aria-pressed", "true");
+    const restored = menuActionDone(page);
     await row.click();
     await expect(row).toHaveAttribute("aria-pressed", "false");
+    // The next test starts from the seeded state only once this write has landed.
+    await restored;
   });
 
   test("reorders categories with the keyboard", async ({ page }) => {
     const headings = page.getByRole("heading", { level: 2 });
     const [first, second] = await headings.allTextContents();
 
+    const saved = menuActionDone(page);
     await page.getByRole("button", { name: `${first} áthelyezése` }).focus();
     // dnd-kit measures the rows after the pick-up; a key per frame mimics a person.
     for (const key of ["Space", "ArrowDown", "Space"]) {
@@ -87,6 +102,7 @@ test.describe("menu editor", () => {
       await page.waitForTimeout(200);
     }
     await expect(headings.first()).toHaveText(second!);
+    await saved;
     await page.reload();
 
     await expect(headings.nth(0)).toHaveText(second!);
