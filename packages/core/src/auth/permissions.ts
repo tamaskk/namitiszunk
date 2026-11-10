@@ -60,7 +60,7 @@ type Rule = {
   roles: Partial<Record<Role, Cell>>;
 };
 
-// Single source of the permission matrix (product doc, rev 306). Change the product doc with it.
+// Single source of the permission matrix (product doc, rev 307). Change the product doc with it.
 export const permissions = {
   "order.create": { scope: "venue", write: true, roles: { guest: true } },
   // Order transitions: the state machine (T-021) calls requirePermission(actor, "order.<event>").
