@@ -109,12 +109,10 @@ export async function listAdminNotifications(
   const since = new Date(now.getTime() - NOTIFICATION_WINDOW_MS);
   // shortcut: no index on problemReports.createdAt; venueId narrows it. Add one if a venue's 7 days get slow.
   const [reported, refunds] = await Promise.all([
-    Order.find(
-      {
-        venueId,
-        problemReports: { $elemMatch: { createdAt: { $gte: since } } },
-      },
-    )
+    Order.find({
+      venueId,
+      problemReports: { $elemMatch: { createdAt: { $gte: since } } },
+    })
       // Report dates only: the guest's message and e-mail address never leave the database here.
       .select("shortNumber problemReports.createdAt")
       // shortcut: newest by updatedAt, capped; sorted by report time below. Aggregate if a venue gets more.

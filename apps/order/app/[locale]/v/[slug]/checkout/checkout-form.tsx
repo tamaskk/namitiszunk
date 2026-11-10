@@ -181,8 +181,7 @@ export function CheckoutForm({
   const phoneValid = HU_PHONE_PATTERN.test(`+36${phoneDigits}`);
   // Refusals a retry cannot fix: the bar or the whole venue is paused, or the bar is closed.
   const pausedOrClosed = ["bar_paused", "orders_paused", "bar_closed"];
-  const blocked =
-    !open || pausedOrClosed.includes(quoteProblem?.code ?? "");
+  const blocked = !open || pausedOrClosed.includes(quoteProblem?.code ?? "");
   const quoteCurrent = quote !== null && quotedKey === cartKey;
 
   async function pay(event: FormEvent) {
