@@ -47,6 +47,7 @@ const matrix: Record<Action, readonly string[]> = {
   "order.viewTakeOutList": ["-",  "-",  "✓",       "✓",  "✓",  "-",  "-",  "-",  "-"],
   "product.setSoldOut":    ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "bar.pauseOrders":       ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
+  "venue.pauseOrders":     ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "order.refund":          ["-",  "-",  "limit",   "✓",  "-",  "✓",  "✓",  "-",  "✓"],
   "menu.edit":             ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "venue.manageBars":      ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],

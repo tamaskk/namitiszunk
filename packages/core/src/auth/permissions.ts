@@ -109,6 +109,12 @@ export const permissions = {
     write: true,
     roles: { bartender: true, manager: true, owner: true },
   },
+  // The Admin's venue-wide pause (T-050): every bar, no time limit, so not for bartenders.
+  "venue.pauseOrders": {
+    scope: "venue",
+    write: true,
+    roles: { manager: true, owner: true },
+  },
   "order.refund": {
     scope: "venue",
     write: true,

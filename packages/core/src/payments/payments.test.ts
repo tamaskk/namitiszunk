@@ -381,6 +381,10 @@ describe("createOrder", () => {
     await expect(create()).rejects.toMatchObject({ code: "bar_paused" });
     await Bar.updateOne({ _id: barId }, { $unset: { pausedUntil: 1 } });
 
+    await Venue.updateOne({ _id: venueId }, { $set: { ordersPausedAt: now } });
+    await expect(create()).rejects.toMatchObject({ code: "orders_paused" });
+    await Venue.updateOne({ _id: venueId }, { $unset: { ordersPausedAt: 1 } });
+
     await expect(
       create({ items: [{ itemId: beerId.toHexString(), quantity: 6 }] }),
     ).rejects.toMatchObject({ code: "too_many_items" });
