@@ -1378,7 +1378,7 @@ Preview környezetben az Inngest branch environment fut; események egyedi azono
 
 **Megoldás.**
 
-1. Server Component; az adat a `packages/core` `getPublicMenu(slug, zoneId)` függvényéből jön (archivált tétel nincs benne, VIP tétel csak VIP zónánál, a zónát a szerver dönti el). Next.js gyorsítótár `menu:{venueId}` címkével; az Admin menümódosítása (51.) és az elfogyott kapcsoló (54.) `revalidateTag`-et hív.
+1. Server Component; az adat a `packages/core` `getPublicMenu(slug, zoneId)` függvényéből jön (archivált tétel nincs benne, VIP tétel csak VIP zónánál, a zónát a szerver dönti el). Next.js gyorsítótár `menu:{venueId}` címkével; az Admin menümódosítása (51.) és az elfogyott kapcsoló (54.) frissíti. Megvalósítva (51.): a gyorsítótár kulcsában a `Venue.menuVersion` van, minden menüt érintő írás a `bumpMenuVersion`-nel emeli (`@namitiszunk/core/menu`), mert az Admin másik Vercel projekt, onnan `revalidateTag` nem éri el a rendelős appot.
 2. Élő adatok Ably nélkül (a 200 kapcsolatos kerethez, 31.): az oldal 30 mp-enként, csak látható fülön lekéri a `/api/venues/[slug]/status` végpontot: állapot, `pausedUntil`, becsült várakozás, elfogyott tételek azonosítói.
 3. Becsült várakozás: a pult utolsó 30 percében elkészült rendelések medián elkészítési ideje (`paidAt` → `readyAt`, a döntés szerinti definíció); 3 rendelés alatt nem jelenik meg.
 4. Kategóriasáv görgetéskor követett aktív kategóriával; keresés a betöltött menüben (név, leírás), szerverhívás nélkül.
@@ -1729,16 +1729,16 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 2. Termék űrlap: név, leírás (magyar, opcionálisan angol), ár egész forintban, ÁFA-kulcs (5 / 18 / 27%), alkohol %, allergének (az EU 14 allergénje jelölőkkel), kép (38.), pultok (alapból mind), elérhető.
 3. Opciócsoportok: név, kötelező, min/max választás, opciók felárral; több termékhez is hozzárendelhető.
 4. Duplikálás, archiválás (végleges törlés nincs), elfogyott kapcsoló a listában egy érintéssel.
-5. Mentés Server Actionnel, Zod-validációval (25.), audittal (26.), utána `revalidateTag('menu:{venueId}')` (40.).
+5. Mentés Server Actionnel, Zod-validációval (25.), audittal (26.), utána a menü verziója nő (`Venue.menuVersion`, 40.); a `revalidateTag` helyett ez, lásd ARCHITECTURE.
 6. „Előnézet” gomb: a rendelős oldal az adott pulttal, új lapon.
 
 **Elfogadási feltételek.**
 
 - [ ] Egy 40 tételes menü opciókkal, képekkel 1 órán belül felvihető (a pilot klub előtt saját magad mérve).
-- [ ] Mentés után a rendelős oldal új betöltéskor az új árat mutatja.
-- [ ] Archivált termék a régi rendelésekben változatlan névvel és árral látszik.
-- [ ] „Csak VIP” kategória tételei sima QR-ról nem látszanak.
-- [ ] Pultos PIN-nel a menü módosítása 403.
+- [x] Mentés után a rendelős oldal új betöltéskor az új árat mutatja.
+- [x] Archivált termék a régi rendelésekben változatlan névvel és árral látszik.
+- [x] „Csak VIP” kategória tételei sima QR-ról nem látszanak.
+- [x] Pultos PIN-nel a menü módosítása 403.
 
 **Tesztelés.** Vitest a menü-Server Actionekön (validáció, jogosultság, revalidálás); Playwright: termék opciókkal, sorrendezés, elfogyott, előnézet.
 
@@ -1811,6 +1811,8 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 **Probléma.** Csúcsidőben egy pultos percenként több rendelést kezel, zajban, nedves kézzel. Ha egy rendelés nem szól, vagy a gomb két érintést kér, a pult visszatér a papírhoz.
 
 **Megoldás.**
+
+> Megjegyzés (51.): az elfogyott kapcsoló a `setItemAvailable`-t hívja (`@namitiszunk/core/menu`), vagy ha saját írást kap, ugyanabban a tranzakcióban `bumpMenuVersion`-t; különben a vendég a régi menüt látja.
 
 1. Eszköz: a Manager vagy a Tulaj belép (30.), kiválasztja a pultot; PWA manifest (`display: fullscreen`, fekvő), kezdőképernyőre tehető. Pultosváltás: név kiválasztása, 4 jegyű PIN (30.); az első PIN-érintés feloldja a hangot (Web Audio) és kéri a Wake Lockot.
 2. Adat: kezdőlista az API-ból, frissítés a `venue:{venueId}:bar:{barId}` csatornáról (31.), újracsatlakozáskor teljes szinkron. Új rendelésnél hang és villanó kártya.
@@ -3184,7 +3186,7 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 1. `PriceRule`: név, napok, kezdés–vég (átnyúlhat éjfélen, `Europe/Budapest`), típus (% kedvezmény vagy fix ár), hatókör (termékek vagy kategóriák), aktív.
 2. `effectivePrice(item, at)`: az érvényes szabályok közül a legalacsonyabb árat adó; a szabályok nem halmozódnak. A promóciós kód (60.) a happy hour árakból számolt részösszegre jön, a 22. képlete nem változik.
 3. Az ár a PaymentIntent létrehozásakor dől el (33.); a rendelési tétel pillanatképe (51.) az eredeti árat és a szabály azonosítóját is tárolja. A pénztár megnyitásakor a kosár újraszámol; ha az ár változott, a vendég sávban látja.
-4. Menü: áthúzott eredeti ár és „Happy hour 23:00-ig” címke. A menü gyorsítótára a szabály kezdetén és végén frissül (Inngest ütemezett `revalidateTag`, 35.).
+4. Menü: áthúzott eredeti ár és „Happy hour 23:00-ig” címke. A menü gyorsítótára a szabály kezdetén és végén frissül (Inngest ütemezett `bumpMenuVersion`, 35.; a kulcs a `Venue.menuVersion`, 51.).
 5. Admin: Menü → Árszabályok fül (lista, létrehozás, szüneteltetés), az Akciók oldalon is listázva (60.). Riport: a happy hour alatti rendelések száma és bevétele (61.).
 6. A mobilapp ugyanazt az API-árat mutatja (86.).
 
