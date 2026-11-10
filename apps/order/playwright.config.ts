@@ -5,6 +5,8 @@ const port = 3101;
 
 export default defineConfig({
   testDir: "./e2e",
+  // Compiles the dev server's routes before the first test (CI flakes on first-request compiles).
+  globalSetup: "./e2e/warm-up.ts",
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
