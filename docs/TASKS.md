@@ -36,6 +36,8 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 
 - [ ] T-049 Web Vitals from real guests (`useReportWebVitals` → PostHog LCP, INP, CLS per venue) comes with T-018 PostHog.
 
+- [ ] T-050 Admin shell, two parts left: the bell's "no receipt entered" orders and links from the bell to the order page come with T-056; turning 2FA on in the club member's profile has no page yet (the sign-in already asks for the code when 2FA is on).
+
 - [ ] Status audit 2026-11-08 (T-017–T-039, criteria ticked in fejlesztesi-terv.md). Code gaps:
   - T-018 PostHog not built (only `posthogId` in the PaymentIntent metadata; `apps/order/lib/analytics.ts` is a stub).
   - T-030 no real magic-link e2e through a Resend test address.
@@ -62,3 +64,4 @@ Short list of what is being worked on. IDs are T-### where ### = the task number
 - [x] T-047 Guest account on `/fiok`: sign-in, history with order again, data export, immediate deletion (`/v1/me/*`); device checks deferred (see above)
 - [x] T-048 Guest error states (`apps/order/components/states`, `e2e/states.spec.ts`): venue opening hours and last order (`Venue.openingHours`), live status on checkout, open-order banner, not-live venue page, another payment method, back to the menu from an ended order; hours editing and moving an order to another bar deferred (see above)
 - [x] T-049 Performance and accessibility: JS budget on the production build (`e2e/js-budget.perf.ts`, menu 195.7, checkout 192.4, live order 193.9 KB gzip of 196), Lighthouse CI LCP report (`lighthouserc.cjs`), axe and 48 px touch targets on every guest page (`e2e/a11y.spec.ts`), Ably loads after the first paint; LCP enforcement, screen-reader walkthrough and Web Vitals deferred (see above)
+- [x] T-050 Admin shell (`apps/admin/app/(dashboard)/layout.tsx`): role-based menu from `adminModules` in `@namitiszunk/core/admin`, a real 403 for module URLs the role may not open (`apps/admin/proxy.ts`, then `requireAdminModule` on every page), the venue-wide Open / Paused switch (`Venue.ordersPausedAt`, audited), venue switcher, notifications bell, `/sign-in`, `e2e/shell.spec.ts` on an in-memory database; profile 2FA and the receipt part of the bell deferred (see above)
