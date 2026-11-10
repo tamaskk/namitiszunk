@@ -21,7 +21,8 @@
     "./jobs": "./src/jobs/index.ts",
     "./retention": "./src/retention/retention.ts",
     "./menu": "./src/menu/index.ts",
-    "./cart": "./src/cart/validate-cart.ts"
+    "./cart": "./src/cart/validate-cart.ts",
+    "./bars": "./src/bars/bars.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

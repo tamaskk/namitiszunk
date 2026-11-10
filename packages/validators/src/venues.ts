@@ -67,7 +67,9 @@ export const venueInputSchema = z.object({
 
 export const barInputSchema = z.object({
   name: nameSchema,
-  maxActiveOrders: z.int().min(1).optional(),
+  isOpen: z.boolean().optional(),
+  // null clears the limit; reaching it only warns (decision 2026-11-02).
+  maxActiveOrders: z.int().min(1).max(999).nullable().optional(),
 });
 
 export const zoneInputSchema = z.object({
@@ -75,6 +77,27 @@ export const zoneInputSchema = z.object({
   name: nameSchema,
   type: z.enum(zoneTypes),
 });
+
+export const updateBarInputSchema = z.object({
+  id: objectIdSchema,
+  input: barInputSchema,
+});
+export const updateZoneInputSchema = z.object({
+  id: objectIdSchema,
+  input: zoneInputSchema,
+});
+
+/**
+ * The short code a printed QR carries (`/q/[code]`); it never changes once printed. New codes are
+ * 8 unambiguous capitals (core `newQrCode`); the seed's `demo-vip-1` style must still resolve.
+ */
+export const qrCodeSchema = z.string().regex(/^[A-Za-z0-9-]{4,32}$/);
+export const qrDownloadQuerySchema = z.object({
+  format: z.enum(["png", "card", "poster"]),
+});
+
+export type BarInput = z.infer<typeof barInputSchema>;
+export type ZoneInput = z.infer<typeof zoneInputSchema>;
 
 /** What a guest may see about a venue: no company, Stripe or rule internals. */
 export const publicVenueResponseSchema = z.object({
