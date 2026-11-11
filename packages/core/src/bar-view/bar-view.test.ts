@@ -231,6 +231,17 @@ describe("setReceiptEntered", () => {
     );
   });
 
+  it("takes the mark back", async () => {
+    const s = await seed();
+    const o = await order(s, { status: "preparing" });
+    await setReceiptEntered(s.bartender, String(o._id), true, now);
+
+    await setReceiptEntered(s.bartender, String(o._id), false, now);
+
+    const view = await getBarView(s.bartender, s.mainId, now);
+    expect(view.orders[0]!.receiptEnteredBy).toBeNull();
+  });
+
   it("refuses the mark on a New order", async () => {
     const s = await seed();
     const o = await order(s);
@@ -376,6 +387,43 @@ describe("sendReminderFromBar", () => {
     expect(
       await AuditLog.countDocuments({ action: "order.reminderSent" }),
     ).toBe(1);
+  });
+});
+
+describe("permissions", () => {
+  it("answers 404 for an order of another venue, so an id never tells it exists", async () => {
+    const s = await seed();
+    const o = String((await order(s, { status: "preparing" }))._id);
+    const stranger: Actor = {
+      ...s.bartender,
+      venueId: new Types.ObjectId().toString(),
+    } as Actor;
+
+    // Thunks, not promises: each call starts only when its rejection is awaited.
+    const calls = [
+      () => setReceiptEntered(stranger, o, true, now),
+      () => moveOrderToBar(stranger, o, s.terraceId),
+      () =>
+        sendReminderFromBar(stranger, o, {
+          sendPush: vi.fn(async () => true),
+          sendEmail: vi.fn(async () => ({})),
+          links: { order: () => "", smsStatusCallback: "" },
+        }),
+      () => rejectFromBar(stranger, o, { reason: "other" }),
+    ];
+
+    for (const call of calls)
+      await expect(call()).rejects.toMatchObject({ code: "not_found" });
+  });
+
+  it("keeps a VIP host off the bar's pause and move", async () => {
+    const s = await seed();
+    const o = String((await order(s))._id);
+    const vipHost = { ...s.bartender, role: "vip_host" } as Actor;
+
+    await expect(setBarPaused(vipHost, s.mainId, 5, now)).rejects.toThrow();
+    await expect(moveOrderToBar(vipHost, o, s.terraceId)).rejects.toThrow();
+    expect(String((await Order.findById(o).lean())?.barId)).toBe(s.mainId);
   });
 });
 

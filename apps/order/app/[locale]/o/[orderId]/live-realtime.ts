@@ -1,4 +1,5 @@
 import {
+  BAR_UPDATE_EVENT,
   orderChannel,
   STATUS_EVENT,
   type StatusMessage,
@@ -18,7 +19,12 @@ export type LiveConnection = { connected(): boolean; close(): void };
 export function connectOrderLive(
   orderId: string,
   token: string,
-  handlers: { onStatus(data: StatusMessage): void; onConnected(): void },
+  handlers: {
+    onStatus(data: StatusMessage): void;
+    // A change that is not a status change, e.g. the bar moved the order (T-054).
+    onUpdate(): void;
+    onConnected(): void;
+  },
 ): LiveConnection {
   let ably: BaseRealtime | null = null;
   let closed = false;
@@ -35,11 +41,11 @@ export function connectOrderLive(
             );
           },
         });
-        void ably.channels
-          .get(orderChannel(orderId))
-          .subscribe(STATUS_EVENT, (message) =>
-            handlers.onStatus(message.data as StatusMessage),
-          );
+        const channel = ably.channels.get(orderChannel(orderId));
+        void channel.subscribe(STATUS_EVENT, (message) =>
+          handlers.onStatus(message.data as StatusMessage),
+        );
+        void channel.subscribe(BAR_UPDATE_EVENT, () => handlers.onUpdate());
         ably.connection.on("connected", handlers.onConnected);
       },
       () => {

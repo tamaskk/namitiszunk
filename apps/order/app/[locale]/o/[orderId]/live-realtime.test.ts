@@ -6,6 +6,7 @@ const ably = vi.hoisted(() => ({
   state: "connecting",
   close: vi.fn(),
   onConnected: undefined as (() => void) | undefined,
+  listeners: {} as Record<string, (message: { data: unknown }) => void>,
 }));
 
 vi.mock("ably/modular", () => {
@@ -17,7 +18,17 @@ vi.mock("ably/modular", () => {
         if (ably.fail) throw new Error("bad options");
         ably.constructed++;
       }
-      channels = { get: () => ({ subscribe: () => Promise.resolve() }) };
+      channels = {
+        get: () => ({
+          subscribe: (
+            event: string,
+            listener: (message: { data: unknown }) => void,
+          ) => {
+            ably.listeners[event] = listener;
+            return Promise.resolve();
+          },
+        }),
+      };
       connection = {
         get state() {
           return ably.state;
@@ -36,10 +47,25 @@ vi.mock("@/lib/sentry-client", () => ({ reportClientError: report }));
 
 import { connectOrderLive } from "./live-realtime";
 
-const handlers = () => ({ onStatus: vi.fn(), onConnected: vi.fn() });
+const handlers = () => ({
+  onStatus: vi.fn(),
+  onUpdate: vi.fn(),
+  onConnected: vi.fn(),
+});
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("connectOrderLive", () => {
+  it("reloads on an update message, e.g. when the bar moves the order", async () => {
+    const on = handlers();
+    connectOrderLive("o1", "t", on);
+    await settle();
+
+    ably.listeners.update?.({ data: { orderId: "o1" } });
+
+    expect(on.onUpdate).toHaveBeenCalledOnce();
+    expect(on.onStatus).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     ably.constructed = 0;
     ably.fail = false;

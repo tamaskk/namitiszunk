@@ -32,6 +32,9 @@ importers:
       '@dnd-kit/utilities':
         specifier: 3.2.2
         version: 3.2.2(react@19.3.0)
+      '@namitiszunk/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@namitiszunk/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -56,6 +59,9 @@ importers:
       '@vercel/blob':
         specifier: 2.8.2
         version: 2.8.2
+      ably:
+        specifier: ^2.30.0
+        version: 2.30.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       lucide-react:
         specifier: 1.67.0
         version: 1.67.0(@types/react@19.3.0)(react@19.3.0)
