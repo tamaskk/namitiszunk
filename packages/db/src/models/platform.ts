@@ -86,5 +86,7 @@ forbidWrites(auditLogSchema, "Audit log entries cannot be changed or deleted", {
   updates: true,
 });
 auditLogSchema.index({ "target.type": 1, "target.id": 1, createdAt: 1 });
+// A member's own log in Staff (T-057).
+auditLogSchema.index({ "actor.id": 1, createdAt: -1 });
 export const AuditLog = defineModel("AuditLog", auditLogSchema);
 export type AuditLogDoc = InferSchemaType<typeof auditLogSchema>;

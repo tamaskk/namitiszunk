@@ -2,19 +2,22 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 
-import { requirePermission } from "@namitiszunk/core/auth";
-import { AppError, ConflictError } from "@namitiszunk/core/errors";
-import { VenueMember } from "@namitiszunk/db";
+import { type Actor, requirePermission } from "@namitiszunk/core/auth";
+import { AppError } from "@namitiszunk/core/errors";
+import { joinVenueByInvite, recordStaffInvite } from "@namitiszunk/core/staff";
 import { sendEmail } from "@namitiszunk/emails";
 import type { Locale } from "@namitiszunk/i18n";
 
-import type { RequestActor } from "./actors";
 import type { Auth } from "./better-auth";
 
 const inviteTtlMs = 7 * 24 * 60 * 60 * 1000;
-// Fixed here, never taken from the caller, so an invite e-mail cannot link to another site.
-// shortcut: local and preview invites also link to production Admin; read the Admin URL from config if staff management (T-057) needs local invites.
-export const inviteAcceptUrl = "https://admin.namitiszunk.hu/invite";
+// From the Admin app's own server config, never from the caller, so an invite e-mail cannot link to
+// another site; local and preview Admin link to themselves.
+export const inviteAcceptUrl = () =>
+  new URL(
+    "/invite",
+    process.env.BETTER_AUTH_URL || "https://admin.namitiszunk.hu",
+  ).href;
 type InviteRole = "manager" | "owner";
 
 // Invites live in Better Auth's verification collection under a hashed identifier: no new collection.
@@ -38,7 +41,7 @@ function parsePayload(value: string): InvitePayload | null {
  */
 export async function createStaffInvite(
   auth: Auth,
-  actor: RequestActor,
+  actor: Actor,
   invite: {
     venueId: string;
     venueName: string;
@@ -64,7 +67,7 @@ export async function createStaffInvite(
     }),
     expiresAt: new Date(now + inviteTtlMs),
   });
-  const url = new URL(inviteAcceptUrl);
+  const url = new URL(inviteAcceptUrl());
   url.searchParams.set("token", token);
   await sendEmail("staffInvite", email, {
     venueName: invite.venueName,
@@ -72,6 +75,7 @@ export async function createStaffInvite(
     url: url.toString(),
     locale: invite.locale,
   });
+  await recordStaffInvite(actor, invite.venueId, invite.role);
 }
 
 /**
@@ -106,19 +110,12 @@ export async function acceptStaffInvite(
   )
     throw invalid;
 
-  try {
-    await VenueMember.create({
-      venueId: payload.venueId,
-      userId: user.userId,
-      role: payload.role,
-      displayName: user.name?.trim() || payload.email,
-    });
-  } catch (error) {
-    // The user is already a member, or the display name is taken in this venue.
-    if ((error as { code?: unknown }).code === 11000)
-      throw new ConflictError("invite_conflict");
-    throw error;
-  }
+  await joinVenueByInvite({
+    venueId: payload.venueId,
+    userId: user.userId,
+    role: payload.role,
+    displayName: user.name?.trim() || payload.email,
+  });
   // A concurrent second accept by the same user already failed on the unique membership index.
   await ctx.internalAdapter.consumeVerificationValue(identifier);
   return { venueId: payload.venueId, role: payload.role };

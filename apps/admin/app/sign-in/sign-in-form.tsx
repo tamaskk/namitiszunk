@@ -12,7 +12,12 @@ type State = "idle" | "sending" | "sent" | "failed" | "socialFailed";
 const CALLBACK_URL = "/";
 
 /** Magic link, Google or Apple (T-030) for club members. */
-export function SignInForm() {
+export function SignInForm({
+  callbackUrl = CALLBACK_URL,
+}: {
+  /** Where the sign-in returns: the invite page (T-057), else the dashboard. Built by the page, never from free input. */
+  callbackUrl?: string;
+}) {
   const t = useTranslations("admin.signIn");
   const [email, setEmail] = useState("");
   const [state, setState] = useState<State>("idle");
@@ -25,13 +30,13 @@ export function SignInForm() {
   async function sendLink(event: FormEvent) {
     event.preventDefault();
     setState("sending");
-    const sent = await authApi.sendMagicLink(email.trim(), CALLBACK_URL);
+    const sent = await authApi.sendMagicLink(email.trim(), callbackUrl);
     setState(sent ? "sent" : "failed");
   }
 
   async function signInWith(provider: "google" | "apple") {
     setSocial(provider);
-    const url = await authApi.socialUrl(provider, CALLBACK_URL);
+    const url = await authApi.socialUrl(provider, callbackUrl);
     if (url) {
       window.location.assign(url);
       return;

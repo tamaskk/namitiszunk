@@ -58,6 +58,28 @@ venueMemberSchema.index(
 export const VenueMember = defineModel("VenueMember", venueMemberSchema);
 export type VenueMemberDoc = InferSchemaType<typeof venueMemberSchema>;
 
+// A browser a Manager or Owner turned into a bar tablet or VIP phone (T-054, T-055). The signed
+// device cookie names it; Staff (T-057) lists these and signs one out by setting revokedAt.
+const staffDeviceSchema = new Schema(
+  {
+    deviceId: { type: String, required: true },
+    venueId: { type: objectId, ref: "Venue", required: true },
+    // Unset for the VIP host's phone.
+    barId: { type: objectId, ref: "Bar" },
+    registeredBy: { type: objectId, ref: "User", required: true },
+    lastSignInAt: Date,
+    revokedAt: Date,
+    // Same as the device cookie: the record goes when the cookie can no longer be used.
+    expiresAt: { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+staffDeviceSchema.index({ deviceId: 1 }, { unique: true });
+staffDeviceSchema.index({ venueId: 1, createdAt: -1 });
+staffDeviceSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+export const StaffDevice = defineModel("StaffDevice", staffDeviceSchema);
+export type StaffDeviceDoc = InferSchemaType<typeof staffDeviceSchema>;
+
 const platformMemberSchema = new Schema(
   {
     userId: { type: objectId, ref: "User", required: true },

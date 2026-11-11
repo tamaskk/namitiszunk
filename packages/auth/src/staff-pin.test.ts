@@ -1,4 +1,4 @@
-import { VenueMember } from "@namitiszunk/db";
+import { Bar, StaffDevice, VenueMember } from "@namitiszunk/db";
 import { Types } from "mongoose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,7 @@ import {
   staffDeviceAllowsAuthRequest,
   listDeviceMembers,
   staffActorFromRequest,
+  staffDeviceState,
   staffCookieName,
 } from "./staff-pin";
 import { testSecret, useTestDb } from "./test-db";
@@ -47,6 +48,7 @@ let anna: string;
 
 beforeEach(async () => {
   await VenueMember.deleteMany({});
+  await StaffDevice.deleteMany({});
   const member = await VenueMember.create({
     venueId,
     role: "bartender",
@@ -57,26 +59,33 @@ beforeEach(async () => {
 });
 
 describe("createDeviceSession", () => {
-  it("refuses a bartender", () => {
+  it("refuses a bartender", async () => {
     const bartender = manager();
     bartender.memberships = [{ venueId, memberId: "b", role: "bartender" }];
 
-    const act = () => createDeviceSession(bartender, venueId, t0);
+    const act = () => createDeviceSession(bartender, venueId, undefined, t0);
 
-    expect(act).toThrow(expect.objectContaining({ status: 403 }));
+    await expect(act()).rejects.toMatchObject({ status: 403 });
   });
 
-  it("refuses a manager of another venue", () => {
+  it("refuses a manager of another venue", async () => {
     const act = () =>
-      createDeviceSession(manager(), new Types.ObjectId().toString(), t0);
+      createDeviceSession(
+        manager(),
+        new Types.ObjectId().toString(),
+        undefined,
+        t0,
+      );
 
-    expect(act).toThrow(expect.objectContaining({ status: 403 }));
+    await expect(act()).rejects.toMatchObject({ status: 403 });
   });
 });
 
 describe("signInStaffWithPin", () => {
   it("signs in with the correct PIN and the staff cookie identifies the member", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
 
     const result = await signInStaffWithPin(
       { deviceCookie: device, memberId: anna, pin: "1234" },
@@ -101,7 +110,9 @@ describe("signInStaffWithPin", () => {
   });
 
   it("rejects a wrong PIN with 401", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
 
     const attempt = signInStaffWithPin(
       { deviceCookie: device, memberId: anna, pin: "9999" },
@@ -124,7 +135,9 @@ describe("signInStaffWithPin", () => {
   });
 
   it("locks the device for 5 minutes after 5 wrong PINs in a minute, then unlocks", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
     const tryPin = (pin: string, at: number) =>
       signInStaffWithPin({ deviceCookie: device, memberId: anna, pin }, at);
     for (let i = 0; i < 4; i++)
@@ -149,8 +162,11 @@ describe("signInStaffWithPin", () => {
   });
 
   it("counts wrong PINs per device, not per member", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
-    const other = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
+    const other = (await createDeviceSession(manager(), venueId, undefined, t0))
+      .cookieValue;
     const ghost = new Types.ObjectId().toString();
     for (let i = 0; i < 4; i++)
       await signInStaffWithPin(
@@ -172,7 +188,9 @@ describe("signInStaffWithPin", () => {
   });
 
   it("checks at most 4 of 10 parallel wrong PINs, the rest are locked out", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
 
     const results = await Promise.allSettled(
       Array.from({ length: 10 }, () =>
@@ -191,7 +209,9 @@ describe("signInStaffWithPin", () => {
   });
 
   it("does not count correct PINs towards the lockout", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
     for (let i = 0; i < 6; i++)
       await signInStaffWithPin(
         { deviceCookie: device, memberId: anna, pin: "1234" },
@@ -207,7 +227,9 @@ describe("signInStaffWithPin", () => {
   });
 
   it("never unlocks an owner or manager with a PIN", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
     const boss = await VenueMember.create({
       venueId,
       role: "manager",
@@ -225,8 +247,10 @@ describe("signInStaffWithPin", () => {
 });
 
 describe("isStaffDevice", () => {
-  it("recognises a registered tablet until its device cookie expires", () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+  it("recognises a registered tablet until its device cookie expires", async () => {
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
     const request = requestWith({ [deviceCookieName]: device });
 
     const now = isStaffDevice(request, t0);
@@ -251,8 +275,10 @@ describe("staffDeviceAllowsAuthRequest", () => {
       headers: { cookie: `${deviceCookieName}=${encodeURIComponent(cookie)}` },
     });
 
-  it("lets a bar tablet only sign in and out on Better Auth", () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+  it("lets a bar tablet only sign in and out on Better Auth", async () => {
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
     const allowed = [
       "sign-out",
       "sign-in/magic-link",
@@ -288,8 +314,11 @@ describe("staffDeviceAllowsAuthRequest", () => {
 
 describe("staffActorFromRequest", () => {
   it("refuses a staff cookie from another device", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
-    const other = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
+    const other = (await createDeviceSession(manager(), venueId, undefined, t0))
+      .cookieValue;
     const { cookieValue } = await signInStaffWithPin(
       { deviceCookie: device, memberId: anna, pin: "1234" },
       t0,
@@ -307,7 +336,9 @@ describe("staffActorFromRequest", () => {
   });
 
   it("refuses a device cookie used as a staff cookie", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
 
     const actor = await staffActorFromRequest(
       requestWith({ [deviceCookieName]: device, [staffCookieName]: device }),
@@ -318,7 +349,9 @@ describe("staffActorFromRequest", () => {
   });
 
   it("refuses a member deactivated after signing in", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
     const { cookieValue } = await signInStaffWithPin(
       { deviceCookie: device, memberId: anna, pin: "1234" },
       t0,
@@ -337,7 +370,9 @@ describe("staffActorFromRequest", () => {
   });
 
   it("refuses an expired staff cookie", async () => {
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
     const { cookieValue, expiresAt } = await signInStaffWithPin(
       { deviceCookie: device, memberId: anna, pin: "1234" },
       t0,
@@ -375,7 +410,9 @@ describe("listDeviceMembers", () => {
         pinHash: "x",
       },
     ]);
-    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
 
     const members = await listDeviceMembers(device, t0);
 
@@ -386,5 +423,70 @@ describe("listDeviceMembers", () => {
     const members = await listDeviceMembers(undefined, t0);
 
     expect(members).toBeNull();
+  });
+});
+
+describe("a device signed out in Staff (T-057)", () => {
+  it("refuses the PIN, ends the PIN holder's session and hides the names", async () => {
+    const device = (
+      await createDeviceSession(manager(), venueId, undefined, t0)
+    ).cookieValue;
+    const staff = await signInStaffWithPin(
+      { deviceCookie: device, memberId: anna, pin: "1234" },
+      t0,
+    );
+
+    await StaffDevice.updateMany({}, { revokedAt: new Date(t0 + 1000) });
+
+    await expect(
+      signInStaffWithPin(
+        { deviceCookie: device, memberId: anna, pin: "1234" },
+        t0 + 2000,
+      ),
+    ).rejects.toMatchObject({ status: 401 });
+    expect(
+      await staffActorFromRequest(
+        requestWith({
+          [deviceCookieName]: device,
+          [staffCookieName]: staff.cookieValue,
+        }),
+        t0 + 2000,
+      ),
+    ).toBeNull();
+    expect(await listDeviceMembers(device, t0 + 2000)).toBeNull();
+    expect(await staffDeviceState(device, t0 + 2000)).toBe("revoked");
+  });
+
+  it("records the device with its bar and last sign-in", async () => {
+    const barId = String((await Bar.create({ venueId, name: "Főpult" }))._id);
+    const device = (await createDeviceSession(manager(), venueId, barId, t0))
+      .cookieValue;
+
+    await signInStaffWithPin(
+      { deviceCookie: device, memberId: anna, pin: "1234" },
+      t0 + 5000,
+    );
+
+    const saved = await StaffDevice.findOne().lean();
+    expect(String(saved?.barId)).toBe(barId);
+    expect(saved?.lastSignInAt).toEqual(new Date(t0 + 5000));
+    expect(await staffDeviceState(device, t0 + 5000)).toBe("active");
+    expect(await staffDeviceState(undefined, t0)).toBe("none");
+  });
+
+  it("refuses a bar of another venue", async () => {
+    const elsewhere = await Bar.create({
+      venueId: new Types.ObjectId(),
+      name: "Máshol",
+    });
+
+    const act = createDeviceSession(
+      manager(),
+      venueId,
+      String(elsewhere._id),
+      t0,
+    );
+
+    await expect(act).rejects.toMatchObject({ status: 404 });
   });
 });

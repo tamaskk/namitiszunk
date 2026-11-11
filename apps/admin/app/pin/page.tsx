@@ -1,12 +1,18 @@
-import { deviceCookieName, listDeviceMembers } from "@namitiszunk/auth";
+import {
+  deviceCookieName,
+  listDeviceMembers,
+  staffDeviceState,
+} from "@namitiszunk/auth";
 import { Button, EmptyState } from "@namitiszunk/ui";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import Link from "next/link";
 
 import { ensureDb } from "@/lib/db";
 
+import { forgetRevokedDeviceAction } from "./actions";
 import { PinPad } from "./pin-pad";
 
 export const instant = false;
@@ -20,13 +26,28 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PinPage() {
   // cookies() first: it makes the page dynamic, so the build never prerenders it and needs no database.
   const [t, jar] = await Promise.all([getTranslations("admin.pin"), cookies()]);
+  // The device checks read the clock: render at request time, never at build.
+  await connection();
   await ensureDb();
-  const members = await listDeviceMembers(jar.get(deviceCookieName)?.value);
+  const deviceCookie = jar.get(deviceCookieName)?.value;
+  const [state, members] = await Promise.all([
+    staffDeviceState(deviceCookie),
+    listDeviceMembers(deviceCookie),
+  ]);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-content flex-col justify-center gap-8 px-4 py-6">
       <h1 className="text-h1">{t("title")}</h1>
-      {members === null ? (
+      {state === "revoked" ? (
+        <EmptyState
+          message={t("revoked")}
+          action={
+            <form action={forgetRevokedDeviceAction}>
+              <Button type="submit">{t("signInAgain")}</Button>
+            </form>
+          }
+        />
+      ) : members === null ? (
         <EmptyState
           message={t("notADevice")}
           action={
