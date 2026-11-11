@@ -18,8 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** The bar tablet's sign-in (T-054): tap your name, type your PIN. */
 export default async function PinPage() {
-  await ensureDb();
+  // cookies() first: it makes the page dynamic, so the build never prerenders it and needs no database.
   const [t, jar] = await Promise.all([getTranslations("admin.pin"), cookies()]);
+  await ensureDb();
   const members = await listDeviceMembers(jar.get(deviceCookieName)?.value);
 
   return (
