@@ -47,6 +47,12 @@ export function playNewOrderSound(): void {
   }
 }
 
+/** A new order for this screen: the beeps, plus a buzz on phones that can (Android; iOS has no vibrate). */
+export function alertArrival(): void {
+  playNewOrderSound();
+  if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
+}
+
 /** Asks for the screen wake lock; the browser drops it when the tab hides, so call again when visible. */
 export async function keepScreenAwake(): Promise<void> {
   if (!("wakeLock" in navigator) || (wakeLock && !wakeLock.released)) return;

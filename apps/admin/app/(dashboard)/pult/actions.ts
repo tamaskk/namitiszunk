@@ -19,7 +19,8 @@ import { DEVICE_BAR_COOKIE } from "@/lib/staff-device";
 export type DeviceActionResult = { error: { code: string } };
 
 /**
- * A Manager or Owner turns this browser into the venue's bar tablet (T-054). From then on only a
+ * A Manager or Owner turns this browser into the venue's bar tablet (T-054), or with no bar into
+ * the VIP host's phone (T-055). From then on only a
  * PIN holder acts here (SECURITY.md §03); the member session left on it counts for nothing.
  */
 export async function registerDeviceAction(
@@ -54,12 +55,14 @@ export async function registerDeviceAction(
     device.cookieValue,
     staffDeviceCookieOptions(device.expiresAt),
   );
-  jar.set(DEVICE_BAR_COOKIE, parsed.data.barId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    expires: device.expiresAt,
-  });
+  if (parsed.data.barId)
+    jar.set(DEVICE_BAR_COOKIE, parsed.data.barId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      expires: device.expiresAt,
+    });
+  else jar.delete(DEVICE_BAR_COOKIE);
   redirect("/pin");
 }

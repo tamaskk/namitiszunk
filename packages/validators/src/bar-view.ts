@@ -34,7 +34,10 @@ export const barPauseInputSchema = z.object({
 });
 
 /** A manager turns this browser into the venue's bar tablet, opening on one bar. */
-export const registerDeviceInputSchema = z.object({ barId: objectIdSchema });
+// A bar tablet names its bar (T-054); the VIP host's phone has none (T-055).
+export const registerDeviceInputSchema = z.object({
+  barId: objectIdSchema.optional(),
+});
 /** A bartender taps their name and types their PIN on the tablet. */
 export const devicePinSignInInputSchema = z.object({
   memberId: objectIdSchema,
@@ -82,6 +85,29 @@ export const barViewResponseSchema = z.object({
   averagePrepMinutes: z.number().nullable(),
 });
 
+export const vipViewResponseSchema = z.object({
+  staffName: z.string().nullable(),
+  orders: z.array(
+    z.object({
+      id: z.string(),
+      shortNumber: z.int().nullable(),
+      status: z.enum(["new", "preparing", "ready"]),
+      version: z.number(),
+      tableName: z.string().nullable(),
+      barName: z.string(),
+      items: z.array(
+        z.object({
+          name: z.string(),
+          quantity: z.int(),
+          options: z.array(z.string()),
+        }),
+      ),
+      paidAt: isoDate,
+      readyAt: isoDate.nullable(),
+    }),
+  ),
+});
+
 export const barPauseResponseSchema = z.object({
   pausedUntil: isoDate.nullable(),
 });
@@ -93,3 +119,5 @@ export const okResponseSchema = z.object({ ok: z.literal(true) });
 export type BarOrderEvent = (typeof barOrderEvents)[number];
 export type BarViewResponse = z.infer<typeof barViewResponseSchema>;
 export type BarViewOrder = z.infer<typeof barViewOrderSchema>;
+export type VipViewResponse = z.infer<typeof vipViewResponseSchema>;
+export type VipViewOrder = VipViewResponse["orders"][number];

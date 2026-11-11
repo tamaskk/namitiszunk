@@ -421,3 +421,19 @@ describe("barView", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("vipView", () => {
+  it("reads the VIP list of a venue and refuses a made-up venue id before any request", async () => {
+    const venueId = "0123456789abcdef0123abcd";
+    server.use(
+      http.get(`${base}/v1/venues/${venueId}/vip-orders`, () =>
+        HttpResponse.json({ data: { staffName: "Lili", orders: [] } }),
+      ),
+    );
+
+    const view = await client.vipView.get(venueId);
+
+    expect(view).toEqual({ staffName: "Lili", orders: [] });
+    await expect(client.vipView.get("../admin")).rejects.toThrow();
+  });
+});

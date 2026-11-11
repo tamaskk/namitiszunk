@@ -23,8 +23,9 @@ export async function signInWithPinAction(
   if (!parsed.success) return { error: { code: "pin_invalid" } };
   await ensureDb();
   const jar = await cookies();
+  let staff: Awaited<ReturnType<typeof signInStaffWithPin>>;
   try {
-    const staff = await signInStaffWithPin({
+    staff = await signInStaffWithPin({
       deviceCookie: jar.get(deviceCookieName)?.value,
       memberId: parsed.data.memberId,
       pin: parsed.data.pin,
@@ -38,7 +39,8 @@ export async function signInWithPinAction(
     if (error instanceof AppError) return { error: { code: error.code } };
     throw error;
   }
-  redirect("/pult");
+  // The VIP host's phone opens the VIP list; a bartender's tablet opens the bar view.
+  redirect(staff.actor.role === "vip_host" ? "/vip" : "/pult");
 }
 
 /** "Pultosváltás": the PIN holder steps away; the next one taps their name. */

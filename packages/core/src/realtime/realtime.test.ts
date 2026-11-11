@@ -8,17 +8,27 @@ import {
   barChannel,
   createTokenRequest,
   orderChannel,
+  publishStatusChange,
   shouldApply,
   vipChannel,
 } from "./index";
 
 // "server-only" throws outside a React Server Components bundle.
 vi.mock("server-only", () => ({}));
-// Ably is the boundary: the mocked TokenRequest echoes the params it was built from.
+// Ably is the boundary: the mocked TokenRequest echoes the params it was built from, and
+// publishes are recorded by channel name.
+const published = vi.hoisted(() => [] as string[]);
 vi.mock("ably", () => ({
   Rest: class {
     auth = {
       createTokenRequest: async (params: { capability: string }) => params,
+    };
+    channels = {
+      get: (name: string) => ({
+        publish: async () => {
+          published.push(name);
+        },
+      }),
     };
   },
 }));
@@ -190,5 +200,39 @@ describe("shouldApply", () => {
     expect(shouldApply(5, { version: 4 })).toBe(false);
     expect(shouldApply(5, { version: 5 })).toBe(true);
     expect(shouldApply(5, { version: 6 })).toBe(true);
+  });
+});
+
+describe("publishStatusChange", () => {
+  const change = (isVip: boolean) => ({
+    orderId,
+    venueId,
+    barId: barIds[0]!,
+    isVip,
+    to: "ready" as const,
+    version: 3,
+  });
+
+  it("tells the VIP host when a VIP order changes", async () => {
+    published.length = 0;
+
+    await publishStatusChange(change(true));
+
+    expect(published.sort()).toEqual(
+      [
+        orderChannel(orderId),
+        barChannel(venueId, barIds[0]!),
+        vipChannel(venueId),
+      ].sort(),
+    );
+  });
+
+  it("leaves the VIP channel quiet for a normal order", async () => {
+    published.length = 0;
+
+    await publishStatusChange(change(false));
+
+    expect(published).not.toContain(vipChannel(venueId));
+    expect(published).toHaveLength(2);
   });
 });

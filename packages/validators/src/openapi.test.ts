@@ -42,6 +42,7 @@ describe("buildOpenApiDocument", () => {
       "/v1/me/orders/{id}/reorder",
       "/v1/me/export",
       "/v1/bars/{id}/orders",
+      "/v1/venues/{id}/vip-orders",
       "/v1/bars/{id}/pause",
       "/v1/orders/{id}/status",
       "/v1/orders/{id}/reject",

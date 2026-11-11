@@ -76,6 +76,8 @@ const noPermissionRoutes: Record<string, string> = {
   "bars/[id]/orders/route.ts":
     "getBarView checks order.start on the bar's venue",
   "bars/[id]/pause/route.ts": "setBarPaused checks bar.pauseOrders",
+  "venues/[id]/vip-orders/route.ts":
+    "getVipView checks order.viewTakeOutList on the venue",
   "orders/[id]/status/route.ts": "transition() checks order.<event>",
   "orders/[id]/reject/route.ts":
     "rejectFromBar checks order.reject and product.setSoldOut",

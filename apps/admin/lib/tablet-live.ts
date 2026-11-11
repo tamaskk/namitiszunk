@@ -1,24 +1,23 @@
-import { barChannel } from "@namitiszunk/core/realtime/channels";
 import type { BaseRealtime } from "ably/modular";
 
 import { adminApi } from "@/lib/admin-api";
 
-export type BarLive = { connected(): boolean; close(): void };
+export type TabletLive = { connected(): boolean; close(): void };
 
 /**
- * Ably for one bar (T-054): every message on the bar channel (a status change or an `update`) means
- * "reload the list", so the board never patches state from a message it might have missed. The
- * modular build carries only WebSocket and fetch; a failed chunk load (offline) leaves the polling.
+ * Ably for one tablet channel (a bar's or the venue's VIP channel): every message means "reload the
+ * list", so the screen never patches state from a message it might have missed. The modular build
+ * carries only WebSocket and fetch; a failed chunk load (offline) leaves the polling.
  */
-export function connectBarLive(
+export function connectTabletLive(
   venueId: string,
-  barId: string,
+  channel: string,
   handlers: {
     onMessage(): void;
     onConnected(): void;
     onError(error: unknown): void;
   },
-): BarLive {
+): TabletLive {
   let ably: BaseRealtime | null = null;
   let closed = false;
   import("ably/modular")
@@ -35,7 +34,7 @@ export function connectBarLive(
           },
         });
         ably.channels
-          .get(barChannel(venueId, barId))
+          .get(channel)
           .subscribe(() => handlers.onMessage())
           // Closing the page rejects a pending attach: only a failure while open is worth a report.
           .catch((error: unknown) => {

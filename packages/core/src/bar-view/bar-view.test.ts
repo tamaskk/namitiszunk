@@ -7,6 +7,7 @@ import {
   Order,
   Venue,
   VenueMember,
+  Zone,
 } from "@namitiszunk/db";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { Types } from "mongoose";
@@ -24,6 +25,7 @@ import type { Actor } from "../auth/permissions";
 import {
   getBarPicker,
   getBarView,
+  getVipView,
   moveOrderToBar,
   rejectFromBar,
   sendReminderFromBar,
@@ -49,7 +51,7 @@ beforeAll(async () => {
   replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   mongoose = await connectDb(replSet.getUri("namitiszunk_bar_view_test"));
   await Promise.all(
-    [Venue, Bar, Category, Item, Order, VenueMember, AuditLog].map((m) =>
+    [Venue, Bar, Category, Item, Order, VenueMember, AuditLog, Zone].map((m) =>
       m.createCollection(),
     ),
   );
@@ -440,5 +442,66 @@ describe("getBarPicker", () => {
       ],
       staffName: "Anna",
     });
+  });
+});
+
+describe("getVipView", () => {
+  it("lists today's VIP orders of every bar with the table name, for the VIP host only", async () => {
+    const s = await seed();
+    const [table] = await Zone.create([
+      { venueId: s.venueId, barId: s.mainId, name: "VIP 3", type: "vip_table" },
+    ]);
+    const vipHost = { ...s.bartender, role: "vip_host" } as Actor;
+    await order(s, {
+      isVip: true,
+      zoneId: table!._id,
+      status: "ready",
+      readyAt: now,
+    });
+    await order(s, { isVip: true, barId: s.terraceId, status: "preparing" });
+    await order(s, { status: "ready" });
+    await order(s, { isVip: true, status: "picked_up" });
+    await order(s, { isVip: true, businessDate: "2026-11-10" });
+
+    const view = await getVipView(vipHost, s.venueId, now);
+
+    expect(view.orders).toMatchObject([
+      { status: "ready", tableName: "VIP 3", barName: "Főpult" },
+      { status: "preparing", tableName: null, barName: "Terasz" },
+    ]);
+    await expect(getVipView(s.bartender, s.venueId, now)).rejects.toMatchObject(
+      {
+        status: 403,
+      },
+    );
+  });
+
+  it("refuses the VIP host and the manager of another venue", async () => {
+    const s = await seed();
+    const elsewhere = new Types.ObjectId().toHexString();
+    const otherVipHost = {
+      ...s.bartender,
+      venueId: elsewhere,
+      role: "vip_host",
+    } as Actor;
+    const otherManager: Actor = {
+      kind: "user",
+      userId: new Types.ObjectId().toHexString(),
+      memberships: [
+        {
+          venueId: elsewhere,
+          memberId: new Types.ObjectId().toHexString(),
+          role: "manager",
+        },
+      ],
+    };
+
+    // Each call starts only when its rejection is awaited, so none is left unhandled.
+    const attempts = [otherVipHost, otherManager].map(
+      (actor) => () => getVipView(actor, s.venueId, now),
+    );
+
+    for (const attempt of attempts)
+      await expect(attempt()).rejects.toMatchObject({ status: 403 });
   });
 });

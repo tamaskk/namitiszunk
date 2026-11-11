@@ -79,6 +79,7 @@ async function forbiddenResponse(request: NextRequest): Promise<Response> {
 export const config = {
   matcher: [
     "/pult/:path*",
+    "/vip/:path*",
     "/orders/:path*",
     "/menu/:path*",
     "/bars/:path*",

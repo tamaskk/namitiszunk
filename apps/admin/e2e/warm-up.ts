@@ -11,6 +11,7 @@ const routes = [
   "/bars",
   "/pult",
   "/pin",
+  "/vip",
   "/settings",
   "/dev/ui",
 ];
