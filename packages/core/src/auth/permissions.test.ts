@@ -45,6 +45,7 @@ const matrix: Record<Action, readonly string[]> = {
   "order.reject":          ["own","✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "order.handOverVip":     ["-",  "-",  "✓",       "✓",  "✓",  "-",  "-",  "-",  "-"],
   "order.viewTakeOutList": ["-",  "-",  "✓",       "✓",  "✓",  "-",  "-",  "-",  "-"],
+  "order.viewHistory":     ["-",  "-",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "order.markReceipt":     ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "order.sendReminder":    ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],
   "order.moveBar":         ["-",  "✓",  "✓",       "✓",  "-",  "-",  "-",  "-",  "-"],

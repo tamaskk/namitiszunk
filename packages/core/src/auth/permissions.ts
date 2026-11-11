@@ -99,6 +99,12 @@ export const permissions = {
     write: false,
     roles: { vip_host: true, manager: true, owner: true },
   },
+  // Orders module (T-056): the list, an order's details with masked guest contact, and the export.
+  "order.viewHistory": {
+    scope: "venue",
+    write: false,
+    roles: { manager: true, owner: true },
+  },
   // Bar view (T-054): the "receipt entered" mark, a pickup reminder sent by hand, and moving
   // an order to another bar of the venue. None changes the status.
   "order.markReceipt": {

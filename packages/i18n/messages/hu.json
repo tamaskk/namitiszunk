@@ -50,7 +50,8 @@
     "refund_exceeds_remaining": "Az összeg több, mint ami még visszatéríthető.",
     "refund_failed": "A visszatérítés nem sikerült. Próbáld újra, vagy írj a supportnak.",
     "refund_not_allowed_in_status": "Ez a rendelés a mostani állapotában nem téríthető vissza.",
-    "terms_outdated": "A feltételek közben frissültek. Töltsd újra az oldalt, és fogadd el az új változatot."
+    "terms_outdated": "A feltételek közben frissültek. Töltsd újra az oldalt, és fogadd el az új változatot.",
+    "export_too_large": "Ebben az időszakban túl sok a rendelés egy fájlhoz. Válassz rövidebb időszakot."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon",
@@ -772,6 +773,177 @@
       "setUpHint": "Ezen a telefonon utána csak a VIP-host lép be, a saját PIN-kódjával.",
       "switchStaff": "Kilépés ({name})",
       "signOut": "Kilépés"
+    },
+    "orders": {
+      "loading": "Betöltés…",
+      "filters": {
+        "date": "Üzleti nap",
+        "number": "Rendelésszám",
+        "numberPlaceholder": "#214",
+        "status": "Állapot",
+        "anyStatus": "Mind",
+        "problem": "Problémajelzés van",
+        "missingReceipt": "Nyugta beütve hiányzik",
+        "apply": "Szűrés",
+        "reset": "Szűrők törlése",
+        "bar": "Pult",
+        "anyBar": "Mind",
+        "method": "Fizetési mód",
+        "anyMethod": "Mind",
+        "methods": {
+          "card": "Kártya",
+          "apple_pay": "Apple Pay",
+          "google_pay": "Google Pay"
+        },
+        "min": "Legalább (Ft)",
+        "max": "Legfeljebb (Ft)"
+      },
+      "statuses": {
+        "awaiting_payment": "Fizetésre vár",
+        "new": "Új",
+        "preparing": "Készül",
+        "ready": "Kész",
+        "picked_up": "Átvéve",
+        "cancelled": "Megszakítva",
+        "rejected": "Elutasítva",
+        "expired": "Lejárt",
+        "refunded": "Visszatérítve"
+      },
+      "list": {
+        "count": "{count, plural, =0 {Nincs rendelés} other {# rendelés}}",
+        "empty": "Ezen a napon nincs a szűrésnek megfelelő rendelés.",
+        "number": "Szám",
+        "paidAt": "Fizetve",
+        "bar": "Pult",
+        "status": "Állapot",
+        "total": "Végösszeg",
+        "refunded": "Visszatérítve: {amount}",
+        "problems": "{count} problémajelzés",
+        "noReceipt": "Nincs nyugta",
+        "open": "{number}. rendelés",
+        "noNumber": "–",
+        "previous": "Előző oldal",
+        "next": "Következő oldal",
+        "page": "{page}. oldal / {pages}",
+        "pagination": "Lapozás"
+      },
+      "export": {
+        "title": "Export a könyveléshez",
+        "from": "Ettől (üzleti nap)",
+        "to": "Eddig (üzleti nap)",
+        "csv": "CSV letöltése",
+        "xlsx": "Excel letöltése",
+        "hint": "Legfeljebb 92 nap. Vendégadat nincs benne.",
+        "invalidRange": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot tölthetsz le egyszerre.",
+        "filename": "rendelesek",
+        "sheet": "Rendelések"
+      },
+      "columns": {
+        "paidAt": "Fizetve",
+        "businessDate": "Üzleti nap",
+        "shortNumber": "Rendelésszám",
+        "bar": "Pult",
+        "status": "Állapot",
+        "subtotalHuf": "Részösszeg",
+        "discountHuf": "Kedvezmény",
+        "serviceFeeHuf": "Szervizdíj",
+        "tipHuf": "Borravaló",
+        "totalHuf": "Végösszeg",
+        "platformFeeHuf": "Platformdíj",
+        "refundedHuf": "Visszatérített összeg",
+        "paymentMethod": "Fizetési mód",
+        "receiptEnteredBy": "Nyugta beütve"
+      },
+      "detail": {
+        "back": "Vissza a rendelésekhez",
+        "title": "{number}. rendelés",
+        "businessDay": "Üzleti nap: {date}",
+        "vip": "VIP",
+        "bar": "Pult: {name}",
+        "table": "Asztal: {name}",
+        "items": "Tételek",
+        "amounts": "Összegek",
+        "subtotal": "Részösszeg",
+        "discount": "Kedvezmény",
+        "serviceFee": "Szervizdíj",
+        "tip": "Borravaló",
+        "total": "Végösszeg",
+        "refunded": "Visszatérítve",
+        "platformFee": "Platformdíj",
+        "payment": "Fizetés",
+        "paymentIntent": "Stripe PaymentIntent",
+        "method": "Fizetési mód",
+        "guest": "Vendég",
+        "email": "E-mail",
+        "phone": "Telefon",
+        "notGiven": "Nincs megadva",
+        "receipt": "Nyugta beütve",
+        "receiptBy": "{name}, {time}",
+        "receiptMissing": "Még nincs beütve",
+        "rejectionReason": "Elutasítás oka: {reason}",
+        "problems": "Problémajelzések",
+        "noProblems": "Nincs problémajelzés.",
+        "refunds": "Visszatérítések",
+        "noRefunds": "Nincs visszatérítés.",
+        "refundBy": "{amount} · {who}",
+        "timeline": "Idővonal",
+        "noTimeline": "Még nincs bejegyzés.",
+        "system": "Rendszer",
+        "unknown": "Ismeretlen",
+        "refundStatus": {
+          "pending": "Folyamatban",
+          "succeeded": "Sikeres",
+          "failed": "Sikertelen"
+        },
+        "actions": {
+          "order_payment_succeeded": "Fizetve",
+          "order_payment_timeout": "Fizetés lejárt",
+          "order_start_preparing": "Elfogadva",
+          "order_reject": "Elutasítva",
+          "order_mark_ready": "Kész",
+          "order_pick_up": "Átvéve",
+          "order_expire": "Lejárt",
+          "order_refund": "Teljesen visszatérítve",
+          "order_receiptEntered": "Nyugta beütve",
+          "order_receiptCleared": "Nyugta jelölés törölve",
+          "order_movedBar": "Másik pultra került",
+          "order_reminderSent": "Emlékeztető elküldve",
+          "refund_created": "Visszatérítés indítva",
+          "refund_succeeded": "Visszatérítés sikeres",
+          "refund_failed": "Visszatérítés sikertelen"
+        },
+        "platform": "Na, mit iszunk? support",
+        "amountMax": "Legfeljebb {amount}."
+      },
+      "refund": {
+        "open": "Visszatérítés",
+        "title": "Visszatérítés: {number}. rendelés",
+        "hint": "Legfeljebb {amount} téríthető vissza. A vendég néhány munkanap alatt kapja meg.",
+        "full": "Teljes összeg ({amount})",
+        "partial": "Részösszeg",
+        "amount": "Összeg (Ft)",
+        "reason": "Ok",
+        "reasonHint": "Kötelező. Az auditnaplóba kerül.",
+        "confirm": "Visszatérítés indítása",
+        "cancel": "Mégse",
+        "started": "A visszatérítés elindult.",
+        "failed": "Nem sikerült elindítani. Próbáld újra."
+      },
+      "cancelOrder": {
+        "open": "Lemondás",
+        "title": "Lemondod a(z) {number}. rendelést?",
+        "hint": "A rendelés Elutasítva lesz, és a vendég a teljes összeget visszakapja.",
+        "confirm": "Lemondás teljes visszatérítéssel",
+        "cancel": "Mégse",
+        "done": "A rendelés le van mondva, a visszatérítés elindult.",
+        "failed": "Nem sikerült lemondani. Próbáld újra."
+      },
+      "problemCategories": {
+        "not_received": "Nem kapta meg",
+        "wrong_order": "Rossz vagy hiányos rendelés",
+        "payment": "Fizetési probléma",
+        "other": "Egyéb"
+      }
     }
   },
   "hq": {
@@ -953,6 +1125,7 @@
     },
     "vatRate": {
       "invalid": "Érvénytelen ÁFA-kulcs."
-    }
+    },
+    "exportRange": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot tölthetsz le egyszerre."
   }
 }

@@ -4,12 +4,14 @@ import {
   Button,
   EmptyState,
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@namitiszunk/ui";
 import { Bell } from "lucide-react";
+import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 
 export type BellItem = {
@@ -53,17 +55,21 @@ export function NotificationsBell({ items }: { items: BellItem[] }) {
                 key={`${item.kind}:${item.orderId}`}
                 className="flex flex-col gap-1 rounded-lg border border-border p-4"
               >
-                <span
-                  className={
-                    item.kind === "refundFailed"
-                      ? "text-body text-danger"
-                      : "text-body"
-                  }
-                >
-                  {t(item.kind, {
-                    number: item.shortNumber ?? t("noNumber"),
-                  })}
-                </span>
+                {/* Closing on tap: the shell stays mounted, so the sheet would cover the order page. */}
+                <SheetClose asChild>
+                  <Link
+                    href={`/orders/${item.orderId}`}
+                    className={
+                      item.kind === "refundFailed"
+                        ? "flex min-h-12 items-center text-body text-danger underline underline-offset-4"
+                        : "flex min-h-12 items-center text-body underline underline-offset-4"
+                    }
+                  >
+                    {t(item.kind, {
+                      number: item.shortNumber ?? t("noNumber"),
+                    })}
+                  </Link>
+                </SheetClose>
                 <span className="text-small text-text-muted">
                   {format.dateTime(item.at, {
                     dateStyle: "short",
