@@ -51,7 +51,11 @@
     "refund_failed": "A visszatérítés nem sikerült. Próbáld újra, vagy írj a supportnak.",
     "refund_not_allowed_in_status": "Ez a rendelés a mostani állapotában nem téríthető vissza.",
     "terms_outdated": "A feltételek közben frissültek. Töltsd újra az oldalt, és fogadd el az új változatot.",
-    "export_too_large": "Ebben az időszakban túl sok a rendelés egy fájlhoz. Válassz rövidebb időszakot."
+    "export_too_large": "Ebben az időszakban túl sok a rendelés egy fájlhoz. Válassz rövidebb időszakot.",
+    "pin_taken": "Ez a PIN már foglalt.",
+    "staff_name_taken": "Ezen a néven már van aktív tag.",
+    "staff_self": "Saját magadat nem tilthatod le.",
+    "staff_last_owner": "Ő az utolsó aktív tulajdonos: előbb hívj meg vagy engedélyezz egy másikat."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon",
@@ -672,6 +676,8 @@
       "back": "Vissza",
       "deleteDigit": "Utolsó számjegy törlése",
       "notADevice": "Ez a böngésző még nincs pult tabletként beállítva. Egy manager vagy a tulaj állíthatja be.",
+      "revoked": "Ezt az eszközt kijelentkeztették. Egy manager vagy a tulaj újra beállíthatja.",
+      "signInAgain": "Belépés managerként",
       "setUp": "Beállítás",
       "noMembers": "Nincs pultos PIN-kóddal. A Személyzet oldalon adhatsz hozzá.",
       "errors": {
@@ -944,6 +950,112 @@
         "payment": "Fizetési probléma",
         "other": "Egyéb"
       }
+    },
+    "staff": {
+      "intro": "Pultosok és VIP-hostok névvel és PIN-kóddal lépnek be, managerek és tulajdonosok a saját fiókjukkal.",
+      "loading": "Betöltés…",
+      "members": "Tagok",
+      "you": "te",
+      "roles": {
+        "owner": "Tulajdonos",
+        "manager": "Manager",
+        "bartender": "Pultos",
+        "vip_host": "VIP-host"
+      },
+      "lastAction": "Utolsó művelet: {time}",
+      "noAction": "Még nincs művelete",
+      "active": "Aktív",
+      "disabled": "Letiltva",
+      "add": "Pultos vagy VIP-host felvétele",
+      "addHint": "Név és 4 jegyű PIN-kód. A PIN-t mondd el neki személyesen.",
+      "addSubmit": "Felvétel",
+      "added": "{name} felvéve.",
+      "name": "Név",
+      "role": "Szerepkör",
+      "pin": "PIN-kód",
+      "pinHint": "4 számjegy, a helyszínen senki másé nem lehet.",
+      "changePin": "PIN csere",
+      "changePinTitle": "Új PIN: {name}",
+      "changePinHint": "A régi PIN azonnal megszűnik.",
+      "pinChanged": "{name} PIN-kódja megváltozott.",
+      "disable": "Letiltás",
+      "enable": "Visszaengedés",
+      "disableTitle": "{name} letiltása",
+      "disableBody": "A PIN-kódja és a belépései azonnal megszűnnek. A korábbi műveletei a naplóban maradnak.",
+      "enableTitle": "{name} visszaengedése",
+      "enableBody": "Újra beléphet a korábbi PIN-kódjával vagy fiókjával.",
+      "devices": {
+        "title": "Belépett eszközök",
+        "empty": "Nincs beállított pult tablet vagy VIP-telefon.",
+        "vipPhone": "VIP-telefon",
+        "registered": "Beállítva: {time}",
+        "lastSignIn": "Utolsó PIN-belépés: {time}",
+        "noSignIn": "Még senki nem lépett be rajta",
+        "revoke": "Kijelentkeztetés",
+        "revokeTitle": "{name} kijelentkeztetése",
+        "revokeBody": "Az eszközön senki nem tud tovább PIN-nel belépni. Újra beállítani csak manager vagy a tulajdonos tudja."
+      },
+      "invite": {
+        "open": "Manager vagy tulajdonos meghívása",
+        "title": "Meghívás e-mailben",
+        "hint": "A link 7 napig érvényes és egyszer használható. Csak azzal az e-mail címmel lehet elfogadni, ahova küldted.",
+        "email": "E-mail cím",
+        "send": "Meghívó küldése",
+        "sent": "Meghívó elküldve ide: {email}."
+      },
+      "errors": {
+        "generic": "Nem sikerült. Próbáld újra.",
+        "forbidden": "Ehhez nincs jogosultságod.",
+        "not_found": "Ez a tag vagy eszköz már nem található.",
+        "pin_taken": "Ez a PIN már foglalt. Válassz másikat.",
+        "staff_name_taken": "Ezen a néven már van aktív tag.",
+        "staff_self": "Saját magadat nem tilthatod le.",
+        "staff_last_owner": "Ő az utolsó aktív tulajdonos: előbb hívj meg vagy engedélyezz egy másikat.",
+        "rate_limited": "Túl sok próbálkozás. Várj egy percet, és próbáld újra.",
+        "validation_failed": "Ellenőrizd a megadott adatokat."
+      },
+      "log": {
+        "back": "Vissza a személyzethez",
+        "title": "Műveletek",
+        "date": "Üzleti nap",
+        "show": "Mutasd",
+        "empty": "Ezen a napon nincs művelete.",
+        "truncated": "Csak a legutóbbi 500 művelet látszik ezen a napon.",
+        "actions": {
+          "order_payment_succeeded": "Fizetve",
+          "order_payment_timeout": "Fizetés lejárt",
+          "order_start_preparing": "Elfogadva",
+          "order_reject": "Elutasítva",
+          "order_mark_ready": "Kész",
+          "order_pick_up": "Átvéve",
+          "order_expire": "Lejárt",
+          "order_refund": "Teljesen visszatérítve",
+          "order_receiptEntered": "Nyugta beütve",
+          "order_receiptCleared": "Nyugta jelölés törölve",
+          "order_movedBar": "Másik pultra került",
+          "order_reminderSent": "Emlékeztető elküldve",
+          "refund_created": "Visszatérítés indítva",
+          "refund_succeeded": "Visszatérítés sikeres",
+          "refund_failed": "Visszatérítés sikertelen",
+          "staff_added": "Tag felvétele",
+          "staff_pinChanged": "PIN csere",
+          "staff_disabled": "Tag letiltása",
+          "staff_enabled": "Tag visszaengedése",
+          "staff_deviceRevoked": "Eszköz kijelentkeztetése",
+          "staff_invited": "Meghívó küldése",
+          "staff_joined": "Csatlakozás meghívóval"
+        }
+      }
+    },
+    "invite": {
+      "title": "Meghívó",
+      "invalid": "Ez a meghívó lejárt, már felhasználták, vagy hibás a link. Kérj újat a tulajdonostól.",
+      "conflict": "Ezzel a fiókkal már tag vagy ezen a helyszínen, vagy a neved foglalt.",
+      "signInFirst": "Lépj be azzal az e-mail címmel, ahova a meghívó jött.",
+      "signIn": "Belépés",
+      "acceptAs": "Belépve: {email}. Elfogadod a meghívást?",
+      "accept": "Meghívás elfogadása",
+      "home": "Tovább az adminra"
     }
   },
   "hq": {
@@ -1091,7 +1203,8 @@
       "min": "Legalább 15 perc legyen."
     },
     "pin": {
-      "invalid": "Érvénytelen PIN."
+      "invalid": "Érvénytelen PIN.",
+      "fourDigits": "A PIN pontosan 4 számjegy."
     },
     "promoCode": {
       "invalid": "Érvénytelen kuponkód."

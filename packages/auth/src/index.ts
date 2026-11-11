@@ -22,6 +22,7 @@ export {
   listDeviceMembers,
   signInStaffWithPin,
   staffActorFromRequest,
+  staffDeviceState,
   staffCookieName,
   staffDeviceCookieOptions,
 } from "./staff-pin";

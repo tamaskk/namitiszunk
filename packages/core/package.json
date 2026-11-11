@@ -25,7 +25,8 @@
     "./cart": "./src/cart/validate-cart.ts",
     "./bars": "./src/bars/bars.ts",
     "./bar-view": "./src/bar-view/bar-view.ts",
-    "./bar-view/summary": "./src/bar-view/summary.ts"
+    "./bar-view/summary": "./src/bar-view/summary.ts",
+    "./staff": "./src/staff/staff.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -45,6 +46,7 @@
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
+    "@node-rs/argon2": "2.2.2",
     "@namitiszunk/db": "workspace:*",
     "@namitiszunk/i18n": "workspace:*",
     "@namitiszunk/validators": "workspace:*",

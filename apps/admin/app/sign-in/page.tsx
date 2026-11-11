@@ -13,7 +13,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SignInPage({
   searchParams,
 }: PageProps<"/sign-in">) {
-  const { step } = await searchParams;
+  const { step, invite } = await searchParams;
+  // Only an invite token's shape gets through, so the return path cannot point anywhere else.
+  const callbackUrl =
+    typeof invite === "string" && /^[A-Za-z0-9_-]{43}$/.test(invite)
+      ? `/invite?token=${invite}`
+      : undefined;
   const totp = step === "2fa";
   const t = await getTranslations("admin.signIn");
   return (
@@ -24,7 +29,7 @@ export default async function SignInPage({
           {totp ? t("totpBody") : t("body")}
         </p>
       </header>
-      {totp ? <TotpForm /> : <SignInForm />}
+      {totp ? <TotpForm /> : <SignInForm callbackUrl={callbackUrl} />}
     </main>
   );
 }

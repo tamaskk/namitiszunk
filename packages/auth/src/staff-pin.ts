@@ -9,8 +9,8 @@ import {
   undoRateLimitHit,
 } from "@namitiszunk/core/api";
 import { pinRoles } from "@namitiszunk/core/auth";
-import { AppError } from "@namitiszunk/core/errors";
-import { VenueMember } from "@namitiszunk/db";
+import { AppError, reportError } from "@namitiszunk/core/errors";
+import { Bar, StaffDevice, VenueMember } from "@namitiszunk/db";
 import { hash, verify } from "@node-rs/argon2";
 
 import { isObjectId, type RequestActor } from "./actors";
@@ -44,20 +44,33 @@ let dummyPinHash: Promise<string> | undefined;
  * The caller sets the returned value as an httpOnly cookie and does not keep the manager's
  * own session on the tablet, so the bar staff never act with the manager's rights.
  */
-export function createDeviceSession(
+export async function createDeviceSession(
   actor: UserActor,
   venueId: string,
+  barId?: string,
   now = Date.now(),
-): { cookieValue: string; expiresAt: Date } {
+): Promise<{ cookieValue: string; expiresAt: Date }> {
   const allowed = actor.memberships.some(
     (m) =>
       m.venueId === venueId && (m.role === "owner" || m.role === "manager"),
   );
   if (!allowed) throw new AppError(403, "forbidden");
+  // The bar name shown in Staff must be one of this venue's bars.
+  if (barId && !(await Bar.exists({ _id: barId, venueId })))
+    throw new AppError(404, "not_found");
   const expiresAt = now + deviceTtlMs;
+  const deviceId = randomUUID();
+  // Staff (T-057) lists the device and can sign it out; a cookie without this record is refused.
+  await StaffDevice.create({
+    deviceId,
+    venueId,
+    barId,
+    registeredBy: actor.userId,
+    expiresAt: new Date(expiresAt),
+  });
   const cookieValue = signValue(
     "device",
-    { deviceId: randomUUID(), venueId, issuedBy: actor.userId },
+    { deviceId, venueId, issuedBy: actor.userId },
     expiresAt,
   );
   return { cookieValue, expiresAt: new Date(expiresAt) };
@@ -67,6 +80,30 @@ function deviceFrom(cookieValue: string | undefined, now: number) {
   const device = verifySignedValue("device", cookieValue, now);
   if (!device?.deviceId || !device.venueId) return null;
   return { deviceId: device.deviceId, venueId: device.venueId };
+}
+
+/** False once a Manager or Owner signed the device out in Staff (T-057), or its record expired. */
+async function deviceIsActive(device: { deviceId: string; venueId: string }) {
+  return (
+    (await StaffDevice.exists({
+      deviceId: device.deviceId,
+      venueId: device.venueId,
+      revokedAt: { $exists: false },
+    })) !== null
+  );
+}
+
+/**
+ * The state of this browser as a staff device: "none" (an ordinary browser), "revoked" (signed out
+ * in Staff: it must forget the cookie and ask for a Manager sign-in again) or "active".
+ */
+export async function staffDeviceState(
+  deviceCookie: string | undefined,
+  now = Date.now(),
+): Promise<"none" | "revoked" | "active"> {
+  const device = deviceFrom(deviceCookie, now);
+  if (!device) return "none";
+  return (await deviceIsActive(device)) ? "active" : "revoked";
 }
 
 /**
@@ -79,7 +116,8 @@ export async function signInStaffWithPin(
   now = Date.now(),
 ): Promise<{ actor: StaffActor; cookieValue: string; expiresAt: Date }> {
   const device = deviceFrom(input.deviceCookie, now);
-  if (!device) throw new AppError(401, "unauthorized");
+  if (!device || !(await deviceIsActive(device)))
+    throw new AppError(401, "unauthorized");
 
   const bucket = `pin:${device.deviceId}`;
   if (await rateLimitLockedFor(bucket, now))
@@ -107,6 +145,11 @@ export async function signInStaffWithPin(
   );
   if (!member?.pinHash || !valid) throw new AppError(401, "pin_invalid");
   await undoRateLimitHit(bucket, pinFailures, now);
+  // Only shown in Staff: a failed stamp must not fail the sign-in.
+  await StaffDevice.updateOne(
+    { deviceId: device.deviceId },
+    { lastSignInAt: new Date(now) },
+  ).catch(reportError);
 
   const expiresAt = now + staffTtlMs;
   const memberId = String(member._id);
@@ -168,7 +211,8 @@ export async function staffActorFromRequest(
     !staff ||
     staff.deviceId !== device.deviceId ||
     staff.venueId !== device.venueId ||
-    !isObjectId(staff.memberId)
+    !isObjectId(staff.memberId) ||
+    !(await deviceIsActive(device))
   )
     return null;
 
@@ -212,7 +256,7 @@ export async function listDeviceMembers(
   now = Date.now(),
 ): Promise<{ id: string; name: string }[] | null> {
   const device = deviceFrom(deviceCookie, now);
-  if (!device) return null;
+  if (!device || !(await deviceIsActive(device))) return null;
   const members = await VenueMember.find({
     venueId: device.venueId,
     isActive: true,

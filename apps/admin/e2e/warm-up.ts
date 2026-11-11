@@ -9,6 +9,8 @@ const routes = [
   "/menu",
   "/menu/import",
   "/orders",
+  "/staff",
+  "/invite",
   "/bars",
   "/pult",
   "/pin",

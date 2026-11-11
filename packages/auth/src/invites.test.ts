@@ -107,12 +107,12 @@ describe("staff invites", () => {
     await expect(result).rejects.toMatchObject({ code: "invite_invalid" });
   });
 
-  it("links only to the fixed Admin accept page", async () => {
+  it("links to the Admin app's own accept page from server config", async () => {
     const token = await invite();
 
     const { url } = vi.mocked(sendEmail).mock.calls[0]![2] as { url: string };
 
-    expect(url).toBe(`https://admin.namitiszunk.hu/invite?token=${token}`);
+    expect(url).toBe(`http://localhost:3002/invite?token=${token}`);
   });
 
   it("refuses an account whose e-mail address is not verified", async () => {

@@ -51,7 +51,11 @@
     "refund_failed": "The refund did not go through. Try again or contact support.",
     "refund_not_allowed_in_status": "This order cannot be refunded in its current status.",
     "terms_outdated": "The terms have been updated. Reload the page and accept the new version.",
-    "export_too_large": "This period has too many orders for one file. Choose a shorter period."
+    "export_too_large": "This period has too many orders for one file. Choose a shorter period.",
+    "pin_taken": "This PIN is taken.",
+    "staff_name_taken": "An active member already has this name.",
+    "staff_self": "You cannot disable yourself.",
+    "staff_last_owner": "This is the last active owner: invite or enable another owner first."
   },
   "landing": {
     "tagline": "Order and pay on your phone",
@@ -672,6 +676,8 @@
       "back": "Back",
       "deleteDigit": "Delete the last digit",
       "notADevice": "This browser is not set up as a bar tablet yet. A manager or the owner can set it up.",
+      "revoked": "This device was signed out. A manager or the owner can set it up again.",
+      "signInAgain": "Sign in as a manager",
       "setUp": "Set up",
       "noMembers": "No bartender has a PIN yet. Add one on the Staff page.",
       "errors": {
@@ -944,6 +950,112 @@
         "payment": "Payment problem",
         "other": "Other"
       }
+    },
+    "staff": {
+      "intro": "Bartenders and VIP hosts sign in with a name and PIN, managers and owners with their own account.",
+      "loading": "Loading…",
+      "members": "Members",
+      "you": "you",
+      "roles": {
+        "owner": "Owner",
+        "manager": "Manager",
+        "bartender": "Bartender",
+        "vip_host": "VIP host"
+      },
+      "lastAction": "Last action: {time}",
+      "noAction": "No actions yet",
+      "active": "Active",
+      "disabled": "Disabled",
+      "add": "Add bartender or VIP host",
+      "addHint": "A name and a 4-digit PIN. Tell them the PIN in person.",
+      "addSubmit": "Add",
+      "added": "{name} added.",
+      "name": "Name",
+      "role": "Role",
+      "pin": "PIN",
+      "pinHint": "4 digits, not used by anyone else at this venue.",
+      "changePin": "Change PIN",
+      "changePinTitle": "New PIN for {name}",
+      "changePinHint": "The old PIN stops working at once.",
+      "pinChanged": "{name}'s PIN changed.",
+      "disable": "Disable",
+      "enable": "Enable",
+      "disableTitle": "Disable {name}",
+      "disableBody": "Their PIN and sign-ins stop working at once. Their past actions stay in the log.",
+      "enableTitle": "Enable {name}",
+      "enableBody": "They can sign in again with their previous PIN or account.",
+      "devices": {
+        "title": "Signed-in devices",
+        "empty": "No bar tablet or VIP phone is set up.",
+        "vipPhone": "VIP phone",
+        "registered": "Set up: {time}",
+        "lastSignIn": "Last PIN sign-in: {time}",
+        "noSignIn": "Nobody has signed in on it yet",
+        "revoke": "Sign out",
+        "revokeTitle": "Sign out {name}",
+        "revokeBody": "Nobody can sign in with a PIN on this device any more. Only a manager or the owner can set it up again."
+      },
+      "invite": {
+        "open": "Invite a manager or owner",
+        "title": "Invite by e-mail",
+        "hint": "The link works for 7 days and once. Only the address you send it to can accept it.",
+        "email": "E-mail address",
+        "send": "Send invite",
+        "sent": "Invite sent to {email}."
+      },
+      "errors": {
+        "generic": "That did not work. Try again.",
+        "forbidden": "You do not have permission for this.",
+        "not_found": "This member or device no longer exists.",
+        "pin_taken": "This PIN is taken. Choose another one.",
+        "staff_name_taken": "An active member already has this name.",
+        "staff_self": "You cannot disable yourself.",
+        "staff_last_owner": "This is the last active owner: invite or enable another owner first.",
+        "rate_limited": "Too many tries. Wait a minute and try again.",
+        "validation_failed": "Check the details you entered."
+      },
+      "log": {
+        "back": "Back to staff",
+        "title": "Actions",
+        "date": "Business day",
+        "show": "Show",
+        "empty": "No actions on this day.",
+        "truncated": "Only the latest 500 actions of this day are shown.",
+        "actions": {
+          "order_payment_succeeded": "Paid",
+          "order_payment_timeout": "Payment timed out",
+          "order_start_preparing": "Accepted",
+          "order_reject": "Rejected",
+          "order_mark_ready": "Ready",
+          "order_pick_up": "Picked up",
+          "order_expire": "Expired",
+          "order_refund": "Fully refunded",
+          "order_receiptEntered": "Receipt entered",
+          "order_receiptCleared": "Receipt mark removed",
+          "order_movedBar": "Moved to another bar",
+          "order_reminderSent": "Reminder sent",
+          "refund_created": "Refund started",
+          "refund_succeeded": "Refund succeeded",
+          "refund_failed": "Refund failed",
+          "staff_added": "Member added",
+          "staff_pinChanged": "PIN changed",
+          "staff_disabled": "Member disabled",
+          "staff_enabled": "Member enabled",
+          "staff_deviceRevoked": "Device signed out",
+          "staff_invited": "Invite sent",
+          "staff_joined": "Joined by invite"
+        }
+      }
+    },
+    "invite": {
+      "title": "Invite",
+      "invalid": "This invite has expired, was already used, or the link is wrong. Ask the owner for a new one.",
+      "conflict": "This account is already a member of this venue, or your name is taken.",
+      "signInFirst": "Sign in with the e-mail address the invite was sent to.",
+      "signIn": "Sign in",
+      "acceptAs": "Signed in as {email}. Accept the invite?",
+      "accept": "Accept invite",
+      "home": "Go to admin"
     }
   },
   "hq": {
@@ -1091,7 +1203,8 @@
       "min": "At least 15 minutes."
     },
     "pin": {
-      "invalid": "Invalid PIN."
+      "invalid": "Invalid PIN.",
+      "fourDigits": "The PIN is exactly 4 digits."
     },
     "promoCode": {
       "invalid": "Invalid promo code."

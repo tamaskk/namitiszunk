@@ -42,9 +42,9 @@ export async function registerDeviceAction(
   const user = await userActorFromHeaders(auth, "admin", requestHeaders);
   if (!user) return { error: { code: "forbidden" } };
 
-  let device: ReturnType<typeof createDeviceSession>;
+  let device: Awaited<ReturnType<typeof createDeviceSession>>;
   try {
-    device = createDeviceSession(user, venue.id);
+    device = await createDeviceSession(user, venue.id, parsed.data.barId);
   } catch (error) {
     if (error instanceof AppError) return { error: { code: error.code } };
     throw error;
