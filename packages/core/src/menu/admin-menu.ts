@@ -48,7 +48,7 @@ export type AdminMenu = {
   bars: { id: string; name: string }[];
 };
 
-async function inTransaction<T>(
+export async function inTransaction<T>(
   work: (session: ClientSession) => Promise<T>,
 ): Promise<T> {
   const session = await Venue.startSession();
@@ -80,7 +80,7 @@ export async function bumpMenuVersion(
 }
 
 /** The audit entry plus the cache bump that every menu change shares. */
-async function recordChange(
+export async function recordChange(
   session: ClientSession,
   actor: Actor,
   venueId: string,
@@ -162,7 +162,7 @@ export async function getAdminMenu(
   };
 }
 
-async function nextSortOrder(
+export async function nextSortOrder(
   model: typeof Category | typeof Item,
   filter: Record<string, unknown>,
   session: ClientSession,

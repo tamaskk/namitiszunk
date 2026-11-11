@@ -580,7 +580,48 @@
         "lupin": "Csillagfürt",
         "molluscs": "Puhatestűek"
       },
-      "newTab": "új lapon"
+      "newTab": "új lapon",
+      "importCsv": "Importálás CSV-ből"
+    },
+    "menuImport": {
+      "title": "Menü import CSV-ből",
+      "back": "Vissza a menühöz",
+      "intro": "Töltsd le a sablont, töltsd ki Excelben, és mentsd CSV UTF-8 formátumban. Meglévő terméket az import nem ír felül; az opciókat és a képeket utána a menüben adhatod meg.",
+      "template": "Sablon letöltése",
+      "file": "CSV fájl",
+      "fileHint": "Excelben: Mentés másként, CSV UTF-8 (pontosvesszővel vagy vesszővel tagolt). Legfeljebb 500 sor.",
+      "notUtf8": "A fájl nem UTF-8 kódolású. Mentsd CSV UTF-8 formátumban, és töltsd fel újra.",
+      "tooLarge": "A fájl túl nagy. Bontsd több részre.",
+      "checking": "Ellenőrzés…",
+      "problemsTitle": "{count} hiba a fájlban. Javítsd, és töltsd fel újra.",
+      "summary": "{created, plural, =0 {Nincs új termék} other {# új termék}}, {skipped, plural, =0 {nincs kihagyott} other {# kimarad, mert már létezik}}, {categories, plural, =0 {nincs új kategória} other {# új kategória}}.",
+      "wholeFile": "Fájl",
+      "lineLabel": "{line}. sor",
+      "colLine": "Sor",
+      "colCategory": "Kategória",
+      "colName": "Név",
+      "colPrice": "Ár",
+      "colStatus": "Állapot",
+      "statusNew": "Új",
+      "statusDuplicate": "Már létezik, kimarad",
+      "previewLabel": "Az import előnézete",
+      "import": "Importálás",
+      "done": "{created} termék importálva.",
+      "nothingNew": "A fájlban nincs új termék.",
+      "errors": {
+        "missingColumns": "Hiányzó oszlop: {value}.",
+        "empty": "A fájlban nincs termék.",
+        "tooManyRows": "Legfeljebb {value} sor importálható egyszerre.",
+        "malformedRow": "A sor oszlopainak száma nem egyezik a fejlécével.",
+        "unknownAllergen": "Ismeretlen allergén: {value}.",
+        "invalidYesNo": "Csak igen vagy nem adható meg, ezt kaptuk: {value}.",
+        "vipConflict": "A(z) {value} kategória VIP jelölése más a menüben.",
+        "vipMismatch": "A kategória VIP jelölése eltér a {value}. sorban megadottól.",
+        "duplicateInFile": "Kétszer szerepel a fájlban: {value}.",
+        "import_has_errors": "A fájlban hiba van. Nézd meg az előnézetet.",
+        "generic": "Nem sikerült. Próbáld újra."
+      },
+      "moreProblems": "És még {count} hiba. Javítsd a fentieket, és töltsd fel újra."
     }
   },
   "hq": {

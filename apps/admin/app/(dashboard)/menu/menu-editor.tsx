@@ -21,8 +21,16 @@ import {
   SelectValue,
   cn,
 } from "@namitiszunk/ui";
-import { Archive, Copy, ExternalLink, Pencil, Plus } from "lucide-react";
+import {
+  Archive,
+  Copy,
+  ExternalLink,
+  Pencil,
+  Plus,
+  Upload,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
 import { useOptimistic, useState } from "react";
 
 import { guestMenuUrl } from "@/lib/order-app";
@@ -77,6 +85,12 @@ export function MenuEditor({
             </Button>
           }
         />
+        <Button variant="secondary" asChild>
+          <Link href="/menu/import">
+            <Upload aria-hidden />
+            {t("importCsv")}
+          </Link>
+        </Button>
         <div className="ml-auto flex flex-wrap items-end gap-2">
           {menu.bars.length > 0 && (
             <div className="grid gap-2">

@@ -1763,9 +1763,9 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] Magyar Excelből mentett pontosvesszős CSV ékezethelyesen importálódik.
-- [ ] Hibás ár (szöveg vagy negatív) a sor számával jelenik meg, import nincs.
-- [ ] Megszakadt import után nem marad félig felvitt menü.
+- [x] Magyar Excelből mentett pontosvesszős CSV ékezethelyesen importálódik.
+- [x] Hibás ár (szöveg vagy negatív) a sor számával jelenik meg, import nincs.
+- [x] Megszakadt import után nem marad félig felvitt menü.
 
 **Tesztelés.** Vitest minta-fájlokkal (vesszős, pontosvesszős, BOM-os, hibás sorok); Playwright: feltöltés, előnézet, import.
 
