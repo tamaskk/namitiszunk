@@ -1,5 +1,6 @@
 export * from "./account";
 export * from "./auth";
+export * from "./bar-view";
 export * from "./menu";
 export {
   buildOpenApiDocument,

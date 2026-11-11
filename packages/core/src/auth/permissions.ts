@@ -99,6 +99,23 @@ export const permissions = {
     write: false,
     roles: { vip_host: true, manager: true, owner: true },
   },
+  // Bar view (T-054): the "receipt entered" mark, a pickup reminder sent by hand, and moving
+  // an order to another bar of the venue. None changes the status.
+  "order.markReceipt": {
+    scope: "venue",
+    write: true,
+    roles: { bartender: true, manager: true, owner: true },
+  },
+  "order.sendReminder": {
+    scope: "venue",
+    write: true,
+    roles: { bartender: true, manager: true, owner: true },
+  },
+  "order.moveBar": {
+    scope: "venue",
+    write: true,
+    roles: { bartender: true, manager: true, owner: true },
+  },
   "product.setSoldOut": {
     scope: "venue",
     write: true,

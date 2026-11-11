@@ -120,7 +120,14 @@ export function OrderStatus({
           </p>
           {order.rejectionReason && (
             <p className="text-body">
-              {t("reason", { reason: order.rejectionReason })}
+              {t("reason", {
+                // The bar view stores a code (T-054); older rejections hold free text.
+                reason:
+                  order.rejectionReason === "sold_out" ||
+                  order.rejectionReason === "other"
+                    ? t(`reasons.${order.rejectionReason}`)
+                    : order.rejectionReason,
+              })}
             </p>
           )}
           {order.refundedHuf > 0 && (

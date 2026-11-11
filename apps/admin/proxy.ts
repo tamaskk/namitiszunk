@@ -28,7 +28,9 @@ export async function proxy(request: NextRequest): Promise<Response> {
     request.headers,
     request.cookies.get(VENUE_COOKIE)?.value,
   );
-  if (context === "pinRequired") return forbiddenResponse(request);
+  // A bar tablet without an active PIN holder goes to the PIN screen (T-054), outside the module paths.
+  if (context === "pinRequired")
+    return NextResponse.redirect(new URL("/pin", request.nextUrl));
   // No session, or no venue yet: the layout sends to sign-in or shows the no-venue screen.
   if (
     typeof context === "string" ||

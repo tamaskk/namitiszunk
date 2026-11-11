@@ -1,4 +1,13 @@
 import {
+  barOrderEventInputSchema,
+  barPauseInputSchema,
+  barPauseResponseSchema,
+  barRejectInputSchema,
+  barViewResponseSchema,
+  moveOrderInputSchema,
+  okResponseSchema,
+  receiptInputSchema,
+  reminderResponseSchema,
   accountExportResponseSchema,
   accountOrdersResponseSchema,
   claimOrdersInputSchema,
@@ -307,6 +316,59 @@ export function createApiClient(options: ApiClientOptions) {
       /** GET /v1/venues/{venueId}/menu. Not on the server yet (guest menu, T-040). */
       get: async (venueId: string) =>
         request("GET", `/v1/venues/${id(venueId)}/menu`, menuResponseSchema),
+    },
+    /** The bar view (T-054): a staff session; on a bar tablet, the active PIN holder. Not retried: a tap is repeated by hand. */
+    barView: {
+      /** GET /v1/bars/{id}/orders: the bar's orders of the current business day. */
+      get: async (barId: string) =>
+        request("GET", `/v1/bars/${id(barId)}/orders`, barViewResponseSchema),
+      /** POST /v1/bars/{id}/pause: 5, 10 or 15 minutes; 0 resumes. */
+      pause: async (
+        barId: string,
+        input: z.input<typeof barPauseInputSchema>,
+      ) =>
+        request("POST", `/v1/bars/${id(barId)}/pause`, barPauseResponseSchema, {
+          body: parseInput(barPauseInputSchema, input),
+        }),
+      /** POST /v1/orders/{id}/status: Start, Ready or Picked up. */
+      changeStatus: async (
+        orderId: string,
+        input: z.input<typeof barOrderEventInputSchema>,
+      ) =>
+        request("POST", `/v1/orders/${id(orderId)}/status`, okResponseSchema, {
+          body: parseInput(barOrderEventInputSchema, input),
+        }),
+      /** POST /v1/orders/{id}/reject: a New order, with a reason. */
+      reject: async (
+        orderId: string,
+        input: z.input<typeof barRejectInputSchema>,
+      ) =>
+        request("POST", `/v1/orders/${id(orderId)}/reject`, okResponseSchema, {
+          body: parseInput(barRejectInputSchema, input),
+        }),
+      /** POST /v1/orders/{id}/receipt: the receipt entered mark. */
+      setReceipt: async (
+        orderId: string,
+        input: z.input<typeof receiptInputSchema>,
+      ) =>
+        request("POST", `/v1/orders/${id(orderId)}/receipt`, okResponseSchema, {
+          body: parseInput(receiptInputSchema, input),
+        }),
+      /** POST /v1/orders/{id}/reminder: once per order. */
+      remind: async (orderId: string) =>
+        request(
+          "POST",
+          `/v1/orders/${id(orderId)}/reminder`,
+          reminderResponseSchema,
+        ),
+      /** POST /v1/orders/{id}/move: to another bar of the venue. */
+      move: async (
+        orderId: string,
+        input: z.input<typeof moveOrderInputSchema>,
+      ) =>
+        request("POST", `/v1/orders/${id(orderId)}/move`, okResponseSchema, {
+          body: parseInput(moveOrderInputSchema, input),
+        }),
     },
     realtime: {
       /** POST /v1/realtime/token, for the Ably client's authCallback. A guest passes its order's guest token. */

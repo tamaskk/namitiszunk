@@ -9,6 +9,8 @@ import {
   hashPin,
   signInStaffWithPin,
   isStaffDevice,
+  staffDeviceAllowsAuthRequest,
+  listDeviceMembers,
   staffActorFromRequest,
   staffCookieName,
 } from "./staff-pin";
@@ -243,6 +245,47 @@ describe("isStaffDevice", () => {
   });
 });
 
+describe("staffDeviceAllowsAuthRequest", () => {
+  const authRequest = (path: string, cookie: string) =>
+    new Request(`https://admin.namitiszunk.hu/api/auth/${path}`, {
+      headers: { cookie: `${deviceCookieName}=${encodeURIComponent(cookie)}` },
+    });
+
+  it("lets a bar tablet only sign in and out on Better Auth", () => {
+    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+    const allowed = [
+      "sign-out",
+      "sign-in/magic-link",
+      "magic-link/verify",
+      "callback/google",
+      "two-factor/verify-totp",
+    ];
+    const refused = [
+      "get-session",
+      "update-user",
+      "change-email",
+      "two-factor/enable",
+    ];
+
+    const results = [...allowed, ...refused].map((path) =>
+      staffDeviceAllowsAuthRequest(authRequest(path, device), t0),
+    );
+
+    expect(results).toEqual([
+      ...allowed.map(() => true),
+      ...refused.map(() => false),
+    ]);
+  });
+
+  it("serves every path to a browser that is not a tablet", () => {
+    const request = authRequest("get-session", "forged.value");
+
+    const result = staffDeviceAllowsAuthRequest(request, t0);
+
+    expect(result).toBe(true);
+  });
+});
+
 describe("staffActorFromRequest", () => {
   it("refuses a staff cookie from another device", async () => {
     const device = createDeviceSession(manager(), venueId, t0).cookieValue;
@@ -309,5 +352,39 @@ describe("staffActorFromRequest", () => {
     );
 
     expect(actor).toBeNull();
+  });
+});
+
+describe("listDeviceMembers", () => {
+  it("lists the venue's PIN holders by name, leaving out managers, the inactive and those without a PIN", async () => {
+    await VenueMember.create([
+      { venueId, role: "vip_host", displayName: "Bence", pinHash: "x" },
+      { venueId, role: "manager", displayName: "Csaba", pinHash: "x" },
+      { venueId, role: "bartender", displayName: "Dóra" },
+      {
+        venueId,
+        role: "bartender",
+        displayName: "Edit",
+        pinHash: "x",
+        isActive: false,
+      },
+      {
+        venueId: new Types.ObjectId(),
+        role: "bartender",
+        displayName: "Más",
+        pinHash: "x",
+      },
+    ]);
+    const device = createDeviceSession(manager(), venueId, t0).cookieValue;
+
+    const members = await listDeviceMembers(device, t0);
+
+    expect(members?.map((m) => m.name)).toEqual(["Anna", "Bence"]);
+  });
+
+  it("is null without a device session", async () => {
+    const members = await listDeviceMembers(undefined, t0);
+
+    expect(members).toBeNull();
   });
 });

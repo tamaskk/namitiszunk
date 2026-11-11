@@ -236,6 +236,36 @@ describe("pickup reminder", () => {
     expect(sendSms).not.toHaveBeenCalled();
   });
 
+  it("sends the reminder only once, whether the bar view or the timer comes first", async () => {
+    const order = await createOrder(
+      { ...sms, status: "ready", readyAt },
+      { smsEnabled: true },
+    );
+
+    const results = await Promise.all([
+      sendPickupReminder(order.id, notifyDeps()),
+      sendPickupReminder(order.id, notifyDeps()),
+    ]);
+
+    expect(results.toSorted()).toEqual(["skipped", "sms"]);
+    expect(sendSms).toHaveBeenCalledTimes(1);
+  });
+
+  it("frees the reminder for a retry when the send fails", async () => {
+    const order = await createOrder(
+      { ...sms, status: "ready", readyAt },
+      { smsEnabled: true },
+    );
+    vi.mocked(sendSms).mockRejectedValueOnce(new Error("twilio down"));
+
+    await expect(sendPickupReminder(order.id, notifyDeps())).rejects.toThrow(
+      "twilio down",
+    );
+    const retry = await sendPickupReminder(order.id, notifyDeps());
+
+    expect(retry).toBe("sms");
+  });
+
   it("sends no SMS when the venue switched SMS off", async () => {
     const order = await createOrder({ ...sms, status: "ready", readyAt });
     expect(await sendPickupReminder(order.id, notifyDeps())).toBe("none");

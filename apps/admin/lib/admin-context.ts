@@ -99,8 +99,8 @@ export const getAdminContext = cache(async (): Promise<AdminContext> => {
   );
   if (context === "signedOut") redirect("/sign-in");
   if (context === "twoFactor") redirect("/sign-in?step=2fa");
-  // shortcut: a 403 until the bar view's PIN screen exists (T-053), which then takes this case.
-  if (context === "pinRequired") forbidden();
+  // A bar tablet without an active PIN holder: the PIN screen (T-054).
+  if (context === "pinRequired") redirect("/pin");
   return context;
 });
 

@@ -248,7 +248,11 @@
         }
       },
       "confirmationLink": "Payment confirmation",
-      "backToMenu": "Back to the menu"
+      "backToMenu": "Back to the menu",
+      "reasons": {
+        "sold_out": "Sold out",
+        "other": "The bar cannot make it right now"
+      }
     },
     "confirmation": {
       "pageTitle": "Payment confirmation",
@@ -657,6 +661,34 @@
         "ctaEn": "Scan to order from here"
       },
       "barHint": "Guests see the bar name at the top of the menu."
+    },
+    "pin": {
+      "title": "Bartender sign-in",
+      "who": "Who are you?",
+      "pinFor": "{name}, enter your PIN",
+      "pinProgress": "{count} of {total} digits",
+      "back": "Back",
+      "deleteDigit": "Delete the last digit",
+      "notADevice": "This browser is not set up as a bar tablet yet. A manager or the owner can set it up.",
+      "setUp": "Set up",
+      "noMembers": "No bartender has a PIN yet. Add one on the Staff page.",
+      "errors": {
+        "pin_invalid": "Wrong PIN. Try again.",
+        "pin_locked": "Too many wrong tries. Try again in 5 minutes.",
+        "unauthorized": "This browser is no longer a bar tablet. Set it up again.",
+        "generic": "Could not sign in. Try again."
+      }
+    },
+    "barView": {
+      "title": "Bar view",
+      "setUpHint": "Choose the bar this tablet will serve. After that only bartenders sign in on it, with their PIN.",
+      "deviceHint": "This is a bar tablet. When the bartender changes, sign out and the next one signs in with their own PIN.",
+      "setUp": "Set up tablet",
+      "setUpFor": "Set up the tablet for {bar}",
+      "setUpForbidden": "Only a manager or the owner can set up a tablet.",
+      "setUpFailed": "Could not set it up. Try again.",
+      "switchStaff": "Switch bartender ({name})",
+      "noBars": "No bars yet. Add one on the Bars page."
     }
   },
   "hq": {

@@ -26,3 +26,11 @@ export function shouldApply(
 ): boolean {
   return currentVersion === undefined || message.version >= currentVersion;
 }
+
+/**
+ * The Ably message name of a change on a bar that is not a status change (T-054): receipt entered,
+ * reminder sent, an order moved in or out. The bar view reloads its list when it gets one.
+ */
+export const BAR_UPDATE_EVENT = "update";
+
+export type BarUpdateMessage = { orderId?: string };

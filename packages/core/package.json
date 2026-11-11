@@ -22,7 +22,9 @@
     "./retention": "./src/retention/retention.ts",
     "./menu": "./src/menu/index.ts",
     "./cart": "./src/cart/validate-cart.ts",
-    "./bars": "./src/bars/bars.ts"
+    "./bars": "./src/bars/bars.ts",
+    "./bar-view": "./src/bar-view/bar-view.ts",
+    "./bar-view/summary": "./src/bar-view/summary.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

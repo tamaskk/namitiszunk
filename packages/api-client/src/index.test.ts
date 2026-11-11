@@ -389,3 +389,35 @@ describe("me", () => {
     expect(error.code).toBe("invalid_input");
   });
 });
+
+describe("barView", () => {
+  const orderId = "0123456789abcdef0123abcd";
+
+  it("posts one tap to the order's status route and refuses a made-up event", async () => {
+    let body: unknown;
+    server.use(
+      http.post(`${base}/v1/orders/${orderId}/status`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ data: { ok: true } });
+      }),
+    );
+
+    const result = await client.barView.changeStatus(orderId, {
+      event: "mark_ready",
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(body).toEqual({ event: "mark_ready" });
+    await expect(
+      client.barView.changeStatus(orderId, {
+        event: "refund" as "mark_ready",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("asks for the sold-out items before it sends a sold-out rejection", async () => {
+    await expect(
+      client.barView.reject(orderId, { reason: "sold_out" }),
+    ).rejects.toThrow();
+  });
+});

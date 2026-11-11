@@ -41,6 +41,13 @@ describe("buildOpenApiDocument", () => {
       "/v1/me/orders/claim",
       "/v1/me/orders/{id}/reorder",
       "/v1/me/export",
+      "/v1/bars/{id}/orders",
+      "/v1/bars/{id}/pause",
+      "/v1/orders/{id}/status",
+      "/v1/orders/{id}/reject",
+      "/v1/orders/{id}/receipt",
+      "/v1/orders/{id}/reminder",
+      "/v1/orders/{id}/move",
     ]);
     expect(createOrder.requestBody.content["application/json"]?.schema).toEqual(
       { $ref: "#/components/schemas/CreateOrderInput" },

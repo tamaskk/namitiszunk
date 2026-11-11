@@ -185,14 +185,32 @@ async function pushOrSms(
   return "sms";
 }
 
-/** 10 minutes after Ready: a push, or an SMS when there is no push and the guest asked for one. */
+/**
+ * 10 minutes after Ready, or earlier from the bar view's button (T-054): a push, or an SMS when there
+ * is no push and the guest asked for one. Sent once per order: whichever comes first claims
+ * `reminderSentAt`, the other one is "skipped".
+ */
 export async function sendPickupReminder(
   orderId: string,
   deps: NotifyDeps,
+  now = new Date(),
 ): Promise<"push" | "sms" | "none" | "skipped"> {
-  const loaded = await loadOrder(orderId);
-  if (loaded.order.status !== "ready") return "skipped";
-  return pushOrSms(loaded, "reminder", deps);
+  const claimed = await Order.updateOne(
+    { _id: orderId, status: "ready", reminderSentAt: null },
+    { $set: { reminderSentAt: now } },
+  );
+  if (claimed.modifiedCount === 0) return "skipped";
+  try {
+    const loaded = await loadOrder(orderId);
+    return await pushOrSms(loaded, "reminder", deps);
+  } catch (error) {
+    // A failed send frees the claim, so the Inngest retry or the bar button can try again.
+    await Order.updateOne(
+      { _id: orderId, reminderSentAt: now },
+      { $unset: { reminderSentAt: 1 } },
+    );
+    throw error;
+  }
 }
 
 const pushKindByEvent: Partial<Record<OrderEvent, PushKind>> = {

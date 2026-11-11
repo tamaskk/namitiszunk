@@ -18,7 +18,10 @@ export {
   deviceCookieName,
   hashPin,
   isStaffDevice,
+  staffDeviceAllowsAuthRequest,
+  listDeviceMembers,
   signInStaffWithPin,
   staffActorFromRequest,
   staffCookieName,
+  staffDeviceCookieOptions,
 } from "./staff-pin";

@@ -248,7 +248,11 @@
         }
       },
       "confirmationLink": "Fizetési visszaigazolás",
-      "backToMenu": "Vissza a menübe"
+      "backToMenu": "Vissza a menübe",
+      "reasons": {
+        "sold_out": "Elfogyott",
+        "other": "A pult most nem tudja elkészíteni"
+      }
     },
     "confirmation": {
       "pageTitle": "Fizetési visszaigazolás",
@@ -657,6 +661,34 @@
         "ctaEn": "Scan to order from here"
       },
       "barHint": "A pult nevét a vendég a menü tetején látja."
+    },
+    "pin": {
+      "title": "Pultos belépés",
+      "who": "Ki vagy?",
+      "pinFor": "{name}, írd be a PIN-kódod",
+      "pinProgress": "{count} / {total} számjegy",
+      "back": "Vissza",
+      "deleteDigit": "Utolsó számjegy törlése",
+      "notADevice": "Ez a böngésző még nincs pult tabletként beállítva. Egy manager vagy a tulaj állíthatja be.",
+      "setUp": "Beállítás",
+      "noMembers": "Nincs pultos PIN-kóddal. A Személyzet oldalon adhatsz hozzá.",
+      "errors": {
+        "pin_invalid": "Hibás PIN. Próbáld újra.",
+        "pin_locked": "Túl sok hibás próbálkozás. 5 perc múlva újra próbálhatod.",
+        "unauthorized": "Ez a böngésző már nem pult tablet. Állítsd be újra.",
+        "generic": "Nem sikerült belépni. Próbáld újra."
+      }
+    },
+    "barView": {
+      "title": "Pult nézet",
+      "setUpHint": "Válaszd ki, melyik pultnál lesz ez a tablet. Utána csak a pultosok léphetnek be rajta, PIN-kóddal.",
+      "deviceHint": "Ez a pult tablet. A pultos váltásakor lépj ki, és a következő pultos belép a saját PIN-kódjával.",
+      "setUp": "Tablet beállítása",
+      "setUpFor": "Tablet beállítása ehhez: {bar}",
+      "setUpForbidden": "Tabletet csak manager vagy a tulaj állíthat be.",
+      "setUpFailed": "Nem sikerült beállítani. Próbáld újra.",
+      "switchStaff": "Pultosváltás ({name})",
+      "noBars": "Még nincs pult. A Pultok oldalon adhatsz hozzá."
     }
   },
   "hq": {
