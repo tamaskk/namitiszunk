@@ -399,19 +399,21 @@ describe("permissions", () => {
       venueId: new Types.ObjectId().toString(),
     } as Actor;
 
+    // Thunks, not promises: each call starts only when its rejection is awaited.
     const calls = [
-      setReceiptEntered(stranger, o, true, now),
-      moveOrderToBar(stranger, o, s.terraceId),
-      sendReminderFromBar(stranger, o, {
-        sendPush: vi.fn(async () => true),
-        sendEmail: vi.fn(async () => ({})),
-        links: { order: () => "", smsStatusCallback: "" },
-      }),
-      rejectFromBar(stranger, o, { reason: "other" }),
+      () => setReceiptEntered(stranger, o, true, now),
+      () => moveOrderToBar(stranger, o, s.terraceId),
+      () =>
+        sendReminderFromBar(stranger, o, {
+          sendPush: vi.fn(async () => true),
+          sendEmail: vi.fn(async () => ({})),
+          links: { order: () => "", smsStatusCallback: "" },
+        }),
+      () => rejectFromBar(stranger, o, { reason: "other" }),
     ];
 
     for (const call of calls)
-      await expect(call).rejects.toMatchObject({ code: "not_found" });
+      await expect(call()).rejects.toMatchObject({ code: "not_found" });
   });
 
   it("keeps a VIP host off the bar's pause and move", async () => {
