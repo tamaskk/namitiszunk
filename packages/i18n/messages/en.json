@@ -443,7 +443,8 @@
       "payouts": "Payouts",
       "reviews": "Reviews",
       "settings": "Settings",
-      "billing": "Fees and invoices"
+      "billing": "Fees and invoices",
+      "vipView": "VIP host view"
     },
     "shell": {
       "venue": "Venue",
@@ -753,6 +754,24 @@
         "soundLocked": "Tap the screen so new orders make a sound."
       },
       "open": "Open"
+    },
+    "vipView": {
+      "title": "VIP",
+      "takeOut": "To take out ({count})",
+      "coming": "In progress ({count})",
+      "handedOver": "Handed over",
+      "noTable": "No table",
+      "fromBar": "{bar} bar",
+      "order": "Order {number}",
+      "minutes": "Ready {count} min ago",
+      "statusNew": "New",
+      "statusPreparing": "In progress",
+      "emptyTakeOut": "Nothing to take out right now.",
+      "emptyComing": "No VIP orders in progress.",
+      "setUp": "Set up this phone for the VIP host",
+      "setUpHint": "After that only the VIP host signs in on this phone, with their own PIN.",
+      "switchStaff": "Sign out ({name})",
+      "signOut": "Sign out"
     }
   },
   "hq": {

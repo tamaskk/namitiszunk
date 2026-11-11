@@ -4,6 +4,7 @@ import {
   barPauseResponseSchema,
   barRejectInputSchema,
   barViewResponseSchema,
+  vipViewResponseSchema,
   moveOrderInputSchema,
   okResponseSchema,
   receiptInputSchema,
@@ -369,6 +370,15 @@ export function createApiClient(options: ApiClientOptions) {
         request("POST", `/v1/orders/${id(orderId)}/move`, okResponseSchema, {
           body: parseInput(moveOrderInputSchema, input),
         }),
+    },
+    vipView: {
+      /** GET /v1/venues/{id}/vip-orders: today's VIP orders of every bar. */
+      get: async (venueId: string) =>
+        request(
+          "GET",
+          `/v1/venues/${id(venueId)}/vip-orders`,
+          vipViewResponseSchema,
+        ),
     },
     realtime: {
       /** POST /v1/realtime/token, for the Ably client's authCallback. A guest passes its order's guest token. */

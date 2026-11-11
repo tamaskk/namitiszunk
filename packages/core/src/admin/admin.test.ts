@@ -81,6 +81,7 @@ describe("admin modules", () => {
     expect(open("manager")).toEqual([
       "dashboard",
       "barView",
+      "vipView",
       "orders",
       "menu",
       "bars",
@@ -88,6 +89,11 @@ describe("admin modules", () => {
       "reports",
       "reviews",
     ]);
+  });
+
+  it("opens the VIP view for the VIP host's PIN, never for a bartender's (T-055)", () => {
+    expect(open("vip_host")).toEqual(["vipView"]);
+    expect(open("bartender")).not.toContain("vipView");
   });
 
   it("refuses another venue's member and a manager on owner modules", () => {

@@ -7,6 +7,7 @@ import {
   Order,
   Venue,
   VenueMember,
+  Zone,
 } from "@namitiszunk/db";
 
 import { audit, auditActorOf } from "../audit/audit";
@@ -110,6 +111,88 @@ async function announce(input: Parameters<typeof publishBarUpdate>[0]) {
   } catch (error) {
     reportError(error);
   }
+}
+
+export type VipViewOrder = {
+  id: string;
+  shortNumber: number | null;
+  status: "new" | "preparing" | "ready";
+  version: number;
+  /** The VIP table (the QR code's zone) the bottle goes to; null for an order without a zone. */
+  tableName: string | null;
+  barName: string;
+  items: { name: string; quantity: number; options: string[] }[];
+  paidAt: string;
+  readyAt: string | null;
+};
+
+export type VipView = { staffName: string | null; orders: VipViewOrder[] };
+
+/**
+ * The VIP host's list (T-055): today's VIP orders of every bar. Ready ones go out to the table;
+ * New and In progress are shown greyed so the host sees what is coming. Handing over is a
+ * transition() call (pick_up needs order.handOverVip for a VIP order).
+ */
+export async function getVipView(
+  actor: Actor,
+  venueId: string,
+  now = new Date(),
+): Promise<VipView> {
+  requirePermission(actor, "order.viewTakeOutList", { venueId });
+  const venue = await Venue.findById(venueId)
+    .select("timezone businessDayStart")
+    .lean();
+  if (!venue) throw new NotFoundError();
+  const day = businessDate(now, {
+    timezone: venue.timezone ?? "Europe/Budapest",
+    businessDayStart: venue.businessDayStart ?? "06:00",
+  });
+  const [orders, bars, member] = await Promise.all([
+    Order.find({
+      venueId,
+      isVip: true,
+      businessDate: day,
+      status: { $in: ["new", "preparing", "ready"] },
+    })
+      .select(
+        "shortNumber status updatedAt barId zoneId items.name items.quantity items.options paidAt createdAt readyAt",
+      )
+      .sort({ createdAt: 1 })
+      .lean(),
+    Bar.find({ venueId }).select("name").lean(),
+    actor.kind === "staff"
+      ? VenueMember.findOne({ _id: actor.memberId, venueId })
+          .select("displayName")
+          .lean()
+      : null,
+  ]);
+  const zoneIds = [
+    ...new Set(orders.flatMap((o) => (o.zoneId ? [String(o.zoneId)] : []))),
+  ];
+  const zones = await Zone.find({ _id: { $in: zoneIds }, venueId })
+    .select("name")
+    .lean();
+  const zoneNames = new Map(zones.map((z) => [String(z._id), z.name]));
+  const barNames = new Map(bars.map((b) => [String(b._id), b.name]));
+
+  return {
+    staffName: member?.displayName ?? null,
+    orders: orders.map((o) => ({
+      id: String(o._id),
+      shortNumber: o.shortNumber ?? null,
+      status: o.status as VipViewOrder["status"],
+      version: o.updatedAt.getTime(),
+      tableName: o.zoneId ? (zoneNames.get(String(o.zoneId)) ?? null) : null,
+      barName: barNames.get(String(o.barId)) ?? "",
+      items: o.items.map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        options: (i.options ?? []).map((opt) => opt.name),
+      })),
+      paidAt: (o.paidAt ?? o.createdAt).toISOString(),
+      readyAt: o.readyAt?.toISOString() ?? null,
+    })),
+  };
 }
 
 /** The bar picker on /pult: the venue's bars, and who holds the PIN on this tablet. */

@@ -21,6 +21,8 @@ type AdminModule = {
 export const adminModules = [
   { key: "dashboard", path: "/", action: "report.viewDaily" },
   { key: "barView", path: "/pult", action: "order.start" },
+  // The VIP host's phone (T-055); a bartender's PIN cannot open it.
+  { key: "vipView", path: "/vip", action: "order.viewTakeOutList" },
   { key: "orders", path: "/orders", action: "order.start" },
   { key: "menu", path: "/menu", action: "menu.edit" },
   { key: "bars", path: "/bars", action: "venue.manageBars" },

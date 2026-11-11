@@ -443,7 +443,8 @@
       "payouts": "Kifizetések",
       "reviews": "Értékelések",
       "settings": "Beállítások",
-      "billing": "Díjak és számlák"
+      "billing": "Díjak és számlák",
+      "vipView": "VIP-host nézet"
     },
     "shell": {
       "venue": "Helyszín",
@@ -753,6 +754,24 @@
         "soundLocked": "Érintsd meg a képernyőt, hogy szóljon az új rendelés."
       },
       "open": "Megnyitás"
+    },
+    "vipView": {
+      "title": "VIP",
+      "takeOut": "Kivinni ({count})",
+      "coming": "Készül ({count})",
+      "handedOver": "Átadva",
+      "noTable": "Asztal nélkül",
+      "fromBar": "{bar} pult",
+      "order": "{number}. rendelés",
+      "minutes": "{count} perce kész",
+      "statusNew": "Új",
+      "statusPreparing": "Készül",
+      "emptyTakeOut": "Most nincs kivinnivaló.",
+      "emptyComing": "Nincs készülő VIP rendelés.",
+      "setUp": "Telefon beállítása VIP-hostnak",
+      "setUpHint": "Ezen a telefonon utána csak a VIP-host lép be, a saját PIN-kódjával.",
+      "switchStaff": "Kilépés ({name})",
+      "signOut": "Kilépés"
     }
   },
   "hq": {

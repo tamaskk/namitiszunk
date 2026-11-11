@@ -25,6 +25,7 @@ import {
   Tag,
   Users,
   Wallet,
+  Wine,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -35,6 +36,7 @@ export type NavItem = { key: AdminModuleKey; path: string; label: string };
 const icons: Record<AdminModuleKey, LucideIcon> = {
   dashboard: LayoutDashboard,
   barView: MonitorSmartphone,
+  vipView: Wine,
   orders: ReceiptText,
   menu: BookOpen,
   bars: QrCode,
