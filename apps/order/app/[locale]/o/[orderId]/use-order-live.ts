@@ -59,6 +59,7 @@ export function useOrderLive(initial: OrderResponse, token: string) {
         );
         void refresh();
       },
+      onUpdate: () => void refresh(),
       // Every (re)connect may have missed messages, including the gap between server render and subscribe.
       onConnected: () => void refresh(),
     });

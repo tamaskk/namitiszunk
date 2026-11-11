@@ -10,7 +10,12 @@ import {
 } from "@namitiszunk/db";
 
 import { audit, auditActorOf } from "../audit/audit";
-import { type Actor, requirePermission } from "../auth/permissions";
+import {
+  type Action,
+  type Actor,
+  can,
+  requirePermission,
+} from "../auth/permissions";
 import { AppError, ConflictError, NotFoundError } from "../errors";
 import { type NotifyDeps, sendPickupReminder } from "../jobs/order-jobs";
 import { inTransaction, setItemAvailable } from "../menu/admin-menu";
@@ -82,12 +87,19 @@ async function loadBar(barId: string) {
   return bar;
 }
 
-/** The order with its venue, for a check that runs before the write. */
-async function loadOrder(orderId: string) {
-  const order = await Order.findById(orderId)
-    .select("venueId barId status")
-    .lean();
-  if (!order) throw new NotFoundError();
+/**
+ * The order with its venue, for a check that runs before the write. An order the actor may not act
+ * on answers 404 like a missing one, so a guessed id never tells whether it exists (ids are in guest links).
+ */
+async function loadOrderFor(
+  actor: Actor,
+  orderId: string,
+  action: Action,
+  fields = "venueId barId status",
+) {
+  const order = await Order.findById(orderId).select(fields).lean();
+  if (!order || !can(actor, action, { venueId: String(order.venueId) }))
+    throw new NotFoundError();
   return order;
 }
 
@@ -247,9 +259,8 @@ export async function setReceiptEntered(
   entered: boolean,
   now = new Date(),
 ): Promise<void> {
-  const order = await loadOrder(orderId);
+  const order = await loadOrderFor(actor, orderId, "order.markReceipt");
   const venueId = String(order.venueId);
-  requirePermission(actor, "order.markReceipt", { venueId });
   const memberId = memberIdOf(actor, venueId);
   if (entered && !memberId) throw new AppError(403, "forbidden");
 
@@ -306,9 +317,8 @@ export async function moveOrderToBar(
   orderId: string,
   toBarId: string,
 ): Promise<void> {
-  const order = await loadOrder(orderId);
+  const order = await loadOrderFor(actor, orderId, "order.moveBar");
   const venueId = String(order.venueId);
-  requirePermission(actor, "order.moveBar", { venueId });
   const fromBarId = String(order.barId);
   if (fromBarId === toBarId) throw new ConflictError("same_bar");
   const target = await Bar.findOne({ _id: toBarId, venueId })
@@ -343,17 +353,21 @@ export async function sendReminderFromBar(
   orderId: string,
   deps: NotifyDeps,
 ): Promise<"push" | "sms" | "none"> {
-  const order = await loadOrder(orderId);
+  const order = await loadOrderFor(actor, orderId, "order.sendReminder");
   const venueId = String(order.venueId);
-  requirePermission(actor, "order.sendReminder", { venueId });
   const sent = await sendPickupReminder(orderId, deps);
   if (sent === "skipped") throw new ConflictError("reminder_not_sendable");
-  await inTransaction((session) =>
-    auditOrder(session, actor, venueId, orderId, {
-      action: "order.reminderSent",
-      after: { channel: sent },
-    }),
-  );
+  // The reminder is out and cannot be taken back: a failed audit is reported, not a 500 to the bar.
+  try {
+    await inTransaction((session) =>
+      auditOrder(session, actor, venueId, orderId, {
+        action: "order.reminderSent",
+        after: { channel: sent },
+      }),
+    );
+  } catch (error) {
+    reportError(error);
+  }
   await announce({ venueId, barIds: [String(order.barId)] });
   return sent;
 }
@@ -369,10 +383,12 @@ export async function rejectFromBar(
   orderId: string,
   input: { reason: RejectReason; soldOutItemIds?: readonly string[] },
 ): Promise<void> {
-  const order = await Order.findById(orderId)
-    .select("venueId status items.itemId")
-    .lean();
-  if (!order) throw new NotFoundError();
+  const order = await loadOrderFor(
+    actor,
+    orderId,
+    "order.reject",
+    "venueId status items.itemId",
+  );
   const venueId = String(order.venueId);
   // Spec: rejection only from the New column; the state machine alone would also allow it later for a guest.
   if (order.status !== "new") throw new ConflictError("invalid_status");

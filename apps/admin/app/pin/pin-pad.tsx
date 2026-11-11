@@ -5,6 +5,8 @@ import { Delete } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
+import { unlockTabletAlerts } from "@/lib/tablet-alerts";
+
 import { signInWithPinAction } from "./actions";
 
 const PIN_LENGTH = 4;
@@ -23,10 +25,14 @@ export function PinPad({
   );
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
   const [pending, startTransition] = useTransition();
+  const disabled = pending || locked;
 
   function press(digit: string) {
-    if (!member || pending) return;
+    if (!member || disabled) return;
+    // The first tap is the user gesture browsers need before the board may play a sound.
+    unlockTabletAlerts();
     const next = (pin + digit).slice(0, PIN_LENGTH);
     setPin(next);
     setError(null);
@@ -38,6 +44,8 @@ export function PinPad({
       });
       // Success redirects; only a refusal comes back.
       const code = result.error.code;
+      // Locked for a few minutes: the pad stays off until the member is chosen again.
+      setLocked(code === "pin_locked");
       setError(
         knownErrors.includes(code as (typeof knownErrors)[number])
           ? t(`errors.${code as (typeof knownErrors)[number]}`)
@@ -76,22 +84,32 @@ export function PinPad({
       className="mx-auto flex w-full max-w-dialog flex-col gap-6"
     >
       <div className="flex flex-col gap-2">
-        <h2 id="pin-title" className="text-h2">
-          {t("pinFor", { name: member.name })}
-        </h2>
-        <p
-          aria-live="polite"
-          aria-label={t("pinProgress", {
-            count: pin.length,
-            total: PIN_LENGTH,
-          })}
-          className="flex gap-3"
-        >
+        <div className="flex items-center gap-3">
+          <h2 id="pin-title" className="flex-1 text-h2">
+            {t("pinFor", { name: member.name })}
+          </h2>
+          <Button
+            variant="ghost"
+            disabled={pending}
+            onClick={() => {
+              setMember(null);
+              setPin("");
+              setError(null);
+              setLocked(false);
+            }}
+          >
+            {t("back")}
+          </Button>
+        </div>
+        <p role="status" className="flex gap-3">
+          <span className="sr-only">
+            {t("pinProgress", { count: pin.length, total: PIN_LENGTH })}
+          </span>
           {Array.from({ length: PIN_LENGTH }, (_, i) => (
             <span
               key={i}
               aria-hidden
-              className={`size-4 rounded-full border border-border ${i < pin.length ? "bg-primary" : ""}`}
+              className={`size-4 rounded-full border ${i < pin.length ? "border-primary bg-primary" : "border-text-muted"}`}
             />
           ))}
         </p>
@@ -107,28 +125,17 @@ export function PinPad({
             key={d}
             size="bar"
             variant="secondary"
-            disabled={pending}
+            disabled={disabled}
             onClick={() => press(d)}
           >
             {d}
           </Button>
         ))}
-        <Button
-          size="bar"
-          variant="ghost"
-          disabled={pending}
-          onClick={() => {
-            setMember(null);
-            setPin("");
-            setError(null);
-          }}
-        >
-          {t("back")}
-        </Button>
+        <span aria-hidden />
         <Button
           size="bar"
           variant="secondary"
-          disabled={pending}
+          disabled={disabled}
           onClick={() => press("0")}
         >
           0
@@ -136,7 +143,7 @@ export function PinPad({
         <Button
           size="bar"
           variant="ghost"
-          disabled={pending || pin.length === 0}
+          disabled={disabled || pin.length === 0}
           aria-label={t("deleteDigit")}
           onClick={() => setPin(pin.slice(0, -1))}
         >
