@@ -73,7 +73,8 @@ function Button({
       className={cn(buttonVariants({ variant, size }), className)}
       aria-busy={loading || undefined}
       aria-disabled={loading || undefined}
-      onClick={handleClick}
+      // No handler when nothing needs one, so a server component can render a submit Button.
+      onClick={loading || onClick ? handleClick : undefined}
       {...props}
     >
       <span
