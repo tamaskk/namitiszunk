@@ -72,6 +72,18 @@ const noPermissionRoutes: Record<string, string> = {
   "me/orders/[id]/reorder/route.ts":
     "core answers 404 unless the account owns it",
   "me/export/route.ts": "accountCaller: the guest's own data only",
+  // The bar view (T-054): the venue is known only after loading the bar or order, so core checks it.
+  "bars/[id]/orders/route.ts":
+    "getBarView checks order.start on the bar's venue",
+  "bars/[id]/pause/route.ts": "setBarPaused checks bar.pauseOrders",
+  "orders/[id]/status/route.ts": "transition() checks order.<event>",
+  "orders/[id]/reject/route.ts":
+    "rejectFromBar checks order.reject and product.setSoldOut",
+  "orders/[id]/receipt/route.ts": "setReceiptEntered checks order.markReceipt",
+  "orders/[id]/reminder/route.ts":
+    "sendReminderFromBar checks order.sendReminder",
+  "orders/[id]/move/route.ts":
+    "moveOrderToBar checks order.moveBar and the target bar's venue",
 };
 
 describe("only reviewed /v1 routes skip the permission check", () => {

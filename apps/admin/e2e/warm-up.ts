@@ -9,6 +9,8 @@ const routes = [
   "/menu",
   "/menu/import",
   "/bars",
+  "/pult",
+  "/pin",
   "/settings",
   "/dev/ui",
 ];

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import * as account from "./account";
 import * as auth from "./auth";
+import * as barView from "./bar-view";
 import * as menu from "./menu";
 import * as orders from "./orders";
 import * as payments from "./payments";
@@ -17,6 +18,15 @@ export const openApiDocumentSchema = z.looseObject({ openapi: z.string() });
 
 const components = {
   ErrorResponse: errorResponseSchema,
+  BarViewResponse: barView.barViewResponseSchema,
+  BarOrderEventInput: barView.barOrderEventInputSchema,
+  BarRejectInput: barView.barRejectInputSchema,
+  ReceiptInput: barView.receiptInputSchema,
+  BarPauseInput: barView.barPauseInputSchema,
+  BarPauseResponse: barView.barPauseResponseSchema,
+  MoveOrderInput: barView.moveOrderInputSchema,
+  ReminderResponse: barView.reminderResponseSchema,
+  OkResponse: barView.okResponseSchema,
   ClaimOrdersInput: account.claimOrdersInputSchema,
   ClaimOrdersResponse: account.claimOrdersResponseSchema,
   AccountOrdersResponse: account.accountOrdersResponseSchema,
@@ -307,6 +317,83 @@ const operations: Operation[] = [
     response: "AccountExportResponse",
     status: 200,
     auth: "account",
+  },
+  // The bar view (T-054): staff sessions only; on a bar tablet, the active PIN holder.
+  {
+    method: "get",
+    path: "/v1/bars/{id}/orders",
+    operationId: "getBarView",
+    summary: "One bar's orders of the current business day, for the bar view",
+    tag: "bar-view",
+    response: "BarViewResponse",
+    status: 200,
+    auth: "staff",
+  },
+  {
+    method: "post",
+    path: "/v1/bars/{id}/pause",
+    operationId: "pauseBar",
+    summary: "Pauses the bar for 5, 10 or 15 minutes; 0 resumes it",
+    tag: "bar-view",
+    request: "BarPauseInput",
+    response: "BarPauseResponse",
+    status: 200,
+    auth: "staff",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/status",
+    operationId: "changeOrderStatus",
+    summary: "Start, Ready or Picked up, one tap on the bar view",
+    tag: "bar-view",
+    request: "BarOrderEventInput",
+    response: "OkResponse",
+    status: 200,
+    auth: "staff",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/reject",
+    operationId: "rejectOrder",
+    summary:
+      "Staff rejects a New order with a reason; sold out also marks the items sold out",
+    tag: "bar-view",
+    request: "BarRejectInput",
+    response: "OkResponse",
+    status: 200,
+    auth: "staff",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/receipt",
+    operationId: "setReceiptEntered",
+    summary: "The receipt entered mark, logged to the PIN holder",
+    tag: "bar-view",
+    request: "ReceiptInput",
+    response: "OkResponse",
+    status: 200,
+    auth: "staff",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/reminder",
+    operationId: "sendPickupReminder",
+    summary: "Sends the pickup reminder now, once per order",
+    tag: "bar-view",
+    response: "ReminderResponse",
+    status: 200,
+    auth: "staff",
+  },
+  {
+    method: "post",
+    path: "/v1/orders/{id}/move",
+    operationId: "moveOrderToBar",
+    summary: "Moves a waiting order to another bar of the venue",
+    tag: "bar-view",
+    request: "MoveOrderInput",
+    response: "OkResponse",
+    status: 200,
+    auth: "staff",
   },
 ];
 

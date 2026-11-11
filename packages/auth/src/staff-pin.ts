@@ -14,6 +14,7 @@ import { VenueMember } from "@namitiszunk/db";
 import { hash, verify } from "@node-rs/argon2";
 
 import { isObjectId, type RequestActor } from "./actors";
+import { cookieDomainFor } from "./better-auth";
 import { readCookie, signValue, verifySignedValue } from "./signed-value";
 
 export const deviceCookieName = "nmi-device";
@@ -135,6 +136,22 @@ export function isStaffDevice(request: Request, now = Date.now()): boolean {
   return deviceFrom(readCookie(request, deviceCookieName), now) !== null;
 }
 
+// Signing a member in or out is all a bar tablet may do on Better Auth: the manager session left on
+// it must not read the account (get-session) or change it (update-user, change-email, 2FA setup).
+const staffDeviceAuthPaths =
+  /^\/api\/auth\/(?:sign-out|sign-in\/[\w-]+|magic-link\/verify|callback\/[\w-]+|two-factor\/verify-[\w-]+)$/;
+
+/** True when Better Auth may serve this request: any request off a bar tablet, only sign-in and sign-out on one. */
+export function staffDeviceAllowsAuthRequest(
+  request: Request,
+  now = Date.now(),
+): boolean {
+  return (
+    !isStaffDevice(request, now) ||
+    staffDeviceAuthPaths.test(new URL(request.url).pathname)
+  );
+}
+
 /** The active PIN holder of a staff device request, or null (401). The role is read fresh from the database. */
 export async function staffActorFromRequest(
   request: Request,
@@ -172,4 +189,38 @@ export async function staffActorFromRequest(
     memberId: staff.memberId,
     role: member.role,
   };
+}
+
+/**
+ * The device and staff cookies: httpOnly, and in production on the parent domain like the session,
+ * so the bar view's calls to api.namitiszunk.hu carry the PIN holder (T-054).
+ */
+export function staffDeviceCookieOptions(expiresAt: Date) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    expires: expiresAt,
+    domain: cookieDomainFor(process.env.BETTER_AUTH_URL),
+  };
+}
+
+/** The names on a bar tablet's PIN screen: active bartenders and VIP hosts of its venue with a PIN set. */
+export async function listDeviceMembers(
+  deviceCookie: string | undefined,
+  now = Date.now(),
+): Promise<{ id: string; name: string }[] | null> {
+  const device = deviceFrom(deviceCookie, now);
+  if (!device) return null;
+  const members = await VenueMember.find({
+    venueId: device.venueId,
+    isActive: true,
+    role: { $in: pinRoles },
+    pinHash: { $exists: true },
+  })
+    .select("displayName")
+    .sort({ displayName: 1 })
+    .lean();
+  return members.map((m) => ({ id: String(m._id), name: m.displayName }));
 }

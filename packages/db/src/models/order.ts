@@ -98,6 +98,8 @@ const orderSchema = new Schema(
     cancelledByGuest: Boolean,
     receiptEnteredAt: Date,
     receiptEnteredBy: { type: objectId, ref: "VenueMember" },
+    // The bar view's reminder button sends once (T-054); the scheduled reminder skips it too.
+    reminderSentAt: Date,
     paidAt: Date,
     acceptedAt: Date,
     readyAt: Date,

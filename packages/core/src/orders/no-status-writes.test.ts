@@ -11,8 +11,37 @@ const allowed = (path: string) =>
   /(^|\/)(seed|fixtures?)(\.ts|\/)/.test(path);
 
 // shortcut: a text heuristic (Order writes naming `status`, `order.status =`), not type-aware; upgrade to an ESLint rule if it misses or misfires.
-const orderWrite =
-  /\bOrder(?:\.collection)?\.(?:updateOne|updateMany|findOneAndUpdate|findByIdAndUpdate|replaceOne|bulkWrite|findOneAndReplace)\s*\([\s\S]{0,400}?\bstatus\b/;
+const orderWriteCall =
+  /\bOrder(?:\.collection)?\.(updateOne|updateMany|findOneAndUpdate|findByIdAndUpdate|replaceOne|bulkWrite|findOneAndReplace)\s*\(/g;
+
+/** The call's arguments after the first one, up to its closing parenthesis. */
+function argsAfterFirst(text: string, from: number): string {
+  let depth = 0;
+  let firstEnd = -1;
+  for (let i = from; i < text.length; i++) {
+    const c = text[i];
+    if (c === "(" || c === "{" || c === "[") depth++;
+    else if (c === ")" || c === "}" || c === "]") {
+      if (depth === 0) return firstEnd < 0 ? "" : text.slice(firstEnd, i);
+      depth--;
+    } else if (c === "," && depth === 0 && firstEnd < 0) firstEnd = i + 1;
+  }
+  return firstEnd < 0 ? "" : text.slice(firstEnd);
+}
+
+/** True when an Order write names `status` outside its filter (a filter on `status` is fine: a claim only while Ready). */
+function writesOrderStatus(text: string): boolean {
+  for (const match of text.matchAll(orderWriteCall)) {
+    const start = match.index + match[0].length;
+    // bulkWrite has no filter argument: any `status` in it counts.
+    const updates =
+      match[1] === "bulkWrite"
+        ? text.slice(start, start + 400)
+        : argsAfterFirst(text, start);
+    if (/\bstatus\b/.test(updates)) return true;
+  }
+  return false;
+}
 const assignment = /\border\.status\s*=[^=]/i;
 
 function sourceFiles(dir: string): string[] {
@@ -35,18 +64,35 @@ describe("order status writes", () => {
       .filter((path) => !allowed(path))
       .filter((path) => {
         const text = readFileSync(join(repoRoot, path), "utf8");
-        return orderWrite.test(text) || assignment.test(text);
+        return writesOrderStatus(text) || assignment.test(text);
       });
 
     expect(files.length).toBeGreaterThan(0);
     expect(offenders).toEqual([]);
   });
 
-  it("catches a direct status update", () => {
-    const code = `await Order.updateOne({ _id }, { $set: { status: "ready" } });`;
+  it("catches a status update in any update shape", () => {
+    const writes = [
+      `await Order.updateOne({ _id }, { $set: { status: "ready" } });`,
+      `await Order.updateOne({ _id }, { status: "ready" });`,
+      `await Order.updateOne({ _id }, { "$set": { a: { b: 1 }, status } });`,
+      `await Order.findByIdAndUpdate(id, { status });`,
+      `await Order.findOneAndUpdate({ _id }, [{ $set: { status: "x" } }]);`,
+      `await Order.bulkWrite([{ updateOne: { filter: {}, update: { status } } }]);`,
+    ];
 
-    expect(orderWrite.test(code)).toBe(true);
+    const caught = writes.map(writesOrderStatus);
+
+    expect(caught).toEqual(writes.map(() => true));
     expect(assignment.test("order.status = 'new'")).toBe(true);
     expect(assignment.test("order.status === 'new'")).toBe(false);
+  });
+
+  it("allows a status filter on a write that sets other fields", () => {
+    const claim = `await Order.updateOne({ _id, status: "ready", reminderSentAt: null }, { $set: { reminderSentAt: now } });`;
+    const move = `await Order.updateOne({ _id, status: { $in: ["new"] } }, { $set: { barId } }, { session });`;
+
+    expect(writesOrderStatus(claim)).toBe(false);
+    expect(writesOrderStatus(move)).toBe(false);
   });
 });

@@ -7,7 +7,9 @@ import { type Actor, can } from "../auth/permissions";
 import { AppError } from "../errors";
 import type { StatusChanged } from "../orders/transition";
 import {
+  BAR_UPDATE_EVENT,
   barChannel,
+  type BarUpdateMessage,
   orderChannel,
   STATUS_EVENT,
   type StatusMessage,
@@ -103,6 +105,25 @@ export async function publishStatusChange(
   await Promise.all(
     channels.map((name) =>
       client.channels.get(name).publish(STATUS_EVENT, message),
+    ),
+  );
+}
+
+/** Tells the bar views (and the order's own page) to reload after a change that is not a status change. */
+export async function publishBarUpdate(input: {
+  venueId: string;
+  barIds: readonly string[];
+  orderId?: string;
+}): Promise<void> {
+  const message: BarUpdateMessage = { orderId: input.orderId };
+  const channels = [
+    ...input.barIds.map((barId) => barChannel(input.venueId, barId)),
+    ...(input.orderId ? [orderChannel(input.orderId)] : []),
+  ];
+  const client = ably();
+  await Promise.all(
+    channels.map((name) =>
+      client.channels.get(name).publish(BAR_UPDATE_EVENT, message),
     ),
   );
 }
