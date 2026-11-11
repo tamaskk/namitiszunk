@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
   images,
   cacheComponents: true,
   partialPrefetching: true,
+  // The QR card and poster PDFs (T-053) are rendered in Node with their own font files.
+  serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingIncludes: { "/bars/qr/[id]": ["./assets/fonts/*.ttf"] },
   // forbidden() for the role-gated Admin modules (T-050).
   experimental: { authInterrupts: true },
   turbopack: {

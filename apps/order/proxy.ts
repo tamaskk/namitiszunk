@@ -28,6 +28,6 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Skip API routes, Next and Vercel internals, and files such as favicon.ico.
-  matcher: "/((?!(?:api|_next|_vercel)(?:/|$)|.*\\..*).*)",
+  // Skip API routes, printed QR redirects (/q), Next and Vercel internals, and files such as favicon.ico.
+  matcher: "/((?!(?:api|_next|_vercel|q)(?:/|$)|.*\\..*).*)",
 };

@@ -8,6 +8,7 @@ const routes = [
   "/",
   "/menu",
   "/menu/import",
+  "/bars",
   "/settings",
   "/dev/ui",
 ];

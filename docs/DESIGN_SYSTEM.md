@@ -33,7 +33,7 @@ Rules:
 - One accent color. Status colors are for state, not decoration.
 - Text and the accent pass WCAG AA on `--color-bg` (4.5:1 for body text). The accent candidate must reach at least 4.5:1 on black (#16).
 - Light theme: not supported in v1. Never hard-code a color; a light set may be added later under the same token names.
-- Print (the only exception): the payment confirmation (T-044) prints on white paper, so `@media print` in `apps/order/app/globals.css` redefines the same tokens. No other screen is meant to be printed.
+- Print (the only exceptions): the payment confirmation (T-044) prints on white paper, so `@media print` in `apps/order/app/globals.css` redefines the same tokens; the QR table card and A4 poster PDFs (T-053, `apps/admin/app/(dashboard)/bars/qr/[id]/qr-print.tsx`) use the same print values, black on white, no accent colour (the venue colour comes with T-058). No other screen is meant to be printed.
 
 | Token (print) | Value |
 | --- | --- |

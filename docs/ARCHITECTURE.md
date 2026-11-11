@@ -46,6 +46,7 @@ MongoDB Atlas  Stripe     Ably     Inngest   Twilio    Resend    Vercel Blob   S
 | Background jobs | Inngest | Expiry, reminders, abandoned payments, weekly report, data retention |
 | SMS / Email | Twilio / Resend + React Email | "Ready" SMS without an app; transactional email with SPF/DKIM |
 | Files | Vercel Blob | Product images, logos |
+| QR codes / print | `qrcode`, `@react-pdf/renderer` (Admin only, T-053) | PNG and a real PDF table card / A4 poster rendered on the server; no headless browser to run on Vercel |
 | i18n | next-intl (web), use-intl (mobile), shared `packages/i18n` | hu + en from day one, one set of message files |
 | Hosting | Vercel Pro, 5 projects, region `fra1` | Next.js native hosting next to the Frankfurt database |
 | Monitoring / analytics | Sentry, uptime monitor, PostHog (cookieless) | Night-time alerts; funnel measurement without a cookie banner |
