@@ -145,7 +145,9 @@ function ZoneRow({
           <span className="min-w-0 text-body font-semibold break-words">
             {zone.name}
           </span>
-          {zone.type === "vip_table" && <Badge status="neutral">{t("vip")}</Badge>}
+          {zone.type === "vip_table" && (
+            <Badge status="neutral">{t("vip")}</Badge>
+          )}
         </div>
         {zone.qr && (
           <span className="text-small text-text-muted tabular-nums">
