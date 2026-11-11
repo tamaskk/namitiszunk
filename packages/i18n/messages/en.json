@@ -50,7 +50,8 @@
     "refund_exceeds_remaining": "The amount is more than what is left to refund.",
     "refund_failed": "The refund did not go through. Try again or contact support.",
     "refund_not_allowed_in_status": "This order cannot be refunded in its current status.",
-    "terms_outdated": "The terms have been updated. Reload the page and accept the new version."
+    "terms_outdated": "The terms have been updated. Reload the page and accept the new version.",
+    "export_too_large": "This period has too many orders for one file. Choose a shorter period."
   },
   "landing": {
     "tagline": "Order and pay on your phone",
@@ -772,6 +773,177 @@
       "setUpHint": "After that only the VIP host signs in on this phone, with their own PIN.",
       "switchStaff": "Sign out ({name})",
       "signOut": "Sign out"
+    },
+    "orders": {
+      "loading": "Loading…",
+      "filters": {
+        "date": "Business day",
+        "number": "Order number",
+        "numberPlaceholder": "#214",
+        "status": "Status",
+        "anyStatus": "All",
+        "problem": "Has a problem report",
+        "missingReceipt": "Receipt not entered",
+        "apply": "Filter",
+        "reset": "Clear filters",
+        "bar": "Bar",
+        "anyBar": "All",
+        "method": "Payment method",
+        "anyMethod": "All",
+        "methods": {
+          "card": "Card",
+          "apple_pay": "Apple Pay",
+          "google_pay": "Google Pay"
+        },
+        "min": "At least (HUF)",
+        "max": "At most (HUF)"
+      },
+      "statuses": {
+        "awaiting_payment": "Awaiting payment",
+        "new": "New",
+        "preparing": "In progress",
+        "ready": "Ready",
+        "picked_up": "Picked up",
+        "cancelled": "Cancelled",
+        "rejected": "Rejected",
+        "expired": "Expired",
+        "refunded": "Refunded"
+      },
+      "list": {
+        "count": "{count, plural, =0 {No orders} one {# order} other {# orders}}",
+        "empty": "No orders on this day match the filters.",
+        "number": "No.",
+        "paidAt": "Paid",
+        "bar": "Bar",
+        "status": "Status",
+        "total": "Total",
+        "refunded": "Refunded: {amount}",
+        "problems": "{count, plural, one {# problem report} other {# problem reports}}",
+        "noReceipt": "No receipt",
+        "open": "Order {number}",
+        "noNumber": "–",
+        "previous": "Previous page",
+        "next": "Next page",
+        "page": "Page {page} of {pages}",
+        "pagination": "Pages"
+      },
+      "export": {
+        "title": "Export for the books",
+        "from": "From (business day)",
+        "to": "To (business day)",
+        "csv": "Download CSV",
+        "xlsx": "Download Excel",
+        "hint": "Up to 92 days. No guest data.",
+        "invalidRange": "The start day cannot be after the end day, and one download covers at most 92 days.",
+        "filename": "orders",
+        "sheet": "Orders"
+      },
+      "columns": {
+        "paidAt": "Paid",
+        "businessDate": "Business day",
+        "shortNumber": "Order number",
+        "bar": "Bar",
+        "status": "Status",
+        "subtotalHuf": "Subtotal",
+        "discountHuf": "Discount",
+        "serviceFeeHuf": "Service fee",
+        "tipHuf": "Tip",
+        "totalHuf": "Total",
+        "platformFeeHuf": "Platform fee",
+        "refundedHuf": "Refunded",
+        "paymentMethod": "Payment method",
+        "receiptEnteredBy": "Receipt entered"
+      },
+      "detail": {
+        "back": "Back to orders",
+        "title": "Order {number}",
+        "businessDay": "Business day: {date}",
+        "vip": "VIP",
+        "bar": "Bar: {name}",
+        "table": "Table: {name}",
+        "items": "Items",
+        "amounts": "Amounts",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "serviceFee": "Service fee",
+        "tip": "Tip",
+        "total": "Total",
+        "refunded": "Refunded",
+        "platformFee": "Platform fee",
+        "payment": "Payment",
+        "paymentIntent": "Stripe PaymentIntent",
+        "method": "Payment method",
+        "guest": "Guest",
+        "email": "Email",
+        "phone": "Phone",
+        "notGiven": "Not given",
+        "receipt": "Receipt entered",
+        "receiptBy": "{name}, {time}",
+        "receiptMissing": "Not entered yet",
+        "rejectionReason": "Rejection reason: {reason}",
+        "problems": "Problem reports",
+        "noProblems": "No problem reports.",
+        "refunds": "Refunds",
+        "noRefunds": "No refunds.",
+        "refundBy": "{amount} · {who}",
+        "timeline": "Timeline",
+        "noTimeline": "No entries yet.",
+        "system": "System",
+        "unknown": "Unknown",
+        "refundStatus": {
+          "pending": "Pending",
+          "succeeded": "Succeeded",
+          "failed": "Failed"
+        },
+        "actions": {
+          "order_payment_succeeded": "Paid",
+          "order_payment_timeout": "Payment timed out",
+          "order_start_preparing": "Accepted",
+          "order_reject": "Rejected",
+          "order_mark_ready": "Ready",
+          "order_pick_up": "Picked up",
+          "order_expire": "Expired",
+          "order_refund": "Fully refunded",
+          "order_receiptEntered": "Receipt entered",
+          "order_receiptCleared": "Receipt mark removed",
+          "order_movedBar": "Moved to another bar",
+          "order_reminderSent": "Reminder sent",
+          "refund_created": "Refund started",
+          "refund_succeeded": "Refund succeeded",
+          "refund_failed": "Refund failed"
+        },
+        "platform": "Na, mit iszunk? support",
+        "amountMax": "At most {amount}."
+      },
+      "refund": {
+        "open": "Refund",
+        "title": "Refund order {number}",
+        "hint": "Up to {amount} can be refunded. The guest gets it within a few working days.",
+        "full": "Full amount ({amount})",
+        "partial": "Part of it",
+        "amount": "Amount (HUF)",
+        "reason": "Reason",
+        "reasonHint": "Required. It goes into the audit log.",
+        "confirm": "Start refund",
+        "cancel": "Cancel",
+        "started": "The refund has started.",
+        "failed": "Could not start it. Try again."
+      },
+      "cancelOrder": {
+        "open": "Cancel order",
+        "title": "Cancel order {number}?",
+        "hint": "The order becomes Rejected and the guest gets the full amount back.",
+        "confirm": "Cancel with full refund",
+        "cancel": "Keep order",
+        "done": "The order is cancelled and the refund has started.",
+        "failed": "Could not cancel it. Try again."
+      },
+      "problemCategories": {
+        "not_received": "Did not get it",
+        "wrong_order": "Wrong or incomplete order",
+        "payment": "Payment problem",
+        "other": "Other"
+      }
     }
   },
   "hq": {
@@ -953,6 +1125,7 @@
     },
     "vatRate": {
       "invalid": "Invalid VAT rate."
-    }
+    },
+    "exportRange": "The start day cannot be after the end day, and one download covers at most 92 days."
   }
 }

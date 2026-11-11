@@ -96,6 +96,10 @@ describe("admin modules", () => {
     expect(open("bartender")).not.toContain("vipView");
   });
 
+  it("keeps the orders module, with guest contact and the export, from a bartender (T-056)", () => {
+    expect(open("bartender")).not.toContain("orders");
+  });
+
   it("refuses another venue's member and a manager on owner modules", () => {
     const other = member(new Types.ObjectId().toString(), "owner");
     expect(canOpenModule(other, "dashboard", venueId)).toBe(false);

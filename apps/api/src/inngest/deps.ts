@@ -27,7 +27,6 @@ export const deps = {
       get platformEmail() {
         return process.env.PLATFORM_ALERT_EMAIL ?? "";
       },
-      // shortcut: the admin order page arrives with T-056; the link already points where it will live.
       adminOrder: (orderId: string) =>
         `https://admin.namitiszunk.hu/orders/${orderId}`,
     },

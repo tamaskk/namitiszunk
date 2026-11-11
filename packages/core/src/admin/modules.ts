@@ -23,7 +23,7 @@ export const adminModules = [
   { key: "barView", path: "/pult", action: "order.start" },
   // The VIP host's phone (T-055); a bartender's PIN cannot open it.
   { key: "vipView", path: "/vip", action: "order.viewTakeOutList" },
-  { key: "orders", path: "/orders", action: "order.start" },
+  { key: "orders", path: "/orders", action: "order.viewHistory" },
   { key: "menu", path: "/menu", action: "menu.edit" },
   { key: "bars", path: "/bars", action: "venue.manageBars" },
   // A manager may manage the PIN roles only, so the module opens for that much.
