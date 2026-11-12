@@ -32,6 +32,7 @@ Use tokens in components. Never raw hex values. Dark is the only theme in v1.
 Rules:
 - One accent color. Status colors are for state, not decoration.
 - Text and the accent pass WCAG AA on `--color-bg` (4.5:1 for body text). The accent candidate must reach at least 4.5:1 on black (#16).
+- Venue accent (T-058): a venue may set its own accent in Settings. The guest pages use it as `--color-primary` (hover: the same colour mixed 88% with black) only when it reaches 4.5:1 on `--color-surface`; otherwise they keep the default. The Admin and the printed QR card and poster always use the default tokens.
 - Light theme: not supported in v1. Never hard-code a color; a light set may be added later under the same token names.
 - Print (the only exceptions): the payment confirmation (T-044) prints on white paper, so `@media print` in `apps/order/app/globals.css` redefines the same tokens; the QR table card and A4 poster PDFs (T-053, `apps/admin/app/(dashboard)/bars/qr/[id]/qr-print.tsx`) use the same print values, black on white, no accent colour (the venue colour comes with T-058). No other screen is meant to be printed.
 
