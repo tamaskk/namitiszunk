@@ -5,6 +5,8 @@ import { capPercent, defineModel, huf, objectId } from "./shared";
 export const venueStatuses = ["draft", "active", "suspended"] as const;
 export const serviceFeeTypes = ["none", "percent", "fixed"] as const;
 export const zoneTypes = ["bar_area", "vip_table"] as const;
+/** 5, 10 and 15%: the tip buttons a venue starts with (T-058). */
+export const DEFAULT_TIP_PRESETS_BPS = [500, 1000, 1500] as const;
 
 const timeOfDay = {
   type: String,
@@ -43,6 +45,19 @@ const orderRulesSchema = new Schema(
       value: huf({ default: 0 }),
     },
     smsEnabled: { type: Boolean, default: false },
+    // The checkout's tip buttons (T-058): three percentages in basis points; "Custom" is always offered while on.
+    tips: {
+      enabled: { type: Boolean, default: true },
+      presetsBps: {
+        type: [{ type: Number, min: 1, max: 10_000 }],
+        default: () => [...DEFAULT_TIP_PRESETS_BPS],
+        validate: {
+          validator: (values: number[]) =>
+            values.length === 3 && values.every(Number.isInteger),
+          message: "{PATH} must be three whole basis points",
+        },
+      },
+    },
   },
   { _id: false },
 );
@@ -76,7 +91,16 @@ const venueSchema = new Schema(
     businessDayStart: { ...timeOfDay, default: "06:00" },
     // Empty: the bars' open/closed switch alone decides when guests can order.
     openingHours: { type: [openingHoursSchema], default: undefined },
-    branding: { logoUrl: String, coverUrl: String },
+    branding: {
+      logoUrl: String,
+      coverUrl: String,
+      // The venue's accent on the guest pages (T-058); the order app uses it only above 4.5:1 on the dark background.
+      accentColor: {
+        type: String,
+        match: [/^#[0-9a-f]{6}$/, "{PATH} must be #rrggbb"],
+        lowercase: true,
+      },
+    },
     stripeAccountId: {
       type: String,
       match: [/^acct_\w+$/, "{PATH} must be a Stripe account id"],

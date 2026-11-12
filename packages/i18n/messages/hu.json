@@ -1043,7 +1043,8 @@
           "staff_enabled": "Tag visszaengedése",
           "staff_deviceRevoked": "Eszköz kijelentkeztetése",
           "staff_invited": "Meghívó küldése",
-          "staff_joined": "Csatlakozás meghívóval"
+          "staff_joined": "Csatlakozás meghívóval",
+          "venue_settingsUpdated": "Beállítások mentése"
         }
       }
     },
@@ -1056,6 +1057,93 @@
       "acceptAs": "Belépve: {email}. Elfogadod a meghívást?",
       "accept": "Meghívás elfogadása",
       "home": "Tovább az adminra"
+    },
+    "settings": {
+      "intro": "A helyszín adatai, nyitvatartása, arculata és rendelési szabályai. Minden fül külön ment.",
+      "loading": "Beállítások betöltése…",
+      "preview": "Előnézet",
+      "opensNewTab": "(új lapon nyílik)",
+      "save": "Mentés",
+      "saved": "Mentve.",
+      "tabs": {
+        "basics": "Alapadatok",
+        "hours": "Nyitvatartás",
+        "branding": "Arculat",
+        "order": "Rendelés",
+        "notifications": "Értesítések"
+      },
+      "errors": {
+        "generic": "Nem sikerült menteni. Próbáld újra.",
+        "forbidden": "Ehhez nincs jogosultságod.",
+        "validation": "Ellenőrizd a pirossal jelölt mezőket."
+      },
+      "basics": {
+        "name": "A helyszín neve",
+        "postalCode": "Irányítószám",
+        "city": "Város",
+        "street": "Utca, házszám",
+        "companyName": "Cégnév",
+        "taxNumber": "Adószám",
+        "taxNumberHint": "12345678-1-12 formában.",
+        "contactEmail": "Kapcsolattartó e-mail",
+        "contactEmailHint": "Ide érkeznek a vendégek problémajelzései."
+      },
+      "hours": {
+        "intro": "Jelöld be a nyitvatartási napokat. Ha a zárás korábbi, mint a nyitás, az másnap reggelt jelent (például 22:00–05:00). Ha egy nap sincs bejelölve, csak a pultok nyitva/zárva kapcsolója számít.",
+        "day1": "Hétfő",
+        "day2": "Kedd",
+        "day3": "Szerda",
+        "day4": "Csütörtök",
+        "day5": "Péntek",
+        "day6": "Szombat",
+        "day7": "Vasárnap",
+        "open": "Nyitás",
+        "close": "Zárás",
+        "businessDayStart": "Az üzleti nap kezdete",
+        "businessDayStartHint": "Eddig az időpontig az előző este rendelései közé számít minden. Alapból 06:00."
+      },
+      "branding": {
+        "logo": "Logó",
+        "cover": "Borítókép",
+        "imageHint": "JPG, PNG vagy WebP, legfeljebb 5 MB.",
+        "uploading": "Feltöltés…",
+        "uploadFailed": "A képet nem sikerült feltölteni. JPG, PNG vagy WebP legyen, legfeljebb 5 MB.",
+        "remove": "{field} törlése",
+        "accent": "Kiemelő szín",
+        "accentHint": "#rrggbb formában, például #c8ff2e. Üresen hagyva az alap színt használjuk.",
+        "lowContrast": "Ez a szín túl sötét a sötét háttéren, nehezen olvasható. Elmenthető, de a rendelős oldal addig az alap színt mutatja."
+      },
+      "order": {
+        "serviceFee": "Szervizdíj",
+        "serviceFeeType": "Szervizdíj típusa",
+        "feeTypes": {
+          "none": "Nincs",
+          "percent": "Százalék",
+          "fixed": "Fix összeg"
+        },
+        "feePercent": "Szervizdíj (%)",
+        "feeFixed": "Szervizdíj (Ft)",
+        "tips": "Borravaló",
+        "tipsEnabled": "Borravaló a pénztárban",
+        "tipsHint": "A vendég a három értékből vagy egyéni összegből választhat.",
+        "tipPreset": "{n}. érték (%)",
+        "rules": "Rendelési szabályok",
+        "autoAccept": "Automatikus elfogadás",
+        "autoAcceptHint": "A fizetett rendelés rögtön a pulthoz kerül.",
+        "pickupDeadline": "Átvételi határidő (perc)",
+        "pickupDeadlineHint": "15 és 60 perc között. Alapból 30.",
+        "refundOnExpiry": "Visszatérítés lejáratkor",
+        "refundOnExpiryHint": "Ha a vendég nem veszi át időben, a rendszer visszautalja az árát.",
+        "maxItems": "Legtöbb tétel egy rendelésben",
+        "minimumOrder": "Minimum rendelés (Ft)",
+        "minimumOrderHint": "0: nincs minimum.",
+        "lastOrder": "Utolsó rendelés zárás előtt (perc)",
+        "lastOrderHint": "Ennyivel zárás előtt áll le a rendelés. Alapból 15."
+      },
+      "notifications": {
+        "sms": "SMS értesítés a vendégnek",
+        "smsHint": "A vendég SMS-t kérhet, amikor elkészült a rendelése. 35 Ft / SMS, a klub fizeti."
+      }
     }
   },
   "hq": {
@@ -1239,6 +1327,32 @@
     "vatRate": {
       "invalid": "Érvénytelen ÁFA-kulcs."
     },
-    "exportRange": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot tölthetsz le egyszerre."
+    "exportRange": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot tölthetsz le egyszerre.",
+    "text": {
+      "max": "Túl hosszú."
+    },
+    "taxNumber": {
+      "format": "Adószám 12345678-1-12 formában."
+    },
+    "postalCode": {
+      "format": "Négy számjegy."
+    },
+    "hours": {
+      "sameTime": "A zárás nem lehet ugyanakkor, mint a nyitás.",
+      "dayTwice": "Egy nap csak egyszer szerepelhet."
+    },
+    "color": {
+      "hex": "Szín #rrggbb formában, például #c8ff2e."
+    },
+    "tips": {
+      "preset": "0,01 és 100% közötti érték.",
+      "distinct": "Mindhárom érték legyen különböző."
+    },
+    "maxItems": {
+      "range": "1 és 99 között."
+    },
+    "lastOrder": {
+      "range": "0 és 120 perc között."
+    }
   }
 }

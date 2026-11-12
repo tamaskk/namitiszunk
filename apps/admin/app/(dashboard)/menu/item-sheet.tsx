@@ -25,7 +25,6 @@ import {
   toast,
 } from "@namitiszunk/ui";
 import { allergenCodes, type ItemInput } from "@namitiszunk/validators";
-import { put } from "@vercel/blob/client";
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -35,6 +34,8 @@ import {
   useFormContext,
   type FieldPath,
 } from "react-hook-form";
+
+import { uploadImage } from "@/lib/upload-image";
 
 import { createItemAction, updateItemAction } from "./actions";
 import {
@@ -70,8 +71,6 @@ type Values = {
   imageUrl: string;
   modifierGroups: GroupValues[];
 };
-
-const API = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 
 /** The new-item or edit form in a side sheet; on phones it fills the screen. */
 export function ItemSheet({
@@ -562,7 +561,7 @@ function ImageField({ venueId }: { venueId: string }) {
   async function upload(file: File) {
     setUploading(true);
     try {
-      form.setValue("imageUrl", await uploadProductImage(venueId, file), {
+      form.setValue("imageUrl", await uploadImage(venueId, "product", file), {
         shouldDirty: true,
       });
       form.clearErrors("imageUrl");
@@ -624,28 +623,6 @@ function ImageField({ venueId }: { venueId: string }) {
       )}
     />
   );
-}
-
-async function uploadProductImage(
-  venueId: string,
-  file: File,
-): Promise<string> {
-  const res = await fetch(`${API}/v1/uploads`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ venueId, kind: "product" }),
-  });
-  if (!res.ok) throw new Error(`upload token ${res.status}`);
-  const { data } = (await res.json()) as {
-    data: { clientToken: string; pathname: string };
-  };
-  const blob = await put(data.pathname, file, {
-    access: "public",
-    token: data.clientToken,
-    contentType: file.type,
-  });
-  return blob.url;
 }
 
 function toGroupValues(

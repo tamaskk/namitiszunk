@@ -14,6 +14,7 @@ import { connection } from "next/server";
 
 import { ensureDb } from "@/lib/db";
 import { getMenu } from "@/lib/menu-cache";
+import { venueAccentStyle } from "@/lib/venue-accent";
 
 import { CheckoutForm } from "./checkout-form";
 
@@ -68,7 +69,10 @@ export default async function CheckoutPage({
   const menuHref = `/${locale}/v/${encodeURIComponent(slug)}${search ? `?${search}` : ""}`;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-120 flex-col gap-6 bg-bg p-4 pb-32 text-text">
+    <main
+      className="mx-auto flex min-h-dvh max-w-120 flex-col gap-6 bg-bg p-4 pb-32 text-text"
+      style={venueAccentStyle(menu.venue.accentColor)}
+    >
       <header className="flex flex-col gap-1">
         <h1 className="text-h2">{t("title")}</h1>
         <p className="text-body text-text-muted">{menu.venue.name}</p>
@@ -83,6 +87,7 @@ export default async function CheckoutPage({
           renderedAt={live.at}
           menuHref={menuHref}
           publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""}
+          tipPresetsBps={menu.venue.tipPresetsBps}
         />
       ) : (
         <EmptyState

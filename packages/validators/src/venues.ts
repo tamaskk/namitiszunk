@@ -179,3 +179,120 @@ export const setOrdersPausedSchema = z.object({
 
 /** The Admin venue switcher; the server checks the id against the user's memberships. */
 export const selectVenueSchema = z.object({ venueId: objectIdSchema });
+
+// Settings (T-058): one schema per tab, each saved on its own. An empty text field clears the value.
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, { error: "validation.text.max" })
+    .regex(/^[^\p{Cc}]*$/u, { error: "validation.name.invalid" });
+
+/** Hungarian tax number: 8 digits, VAT code, county code (12345678-1-12). */
+export const taxNumberSchema = z
+  .string()
+  .regex(/^\d{8}-[1-5]-\d{2}$/, { error: "validation.taxNumber.format" });
+
+export const basicsSettingsSchema = z.object({
+  name: nameSchema,
+  address: z.object({
+    street: optionalText(200),
+    city: optionalText(100),
+    postalCode: z
+      .string()
+      .regex(/^(\d{4})?$/, { error: "validation.postalCode.format" }),
+  }),
+  company: z.object({
+    name: optionalText(200),
+    taxNumber: taxNumberSchema.or(z.literal("")),
+  }),
+  contactEmail: z
+    .email({ error: "validation.email.invalid" })
+    .max(254, { error: "validation.email.invalid" })
+    .or(z.literal("")),
+});
+
+export const openingHourSchema = z
+  .object({
+    day: z.int().min(1).max(7),
+    open: timeOfDaySchema,
+    close: timeOfDaySchema,
+  })
+  // A close before the open is the next morning (22:00–05:00); the same time would be 24 hours.
+  .refine((h) => h.open !== h.close, {
+    path: ["close"],
+    error: "validation.hours.sameTime",
+  });
+
+export const hoursSettingsSchema = z.object({
+  businessDayStart: timeOfDaySchema,
+  openingHours: z
+    .array(openingHourSchema)
+    .max(7)
+    .refine((hours) => new Set(hours.map((h) => h.day)).size === hours.length, {
+      error: "validation.hours.dayTwice",
+    }),
+});
+
+export const accentColorSchema = z
+  .string()
+  // Empty clears the colour; one regex, so a bad value gets the colour message, not a union error.
+  .regex(/^(#[0-9a-fA-F]{6})?$/, { error: "validation.color.hex" })
+  .transform((value) => value.toLowerCase());
+
+export const brandingSettingsSchema = z.object({
+  logoUrl: blobUrlSchema.or(z.literal("")),
+  coverUrl: blobUrlSchema.or(z.literal("")),
+  accentColor: accentColorSchema,
+});
+
+export const tipRulesSchema = z.object({
+  enabled: z.boolean(),
+  presetsBps: z
+    .array(
+      z
+        .int({ error: "validation.tips.preset" })
+        .min(1, { error: "validation.tips.preset" })
+        .max(10_000, { error: "validation.tips.preset" }),
+    )
+    .length(3)
+    .refine((values) => new Set(values).size === values.length, {
+      error: "validation.tips.distinct",
+    }),
+});
+
+export const orderSettingsSchema = orderRulesInputSchema
+  .omit({ smsEnabled: true })
+  .extend({
+    maxItemsPerOrder: z
+      .int()
+      .min(1, { error: "validation.maxItems.range" })
+      .max(99, { error: "validation.maxItems.range" }),
+    lastOrderMinutesBeforeClose: z
+      .int()
+      .min(0, { error: "validation.lastOrder.range" })
+      .max(120, { error: "validation.lastOrder.range" }),
+    tips: tipRulesSchema,
+  });
+
+export const notificationSettingsSchema = z.object({ smsEnabled: z.boolean() });
+
+/** One Settings tab's save: the tab names which part of the venue changes. */
+export const venueSettingsInputSchema = z.discriminatedUnion("tab", [
+  basicsSettingsSchema.extend({ tab: z.literal("basics") }),
+  hoursSettingsSchema.extend({ tab: z.literal("hours") }),
+  brandingSettingsSchema.extend({ tab: z.literal("branding") }),
+  orderSettingsSchema.extend({ tab: z.literal("order") }),
+  notificationSettingsSchema.extend({ tab: z.literal("notifications") }),
+]);
+
+export const settingsTabs = [
+  "basics",
+  "hours",
+  "branding",
+  "order",
+  "notifications",
+] as const;
+export type SettingsTab = (typeof settingsTabs)[number];
+export type VenueSettingsInput = z.infer<typeof venueSettingsInputSchema>;
+export type OpeningHourInput = z.infer<typeof openingHourSchema>;

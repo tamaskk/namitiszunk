@@ -62,6 +62,40 @@ describe("calculateOrder", () => {
     expect(result.totalHuf).toBe(6000);
   });
 
+  it("takes the venue's own tip presets and refuses the defaults it dropped (T-058)", () => {
+    const tips = { enabled: true, presetsBps: [800, 1200, 2000] };
+
+    const twelve = calculateOrder({
+      ...baseInput,
+      tips,
+      tip: { type: "percent", bps: 1200 },
+    });
+    const ten = () =>
+      calculateOrder({
+        ...baseInput,
+        tips,
+        tip: { type: "percent", bps: 1000 },
+      });
+
+    expect(twelve.tipHuf).toBe(644); // 12% of 5370 = 644.4
+    expect(ten).toThrow(RangeError);
+  });
+
+  it("allows only no tip when the venue turned tips off", () => {
+    const tips = { enabled: false, presetsBps: [500, 1000, 1500] };
+
+    const none = calculateOrder({ ...baseInput, tips });
+    const custom = () =>
+      calculateOrder({
+        ...baseInput,
+        tips,
+        tip: { type: "custom", amountHuf: 100 },
+      });
+
+    expect(none.tipHuf).toBe(0);
+    expect(custom).toThrow(RangeError);
+  });
+
   it.each([
     [{ type: "percent", value: 1250 } as const, 671], // 12.5% of 5370 = 671.25
     [{ type: "fixed", value: 400 } as const, 400],

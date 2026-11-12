@@ -1043,7 +1043,8 @@
           "staff_enabled": "Member enabled",
           "staff_deviceRevoked": "Device signed out",
           "staff_invited": "Invite sent",
-          "staff_joined": "Joined by invite"
+          "staff_joined": "Joined by invite",
+          "venue_settingsUpdated": "Settings saved"
         }
       }
     },
@@ -1056,6 +1057,93 @@
       "acceptAs": "Signed in as {email}. Accept the invite?",
       "accept": "Accept invite",
       "home": "Go to admin"
+    },
+    "settings": {
+      "intro": "The venue's details, opening hours, branding and order rules. Each tab saves on its own.",
+      "loading": "Loading settings…",
+      "preview": "Preview",
+      "opensNewTab": "(opens in a new tab)",
+      "save": "Save",
+      "saved": "Saved.",
+      "tabs": {
+        "basics": "Details",
+        "hours": "Opening hours",
+        "branding": "Branding",
+        "order": "Orders",
+        "notifications": "Notifications"
+      },
+      "errors": {
+        "generic": "Could not save. Try again.",
+        "forbidden": "You do not have access to this.",
+        "validation": "Check the fields marked in red."
+      },
+      "basics": {
+        "name": "Venue name",
+        "postalCode": "Postal code",
+        "city": "City",
+        "street": "Street and number",
+        "companyName": "Company name",
+        "taxNumber": "Tax number",
+        "taxNumberHint": "In the form 12345678-1-12.",
+        "contactEmail": "Contact e-mail",
+        "contactEmailHint": "Guests' problem reports go here."
+      },
+      "hours": {
+        "intro": "Tick the days you are open. A close earlier than the open means the next morning (for example 22:00–05:00). With no day ticked, only the bars' open/closed switch counts.",
+        "day1": "Monday",
+        "day2": "Tuesday",
+        "day3": "Wednesday",
+        "day4": "Thursday",
+        "day5": "Friday",
+        "day6": "Saturday",
+        "day7": "Sunday",
+        "open": "Opens",
+        "close": "Closes",
+        "businessDayStart": "Business day starts",
+        "businessDayStartHint": "Until this time, orders count to the night before. 06:00 by default."
+      },
+      "branding": {
+        "logo": "Logo",
+        "cover": "Cover image",
+        "imageHint": "JPG, PNG or WebP, up to 5 MB.",
+        "uploading": "Uploading…",
+        "uploadFailed": "The image could not be uploaded. Use JPG, PNG or WebP, up to 5 MB.",
+        "remove": "Remove {field}",
+        "accent": "Accent colour",
+        "accentHint": "As #rrggbb, for example #c8ff2e. Leave it empty for the default colour.",
+        "lowContrast": "This colour is too dark on the dark background and hard to read. You can save it, but the order page shows the default colour until you change it."
+      },
+      "order": {
+        "serviceFee": "Service fee",
+        "serviceFeeType": "Service fee type",
+        "feeTypes": {
+          "none": "None",
+          "percent": "Percentage",
+          "fixed": "Fixed amount"
+        },
+        "feePercent": "Service fee (%)",
+        "feeFixed": "Service fee (HUF)",
+        "tips": "Tips",
+        "tipsEnabled": "Tips at checkout",
+        "tipsHint": "Guests pick one of the three values or type their own amount.",
+        "tipPreset": "Value {n} (%)",
+        "rules": "Order rules",
+        "autoAccept": "Accept automatically",
+        "autoAcceptHint": "A paid order goes straight to the bar.",
+        "pickupDeadline": "Pickup deadline (minutes)",
+        "pickupDeadlineHint": "Between 15 and 60 minutes. 30 by default.",
+        "refundOnExpiry": "Refund on expiry",
+        "refundOnExpiryHint": "If the guest does not pick it up in time, the price is refunded automatically.",
+        "maxItems": "Most items in one order",
+        "minimumOrder": "Minimum order (HUF)",
+        "minimumOrderHint": "0: no minimum.",
+        "lastOrder": "Last order before closing (minutes)",
+        "lastOrderHint": "Ordering stops this long before closing. 15 by default."
+      },
+      "notifications": {
+        "sms": "SMS to the guest",
+        "smsHint": "Guests can ask for a text when their order is ready. 35 HUF per SMS, paid by the club."
+      }
     }
   },
   "hq": {
@@ -1239,6 +1327,32 @@
     "vatRate": {
       "invalid": "Invalid VAT rate."
     },
-    "exportRange": "The start day cannot be after the end day, and one download covers at most 92 days."
+    "exportRange": "The start day cannot be after the end day, and one download covers at most 92 days.",
+    "text": {
+      "max": "Too long."
+    },
+    "taxNumber": {
+      "format": "Tax number as 12345678-1-12."
+    },
+    "postalCode": {
+      "format": "Four digits."
+    },
+    "hours": {
+      "sameTime": "Closing cannot be the same time as opening.",
+      "dayTwice": "Each day can appear only once."
+    },
+    "color": {
+      "hex": "Colour as #rrggbb, for example #c8ff2e."
+    },
+    "tips": {
+      "preset": "A value between 0.01 and 100%.",
+      "distinct": "The three values must differ."
+    },
+    "maxItems": {
+      "range": "Between 1 and 99."
+    },
+    "lastOrder": {
+      "range": "Between 0 and 120 minutes."
+    }
   }
 }

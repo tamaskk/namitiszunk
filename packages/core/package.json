@@ -26,7 +26,9 @@
     "./bars": "./src/bars/bars.ts",
     "./bar-view": "./src/bar-view/bar-view.ts",
     "./bar-view/summary": "./src/bar-view/summary.ts",
-    "./staff": "./src/staff/staff.ts"
+    "./staff": "./src/staff/staff.ts",
+    "./settings": "./src/settings/settings.ts",
+    "./settings/contrast": "./src/settings/contrast.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

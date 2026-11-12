@@ -18,7 +18,6 @@ import type {
 import {
   HU_PHONE_PATTERN,
   SITE_URL,
-  TIP_PERCENT_BPS,
 } from "@namitiszunk/validators/cart-limits";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
@@ -62,6 +61,7 @@ export function CheckoutForm({
   renderedAt,
   menuHref,
   publishableKey,
+  tipPresetsBps,
 }: {
   venueId: string;
   bar: { id: string; name: string };
@@ -71,6 +71,8 @@ export function CheckoutForm({
   renderedAt: number;
   menuHref: string;
   publishableKey: string;
+  /** The venue's tip buttons (T-058); null: no tip section, the order goes without a tip. */
+  tipPresetsBps: number[] | null;
 }) {
   const t = useTranslations("order.checkout");
   const tError = useTranslations("apiErrors");
@@ -246,7 +248,7 @@ export function CheckoutForm({
     }
   }
 
-  const tipOptions = TIP_PERCENT_BPS.map((bps) => ({
+  const tipOptions = [0, ...(tipPresetsBps ?? [])].map((bps) => ({
     key: `p${bps}`,
     label: bps === 0 ? t("tipNone") : t("tipPercent", { percent: bps / 100 }),
     checked: tip.type === "percent" && tip.bps === bps,
@@ -336,47 +338,54 @@ export function CheckoutForm({
           )}
         </section>
 
-        <fieldset className="flex flex-col gap-3">
-          <legend className="mb-2 text-h3">{t("tip")}</legend>
-          <div className="grid grid-cols-5 gap-2">
-            {tipOptions.map((option) => (
+        {tipPresetsBps && (
+          <fieldset className="flex flex-col gap-3">
+            <legend className="mb-2 text-h3">{t("tip")}</legend>
+            <div className="grid grid-cols-5 gap-2">
+              {tipOptions.map((option) => (
+                <ChoiceChip
+                  key={option.key}
+                  name="tip"
+                  checked={option.checked}
+                  onChange={option.choose}
+                >
+                  {option.label}
+                </ChoiceChip>
+              ))}
               <ChoiceChip
-                key={option.key}
                 name="tip"
-                checked={option.checked}
-                onChange={option.choose}
+                checked={customChecked}
+                onChange={() =>
+                  setTip({ type: "custom", amountHuf: Number(customTip) || 0 })
+                }
               >
-                {option.label}
+                {t("tipCustom")}
               </ChoiceChip>
-            ))}
-            <ChoiceChip
-              name="tip"
-              checked={customChecked}
-              onChange={() =>
-                setTip({ type: "custom", amountHuf: Number(customTip) || 0 })
-              }
-            >
-              {t("tipCustom")}
-            </ChoiceChip>
-          </div>
-          {customChecked && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="checkout-tip" className="text-small font-medium">
-                {t("tipCustomLabel")}
-              </Label>
-              <Input
-                id="checkout-tip"
-                inputMode="numeric"
-                value={customTip}
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
-                  setCustomTip(digits);
-                  setTip({ type: "custom", amountHuf: Number(digits) || 0 });
-                }}
-              />
             </div>
-          )}
-        </fieldset>
+            {customChecked && (
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor="checkout-tip"
+                  className="text-small font-medium"
+                >
+                  {t("tipCustomLabel")}
+                </Label>
+                <Input
+                  id="checkout-tip"
+                  inputMode="numeric"
+                  value={customTip}
+                  onChange={(e) => {
+                    const digits = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 6);
+                    setCustomTip(digits);
+                    setTip({ type: "custom", amountHuf: Number(digits) || 0 });
+                  }}
+                />
+              </div>
+            )}
+          </fieldset>
+        )}
 
         <div className="flex flex-col gap-3">
           <CheckRow id="checkout-sms" checked={sms} onChange={setSms}>
