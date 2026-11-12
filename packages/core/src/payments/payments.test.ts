@@ -271,10 +271,11 @@ describe("quoteOrder", () => {
       input({ tip: { type: "percent", bps: 1200 } }),
       now,
     );
-    const ten = quoteOrder(input({ tip: { type: "percent", bps: 1000 } }), now);
+    const ten = () =>
+      quoteOrder(input({ tip: { type: "percent", bps: 1000 } }), now);
 
     expect(twelve.tipHuf).toBeGreaterThan(0);
-    await expect(ten).rejects.toMatchObject({ status: 400 });
+    await expect(ten()).rejects.toMatchObject({ status: 400 });
     await Venue.updateOne(
       { _id: venueId },
       { $set: { "orderRules.tips.enabled": false } },

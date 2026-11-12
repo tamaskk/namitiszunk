@@ -145,21 +145,24 @@ describe("updateVenueSettings", () => {
       accentColor: "",
     });
 
-    const foreign = updateVenueSettings(
-      member("owner"),
-      venueId,
-      branding("https://evil.public.blob.vercel-storage.com/x.png"),
-    );
-    const otherVenue = updateVenueSettings(
-      member("owner"),
-      venueId,
-      branding(ours.replace(venueId, new Types.ObjectId().toString())),
-    );
+    // Thunks: each save starts only when its rejection is awaited (no unhandled rejection).
+    const foreign = () =>
+      updateVenueSettings(
+        member("owner"),
+        venueId,
+        branding("https://evil.public.blob.vercel-storage.com/x.png"),
+      );
+    const otherVenue = () =>
+      updateVenueSettings(
+        member("owner"),
+        venueId,
+        branding(ours.replace(venueId, new Types.ObjectId().toString())),
+      );
 
-    await expect(foreign).rejects.toMatchObject({
+    await expect(foreign()).rejects.toMatchObject({
       fields: { logoUrl: "validation.url.invalid" },
     });
-    await expect(otherVenue).rejects.toMatchObject({ status: 400 });
+    await expect(otherVenue()).rejects.toMatchObject({ status: 400 });
     const saved = await updateVenueSettings(
       member("owner"),
       venueId,
