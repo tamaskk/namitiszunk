@@ -4,3 +4,5 @@
 50465bc01c2424cf9b351ba5ca015e0de8eef22e:apps/order/lib/guest-link.test.ts:generic-api-key:6
 # Made-up Blob token (store id ABC123) in the upload unit test; not a real credential.
 ec9fef260a4b898d539020d93cb392c5f3246753:packages/core/src/uploads/blob.test.ts:generic-api-key:42
+# Made-up Blob token (store id abc123) in the settings unit test; not a real credential.
+55e8301e5ddb451daf2b7221845d60c8a9935025:packages/core/src/settings/settings.test.ts:generic-api-key:139
