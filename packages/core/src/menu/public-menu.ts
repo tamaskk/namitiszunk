@@ -3,6 +3,7 @@ import "server-only";
 import {
   Bar,
   Category,
+  DEFAULT_TIP_PRESETS_BPS,
   Item,
   type ItemDoc,
   Types,
@@ -15,6 +16,7 @@ import {
   DEFAULT_MAX_ITEMS_PER_ORDER,
   type SelectableGroup,
 } from "../cart/selection";
+import { accentIsReadable } from "../settings/contrast";
 
 export type PublicModifierGroup = Omit<SelectableGroup, "modifiers"> & {
   name: string;
@@ -41,6 +43,10 @@ export type PublicMenu = {
     coverUrl: string | null;
     /** The venue's item limit, DEFAULT_MAX_ITEMS_PER_ORDER when unset. */
     maxItemsPerOrder: number;
+    /** The venue accent when readable on the dark background (T-058); null: the default accent. */
+    accentColor: string | null;
+    /** The checkout's tip buttons in basis points; null: this venue takes no tips. */
+    tipPresetsBps: number[] | null;
   };
   bar: { id: string; name: string } | null;
   categories: { id: string; name: string; items: PublicMenuItem[] }[];
@@ -195,6 +201,17 @@ export async function getPublicMenu({
       coverUrl: venue.branding?.coverUrl ?? null,
       maxItemsPerOrder:
         venue.orderRules?.maxItemsPerOrder ?? DEFAULT_MAX_ITEMS_PER_ORDER,
+      accentColor:
+        venue.branding?.accentColor &&
+        accentIsReadable(venue.branding.accentColor)
+          ? venue.branding.accentColor
+          : null,
+      tipPresetsBps:
+        venue.orderRules?.tips?.enabled === false
+          ? null
+          : venue.orderRules?.tips?.presetsBps?.length
+            ? [...venue.orderRules.tips.presetsBps]
+            : [...DEFAULT_TIP_PRESETS_BPS],
     },
     bar: bar ? { id: bar._id.toString(), name: bar.name } : null,
     categories: categories

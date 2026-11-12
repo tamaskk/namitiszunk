@@ -18,6 +18,7 @@ import { OpenOrderBanner } from "@/components/states/open-order-banner";
 import { trackMenuViewed } from "@/lib/analytics";
 import { ensureDb } from "@/lib/db";
 import { getMenu } from "@/lib/menu-cache";
+import { venueAccentStyle } from "@/lib/venue-accent";
 
 import { AgeGate } from "./age-gate";
 import { ageGatePrePaintScript } from "./age-gate-ids";
@@ -95,7 +96,10 @@ export default async function MenuPage({
   ).toString();
 
   return (
-    <main className="mx-auto min-h-dvh max-w-120 bg-bg pb-32 text-text">
+    <main
+      className="mx-auto min-h-dvh max-w-120 bg-bg pb-32 text-text"
+      style={venueAccentStyle(menu.venue.accentColor)}
+    >
       <AgeGate>
         <header>
           {menu.venue.coverUrl && (

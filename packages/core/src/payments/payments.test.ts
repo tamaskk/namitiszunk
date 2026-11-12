@@ -257,6 +257,39 @@ describe("quoteOrder", () => {
     expect(api.paymentIntents.create).toHaveBeenCalledTimes(1);
   });
 
+  it("takes only the venue's own tip presets, and no tip when tips are off (T-058)", async () => {
+    await Venue.updateOne(
+      { _id: venueId },
+      {
+        $set: {
+          "orderRules.tips": { enabled: true, presetsBps: [800, 1200, 2000] },
+        },
+      },
+    );
+
+    const twelve = await quoteOrder(
+      input({ tip: { type: "percent", bps: 1200 } }),
+      now,
+    );
+    const ten = () =>
+      quoteOrder(input({ tip: { type: "percent", bps: 1000 } }), now);
+
+    expect(twelve.tipHuf).toBeGreaterThan(0);
+    await expect(ten()).rejects.toMatchObject({ status: 400 });
+    await Venue.updateOne(
+      { _id: venueId },
+      { $set: { "orderRules.tips.enabled": false } },
+    );
+    await expect(
+      quoteOrder(input({ tip: { type: "custom", amountHuf: 100 } }), now),
+    ).rejects.toMatchObject({ status: 400 });
+    const none = await quoteOrder(
+      input({ tip: { type: "percent", bps: 0 } }),
+      now,
+    );
+    expect(none.tipHuf).toBe(0);
+  });
+
   it("writes no order and creates no PaymentIntent", async () => {
     await quoteOrder(input(), now);
 

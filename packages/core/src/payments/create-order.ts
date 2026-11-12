@@ -209,6 +209,15 @@ async function priceCart(input: CartToPrice, now: Date) {
           : { type: "none" },
       promo: null,
       tip: input.tip,
+      // A venue without its own presets (or before T-058) prices with the defaults.
+      tips: rules?.tips?.presetsBps?.length
+        ? {
+            enabled: rules.tips.enabled !== false,
+            presetsBps: rules.tips.presetsBps,
+          }
+        : rules?.tips?.enabled === false
+          ? { enabled: false, presetsBps: [] }
+          : undefined,
       smsRequested: input.smsRequested,
       commissionBps: await commissionBpsAt(venue._id, now),
     });

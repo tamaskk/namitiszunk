@@ -221,6 +221,38 @@ describe("getPublicMenu", () => {
     });
   });
 
+  it("gives the default tips and accent to a venue without settings, and drops an unreadable accent (T-058)", async () => {
+    const plain = await getPublicMenu({
+      slug: "demo",
+      locale: "hu",
+      ...regular,
+    });
+    await Venue.updateOne(
+      { _id: ids.venue },
+      {
+        $set: {
+          "branding.accentColor": "#1e3a8a",
+          "orderRules.tips": { enabled: false, presetsBps: [500, 1000, 1500] },
+        },
+      },
+    );
+
+    const set = await getPublicMenu({ slug: "demo", locale: "hu", ...regular });
+
+    await Venue.updateOne(
+      { _id: ids.venue },
+      { $unset: { "branding.accentColor": 1, "orderRules.tips": 1 } },
+    );
+    expect(plain?.venue).toMatchObject({
+      accentColor: null,
+      tipPresetsBps: [500, 1000, 1500],
+    });
+    expect(set?.venue).toMatchObject({
+      accentColor: null,
+      tipPresetsBps: null,
+    });
+  });
+
   it("adds the VIP items for a VIP context", async () => {
     const menu = await getPublicMenu({
       slug: "demo",

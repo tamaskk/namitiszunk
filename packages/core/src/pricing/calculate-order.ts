@@ -18,11 +18,15 @@ export type PromoRule = { type: "percent" | "fixed"; value: number };
 export type TipChoice =
   { type: "percent"; bps: number } | { type: "custom"; amountHuf: number };
 
+export type TipRules = { enabled: boolean; presetsBps: readonly number[] };
+
 export type OrderCalculationInput = {
   items: readonly PricedItem[];
   serviceFee: ServiceFeeRule;
   promo: PromoRule | null;
   tip: TipChoice;
+  /** The venue's tip buttons (T-058); off: no tip at all. Omitted: the default 5, 10 and 15%. */
+  tips?: TipRules;
   smsRequested: boolean;
   /** Commission of the FeeRule in force at payment time (venue-specific, else the platform default). */
   commissionBps: number;
@@ -50,8 +54,13 @@ export const SMS_FEE_HUF = 35;
 export const STRIPE_MIN_CHARGE_HUF = 175;
 /** Stripe's HUF ceiling is 8 digits in fillér (999 999.99 Ft); whole forints keep us under it. */
 export const MAX_ORDER_HUF = 999_999;
-/** Preset tips the guest can pick; anything else is a custom amount. */
+/** No tip plus the default presets (db DEFAULT_TIP_PRESETS_BPS); venues set their own (T-058). */
 export const TIP_PERCENT_BPS = [0, 500, 1000, 1500] as const;
+// pricing stays db-free; validators-sync.test.ts keeps this equal to the venue model's default.
+const DEFAULT_TIPS: TipRules = {
+  enabled: true,
+  presetsBps: TIP_PERCENT_BPS.slice(1),
+};
 const FULL_BPS = 10_000;
 
 function unknownType(name: string, value: never): never {
@@ -131,7 +140,10 @@ export function calculateOrder(input: OrderCalculationInput): OrderCalculation {
   // A fully discounted order is free: no fee, no tip, no PaymentIntent.
   const serviceFeeHuf =
     discountedHuf === 0 ? 0 : serviceFeeOf(input.serviceFee, discountedHuf);
-  const tipHuf = discountedHuf === 0 ? 0 : tipOf(input.tip, discountedHuf);
+  const tipHuf =
+    discountedHuf === 0
+      ? 0
+      : tipOf(input.tip, input.tips ?? DEFAULT_TIPS, discountedHuf);
 
   const totalHuf = assertIntegerHuf(discountedHuf + serviceFeeHuf + tipHuf);
   if (totalHuf > MAX_ORDER_HUF) {
@@ -198,15 +210,21 @@ function serviceFeeOf(rule: ServiceFeeRule, discountedHuf: number): number {
   }
 }
 
-function tipOf(tip: TipChoice, discountedHuf: number): number {
+function tipOf(tip: TipChoice, rules: TipRules, discountedHuf: number): number {
+  // "No tip" is always a choice; with tips off it is the only one.
+  const isZero =
+    (tip.type === "percent" && tip.bps === 0) ||
+    (tip.type === "custom" && tip.amountHuf === 0);
+  if (isZero) return 0;
+  if (!rules.enabled) throw new RangeError("this venue takes no tips");
   switch (tip.type) {
     case "percent":
-      if (!(TIP_PERCENT_BPS as readonly number[]).includes(tip.bps)) {
+      if (!rules.presetsBps.includes(tip.bps)) {
         throw new RangeError(
-          `tip.bps must be one of ${TIP_PERCENT_BPS.join(", ")}`,
+          `tip.bps must be 0 or one of ${rules.presetsBps.join(", ")}`,
         );
       }
-      return percentOf(discountedHuf, tip.bps);
+      return percentOf(discountedHuf, bps(tip.bps, "tip.bps"));
     case "custom":
       if (nonNegativeHuf(tip.amountHuf, "tip.amountHuf") > discountedHuf) {
         throw new RangeError(

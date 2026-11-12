@@ -130,8 +130,9 @@ describe("createOrderInputSchema", () => {
     expect(results).toEqual([true, true]);
   });
 
-  it("rejects a non-preset percent tip and a fractional custom tip", () => {
-    const percent = { tip: { type: "percent", bps: 700 } };
+  // The venue's presets are checked by the order service (T-058); here only the 0–100% range.
+  it("rejects a percent tip over 100% and a fractional custom tip", () => {
+    const percent = { tip: { type: "percent", bps: 10_001 } };
     const custom = { tip: { type: "custom", amountHuf: 99.5 } };
 
     const keys = [percent, custom].map((tip) => errorKeys(order(tip as never)));

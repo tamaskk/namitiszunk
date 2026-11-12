@@ -30,11 +30,11 @@ describe("validators stay in sync with the models and pricing", () => {
     expect(fromValidators).toEqual(fromDb);
   });
 
-  it("tip presets match the pricing calculation", () => {
-    const fromCore = TIP_PERCENT_BPS;
+  it("the pricing's default tips are the venue model's default presets", () => {
+    const fromCore = TIP_PERCENT_BPS.slice(1);
 
-    const fromValidators = validators.TIP_PERCENT_BPS;
+    const fromDb = db.DEFAULT_TIP_PRESETS_BPS;
 
-    expect(fromValidators).toEqual(fromCore);
+    expect(fromCore).toEqual(fromDb);
   });
 });

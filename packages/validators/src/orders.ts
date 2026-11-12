@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { MAX_QUANTITY_PER_LINE, TIP_PERCENT_BPS } from "./cart-limits";
+import { MAX_QUANTITY_PER_LINE } from "./cart-limits";
 import { hufSchema, huPhoneSchema, locales, objectIdSchema } from "./shared";
 import { venueSlugSchema } from "./venues";
 
-export { MAX_QUANTITY_PER_LINE, TIP_PERCENT_BPS };
+export { MAX_QUANTITY_PER_LINE };
 
 // Same literals as packages/db and packages/core; packages/core/src/validators-sync.test.ts keeps them equal.
 export const orderStatuses = [
@@ -55,7 +55,11 @@ export const tipChoiceSchema = z.discriminatedUnion(
   [
     z.object({
       type: z.literal("percent"),
-      bps: z.literal(TIP_PERCENT_BPS, { error: "validation.tip.preset" }),
+      // Each venue sets its own presets (T-058); the order service checks the value against them.
+      bps: z
+        .int({ error: "validation.tip.preset" })
+        .min(0, { error: "validation.tip.preset" })
+        .max(10_000, { error: "validation.tip.preset" }),
     }),
     z.object({ type: z.literal("custom"), amountHuf: hufSchema }),
   ],
