@@ -3,6 +3,7 @@ import type { Locale } from "@namitiszunk/i18n";
 import { buttonVariants, EmptyState } from "@namitiszunk/ui";
 import {
   objectIdSchema,
+  qrCodeSchema,
   toVenueStatusResponse,
   venueSlugSchema,
 } from "@namitiszunk/validators";
@@ -82,6 +83,11 @@ export default async function CheckoutPage({
           venueId={menu.venue.id}
           bar={menu.bar}
           zoneId={zoneId}
+          qrCode={
+            qrCodeSchema.safeParse(query.q).success
+              ? (query.q as string)
+              : undefined
+          }
           slug={slug}
           initialStatus={live.status}
           renderedAt={live.at}

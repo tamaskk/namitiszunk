@@ -25,15 +25,18 @@ export function ExportRange({
   id,
   path,
   initialDate,
+  initialTo = initialDate,
   labels,
 }: {
   id: string;
   path: string;
   initialDate: string;
+  /** The range's last day (Reports, T-061); `initialDate` when unset. */
+  initialTo?: string;
   labels: ExportRangeLabels;
 }) {
   const [from, setFrom] = useState(initialDate);
-  const [to, setTo] = useState(initialDate);
+  const [to, setTo] = useState(initialTo);
   const range = adminOrdersExportQuerySchema.safeParse({
     from,
     to,

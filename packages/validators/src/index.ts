@@ -13,6 +13,7 @@ export * from "./orders";
 export * from "./payments";
 export * from "./promos";
 export * from "./realtime";
+export * from "./reports";
 export * from "./shared";
 export * from "./staff";
 export * from "./venues";

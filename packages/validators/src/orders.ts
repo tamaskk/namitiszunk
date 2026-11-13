@@ -3,7 +3,7 @@ import { z } from "zod";
 import { MAX_QUANTITY_PER_LINE } from "./cart-limits";
 import { hufSchema, huPhoneSchema, locales, objectIdSchema } from "./shared";
 import { promoCodeSchema } from "./promos";
-import { venueSlugSchema } from "./venues";
+import { qrCodeSchema, venueSlugSchema } from "./venues";
 
 export { MAX_QUANTITY_PER_LINE };
 
@@ -125,6 +125,8 @@ export const createOrderInputSchema = z
       .max(32),
     /** PostHog distinct id, copied into the PaymentIntent metadata. */
     posthogId: z.string().max(200).optional(),
+    /** The scanned QR's code (T-061); the server keeps it only when it belongs to the bar's venue. */
+    qrCode: qrCodeSchema.optional(),
   })
   .refine((order) => !order.smsRequested || order.guestPhone !== undefined, {
     path: ["guestPhone"],

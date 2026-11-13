@@ -43,6 +43,24 @@ export const adminModules = [
 
 export type AdminModuleKey = (typeof adminModules)[number]["key"];
 
+// Pages inside a module that need more than the module's own action (T-061: the Owner's reports).
+const adminSubpages: readonly { path: string; action: Action }[] = [
+  { path: "/reports/period", action: "report.viewAll" },
+  { path: "/reports/staff", action: "report.viewAll" },
+];
+
+/** Whether the actor may open the path beyond its module's own check; true outside such pages. */
+export function canOpenSubpage(
+  actor: Actor,
+  path: string,
+  venueId: string,
+): boolean {
+  const page = adminSubpages.find(
+    (p) => path === p.path || path.startsWith(`${p.path}/`),
+  );
+  return !page || can(actor, page.action, { venueId });
+}
+
 export function canOpenModule(
   actor: Actor,
   key: AdminModuleKey,

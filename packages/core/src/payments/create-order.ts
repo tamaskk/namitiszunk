@@ -9,6 +9,7 @@ import {
   type ItemDoc,
   Order,
   Payment,
+  QrCode,
   Venue,
   Zone,
 } from "@namitiszunk/db";
@@ -278,6 +279,12 @@ export async function createOrder(
     now,
     options.clientIp,
   );
+  // Only for the reports: an unknown or another venue's code is dropped, never a reason to refuse the order.
+  const qr = input.qrCode
+    ? await QrCode.findOne({ code: input.qrCode, venueId: venue._id })
+        .select("_id")
+        .lean()
+    : null;
 
   const date = businessDate(now, {
     timezone: venue.timezone ?? "Europe/Budapest",
@@ -293,6 +300,7 @@ export async function createOrder(
             venueId: venue._id,
             barId: bar._id,
             zoneId: input.zoneId,
+            ...(qr ? { qrCodeId: qr._id } : {}),
             // Provisional: payment sets the final business day with the short number (T-024).
             businessDate: date,
             items: lines,

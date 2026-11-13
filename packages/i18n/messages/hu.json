@@ -1262,6 +1262,151 @@
         "button": "Beállítás a profilban"
       }
     },
+    "reports": {
+      "loading": "Riport betöltése…",
+      "intro": "Minden szám üzleti napra számol: a hajnali rendelések az előző esti naphoz tartoznak.",
+      "tabs": {
+        "label": "Riportnézetek",
+        "daily": "Napi",
+        "period": "Időszak",
+        "staff": "Pultosok"
+      },
+      "filters": {
+        "date": "Üzleti nap",
+        "from": "Ettől (üzleti nap)",
+        "to": "Eddig (üzleti nap)",
+        "compareFrom": "Összevetés ettől",
+        "compareTo": "Összevetés eddig",
+        "compareHint": "Hagyd üresen, ha nem kell összehasonlítás.",
+        "show": "Mutasd",
+        "invalid": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot választhatsz. Az alapértelmezett időszakot mutatjuk."
+      },
+      "summary": {
+        "title": "Összesítés",
+        "orders": "Rendelések",
+        "revenue": "Bevétel borravaló nélkül",
+        "tip": "Borravaló",
+        "avgBasket": "Átlagos kosár",
+        "avgPrep": "Átlagos elkészítési idő",
+        "medianPrep": "Medián elkészítési idő",
+        "avgPickup": "Átlagos átvételi idő",
+        "refunds": "Visszatérítés",
+        "refundsValue": "{amount} ({count} rendelés)",
+        "expired": "Lejárt rendelések",
+        "minutes": "{time} perc",
+        "none": "nincs adat",
+        "hint": "Elkészítési idő: a fizetéstől a Kész jelzésig. Átvételi idő: a Kész jelzéstől az átvételig. A bevétel a visszatérítések előtti összeg."
+      },
+      "empty": "Erre az időszakra nincs fizetett rendelés.",
+      "columns": {
+        "hour": "Óra",
+        "day": "Üzleti nap",
+        "bar": "Pult",
+        "source": "QR-kód",
+        "product": "Termék",
+        "orders": "Rendelések",
+        "items": "Tételek",
+        "quantity": "Darab",
+        "revenue": "Bevétel",
+        "tip": "Borravaló"
+      },
+      "hours": {
+        "title": "Óránként"
+      },
+      "days": {
+        "title": "Naponként"
+      },
+      "products": {
+        "title": "Top termékek"
+      },
+      "bars": {
+        "title": "Pultonként"
+      },
+      "qr": {
+        "title": "QR-forrás szerint",
+        "none": "Nincs QR-forrás",
+        "hint": "A beolvasott QR-kódot 2026 novembere óta rögzítjük. A régebbi és a nem QR-ból indult rendelések a „Nincs QR-forrás” sorban vannak."
+      },
+      "heatmap": {
+        "title": "Csúcsórák",
+        "hint": "Rendelések száma a hét napja (üzleti nap) és a fizetés órája szerint. A sötétebb cellában kevesebb, a világosabban több rendelés van.",
+        "cell": "{day} {hour}: {count} rendelés",
+        "weekdays": {
+          "mon": "Hétfő",
+          "tue": "Kedd",
+          "wed": "Szerda",
+          "thu": "Csütörtök",
+          "fri": "Péntek",
+          "sat": "Szombat",
+          "sun": "Vasárnap"
+        }
+      },
+      "compare": {
+        "title": "Összehasonlítás",
+        "metric": "Mutató",
+        "current": "{from} – {to}",
+        "change": "Változás"
+      },
+      "staff": {
+        "title": "Pultosok",
+        "tipNotice": "A borravalót a rendelést Kész-re állító pultoshoz rendeljük, csak tájékoztatásul. A borravaló szétosztása a klub feladata.",
+        "hint": "Rendelés/óra: a Kész-re állított rendelések az első és az utolsó művelet közötti időre, üzleti naponként. Átlagos Készül → Kész: a Kész-re állított rendeléseken.",
+        "name": "Pultos",
+        "readyOrders": "Kész-re állított",
+        "perHour": "Rendelés/óra",
+        "prepToReady": "Átlag Készül → Kész",
+        "tip": "Borravaló",
+        "empty": "Ebben az időszakban egy pultos sem állított rendelést Kész-re.",
+        "unknown": "Törölt tag"
+      },
+      "export": {
+        "title": "Export",
+        "from": "Ettől (üzleti nap)",
+        "to": "Eddig (üzleti nap)",
+        "csv": "CSV letöltése",
+        "xlsx": "Excel letöltése",
+        "hint": "Legfeljebb 92 nap. Vendégadat nincs benne.",
+        "invalidRange": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot tölthetsz le egyszerre.",
+        "files": {
+          "daily": "napi-riport",
+          "period": "idoszak-riport",
+          "staff": "pultos-riport"
+        },
+        "sheets": {
+          "daily": "Napi riport",
+          "period": "Időszak",
+          "staff": "Pultosok"
+        },
+        "columns": {
+          "businessDate": "Üzleti nap",
+          "orders": "Rendelések",
+          "revenueHuf": "Bevétel borravaló nélkül (Ft)",
+          "tipHuf": "Borravaló (Ft)",
+          "avgBasketHuf": "Átlagos kosár (Ft)",
+          "avgPrep": "Átlagos elkészítési idő (perc:mp)",
+          "medianPrep": "Medián elkészítési idő (perc:mp)",
+          "avgPickup": "Átlagos átvételi idő (perc:mp)",
+          "refundedOrders": "Visszatérített rendelések",
+          "refundedHuf": "Visszatérítve (Ft)",
+          "expiredOrders": "Lejárt rendelések",
+          "section": "Bontás",
+          "label": "Megnevezés",
+          "items": "Tételek",
+          "name": "Pultos",
+          "readyOrders": "Kész-re állított",
+          "ordersPerHour": "Rendelés/óra",
+          "avgPrepToReady": "Átlag Készül → Kész (perc:mp)"
+        },
+        "sections": {
+          "day": "Nap",
+          "hour": "Óra",
+          "heatmap": "Nap × óra",
+          "product": "Termék",
+          "bar": "Pult",
+          "qr": "QR-forrás"
+        }
+      }
+    },
     "profile": {
       "title": "Profil",
       "twoFactor": {

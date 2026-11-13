@@ -6,6 +6,7 @@ import { hash } from "@node-rs/argon2";
 import mongoose, { Types, type Model } from "mongoose";
 
 import {
+  AuditLog,
   Bar,
   Category,
   Counter,
@@ -374,6 +375,7 @@ const seedOrders: SeedOrder[] = [
     zoneKey: "terrace",
     lines: [line("Csapolt IPA", 3, ["0,3 l"])],
     minutesAgo: 12,
+    tipHuf: 400,
   },
   {
     status: "picked_up",
@@ -452,6 +454,8 @@ function buildOrder(order: SeedOrder, index: number, now: Date): Fields {
     venueId,
     barId: order.barId,
     zoneId: seedId(`zone:${order.zoneKey}`),
+    // Every zone has one printed QR (below), so each demo order came from its zone's code (T-061).
+    qrCodeId: seedId(`qr:${order.zoneKey}`),
     // shortcut: plain sequential numbers; production allocates them through Counter at payment (T-024),
     // so an unpaid order has none.
     shortNumber: paid ? index + 1 : undefined,
@@ -485,6 +489,58 @@ function buildOrder(order: SeedOrder, index: number, now: Date): Fields {
     updatedAt: now,
     ...order.extra,
   };
+}
+
+type SeedAction = {
+  order: number;
+  member: "bartender1" | "bartender2";
+  action: "start_preparing" | "mark_ready" | "pick_up";
+  /** Minutes after the order was placed, as buildOrder() times its acceptedAt, readyAt and pickedUpAt. */
+  at: number;
+};
+
+// The PIN holders' order actions behind the bartender report (T-061), by seedOrders index.
+// Hand-checked: Bence marks #4 Ready (tip 400 Ft); Dóra marks #5 and #8 Ready, 3 min after Preparing each.
+const seedActions: SeedAction[] = [
+  { order: 2, member: "bartender1", action: "start_preparing", at: 2 },
+  { order: 3, member: "bartender1", action: "start_preparing", at: 2 },
+  { order: 3, member: "bartender1", action: "mark_ready", at: 5 },
+  { order: 4, member: "bartender2", action: "start_preparing", at: 2 },
+  { order: 4, member: "bartender2", action: "mark_ready", at: 5 },
+  { order: 4, member: "bartender1", action: "pick_up", at: 8 },
+  { order: 7, member: "bartender1", action: "start_preparing", at: 2 },
+  { order: 7, member: "bartender2", action: "mark_ready", at: 5 },
+  { order: 9, member: "bartender2", action: "start_preparing", at: 2 },
+];
+
+/**
+ * The audit log is append-only, so a re-run only inserts the entries that are missing: on a
+ * database seeded before, the first run's times stay while the orders move to the new run's time.
+ */
+async function seedAuditLog(now: Date): Promise<void> {
+  const entries = seedActions.map((entry) => {
+    const order = seedOrders[entry.order]!;
+    const orderId = seedId(`order:${entry.order + 1}`);
+    return {
+      _id: seedId(`audit:${entry.order + 1}:${entry.action}`),
+      actor: { type: "venue_member", id: seedId(`member:${entry.member}`) },
+      venueId,
+      action: `order.${entry.action}`,
+      target: { type: "order", id: orderId },
+      createdAt: new Date(
+        now.getTime() - minutes(order.minutesAgo) + minutes(entry.at),
+      ),
+    };
+  });
+  const existing = new Set(
+    (
+      await AuditLog.find({ _id: { $in: entries.map((e) => e._id) } })
+        .select("_id")
+        .lean()
+    ).map((e) => String(e._id)),
+  );
+  const missing = entries.filter((e) => !existing.has(String(e._id)));
+  if (missing.length > 0) await AuditLog.insertMany(missing);
 }
 
 /** Writes the Demo Klub into the current mongoose connection; safe to run any number of times. */
@@ -633,6 +689,7 @@ export async function seedDemo(now = new Date()): Promise<void> {
     buildOrder(order, index, now),
   );
   await upsert(Order, orders);
+  await seedAuditLog(now);
   // Keeps T-024's sequence past the seeded short numbers on each business day they landed on.
   const maxShortNumber = new Map<string, number>();
   for (const order of orders) {

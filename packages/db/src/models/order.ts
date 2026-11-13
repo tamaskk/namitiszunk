@@ -86,6 +86,8 @@ const orderSchema = new Schema(
     discountHuf: huf({ default: 0 }),
     totalHuf: huf(),
     promoId: { type: objectId, ref: "Promo" },
+    // The printed QR the guest scanned (T-061 reports by QR source); none for older orders or a typed link.
+    qrCodeId: { type: objectId, ref: "QrCode" },
     pickupCode: { type: String, required: true },
     guestTokenHash: { type: String, required: true, select: false },
     // Removed after 30 days by the retention job (T-028).

@@ -1262,6 +1262,151 @@
         "button": "Set it up in your profile"
       }
     },
+    "reports": {
+      "loading": "Loading report…",
+      "intro": "Every figure counts by business day: orders after midnight belong to the evening before.",
+      "tabs": {
+        "label": "Report views",
+        "daily": "Daily",
+        "period": "Period",
+        "staff": "Bartenders"
+      },
+      "filters": {
+        "date": "Business day",
+        "from": "From (business day)",
+        "to": "To (business day)",
+        "compareFrom": "Compare from",
+        "compareTo": "Compare to",
+        "compareHint": "Leave empty if you do not need a comparison.",
+        "show": "Show",
+        "invalid": "The start day cannot be after the end day, and you can choose at most 92 days. Showing the default period."
+      },
+      "summary": {
+        "title": "Summary",
+        "orders": "Orders",
+        "revenue": "Revenue without tips",
+        "tip": "Tips",
+        "avgBasket": "Average basket",
+        "avgPrep": "Average preparation time",
+        "medianPrep": "Median preparation time",
+        "avgPickup": "Average pickup time",
+        "refunds": "Refunds",
+        "refundsValue": "{amount} ({count} orders)",
+        "expired": "Expired orders",
+        "minutes": "{time} min",
+        "none": "no data",
+        "hint": "Preparation time: from payment to Ready. Pickup time: from Ready to pickup. Revenue is before refunds."
+      },
+      "empty": "No paid orders in this period.",
+      "columns": {
+        "hour": "Hour",
+        "day": "Business day",
+        "bar": "Bar",
+        "source": "QR code",
+        "product": "Product",
+        "orders": "Orders",
+        "items": "Items",
+        "quantity": "Quantity",
+        "revenue": "Revenue",
+        "tip": "Tips"
+      },
+      "hours": {
+        "title": "By hour"
+      },
+      "days": {
+        "title": "By day"
+      },
+      "products": {
+        "title": "Top products"
+      },
+      "bars": {
+        "title": "By bar"
+      },
+      "qr": {
+        "title": "By QR source",
+        "none": "No QR source",
+        "hint": "The scanned QR code is recorded since November 2026. Older orders and orders not started from a QR are in the No QR source row."
+      },
+      "heatmap": {
+        "title": "Peak hours",
+        "hint": "Orders by weekday (business day) and hour of payment. Darker cells have fewer orders, lighter cells more.",
+        "cell": "{day} {hour}: {count} orders",
+        "weekdays": {
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "sun": "Sunday"
+        }
+      },
+      "compare": {
+        "title": "Comparison",
+        "metric": "Figure",
+        "current": "{from} – {to}",
+        "change": "Change"
+      },
+      "staff": {
+        "title": "Bartenders",
+        "tipNotice": "Tips go to the bartender who marked the order Ready, for information only. Sharing tips is up to the club.",
+        "hint": "Orders per hour: orders marked Ready over the time between the first and the last action, per business day. Average Preparing → Ready: over the orders marked Ready.",
+        "name": "Bartender",
+        "readyOrders": "Marked Ready",
+        "perHour": "Orders per hour",
+        "prepToReady": "Average Preparing → Ready",
+        "tip": "Tips",
+        "empty": "No bartender marked an order Ready in this period.",
+        "unknown": "Removed member"
+      },
+      "export": {
+        "title": "Export",
+        "from": "From (business day)",
+        "to": "To (business day)",
+        "csv": "Download CSV",
+        "xlsx": "Download Excel",
+        "hint": "At most 92 days. No guest data included.",
+        "invalidRange": "The start day cannot be after the end day, and you can download at most 92 days at once.",
+        "files": {
+          "daily": "daily-report",
+          "period": "period-report",
+          "staff": "bartender-report"
+        },
+        "sheets": {
+          "daily": "Daily report",
+          "period": "Period",
+          "staff": "Bartenders"
+        },
+        "columns": {
+          "businessDate": "Business day",
+          "orders": "Orders",
+          "revenueHuf": "Revenue without tips (HUF)",
+          "tipHuf": "Tips (HUF)",
+          "avgBasketHuf": "Average basket (HUF)",
+          "avgPrep": "Average preparation time (min:s)",
+          "medianPrep": "Median preparation time (min:s)",
+          "avgPickup": "Average pickup time (min:s)",
+          "refundedOrders": "Refunded orders",
+          "refundedHuf": "Refunded (HUF)",
+          "expiredOrders": "Expired orders",
+          "section": "Breakdown",
+          "label": "Name",
+          "items": "Items",
+          "name": "Bartender",
+          "readyOrders": "Marked Ready",
+          "ordersPerHour": "Orders per hour",
+          "avgPrepToReady": "Average Preparing → Ready (min:s)"
+        },
+        "sections": {
+          "day": "Day",
+          "hour": "Hour",
+          "heatmap": "Day × hour",
+          "product": "Product",
+          "bar": "Bar",
+          "qr": "QR source"
+        }
+      }
+    },
     "profile": {
       "title": "Profile",
       "twoFactor": {
