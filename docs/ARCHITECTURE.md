@@ -68,7 +68,7 @@ Do not add a dependency that overlaps with a row in this table without asking.
     api/                    api.namitiszunk.hu, port 3004 (app/v1/, app/webhooks/, src/inngest/)
     mobile/                 Expo app (phase 3)
   packages/
-    core/                   business logic: orders (state machine), pricing, payments, auth/permissions, audit, notify, realtime
+    core/                   business logic: orders (state machine), pricing, payments, auth/permissions, audit, notify, realtime, reports (aggregations reused by the weekly e-mail and the dashboard)
     db/                     Mongoose connection, models, indexes, queries, seed
     validators/             Zod schemas shared by every client and the API
     api-client/             typed client for apps/api (mobile, client-side web calls)
