@@ -26,7 +26,9 @@ test("an Owner without a Stripe account is offered the connect step", async ({
   expect(a11y.violations).toEqual([]);
 });
 
-test("the export link refuses an Owner without a Stripe account", async ({ context }) => {
+test("the export link refuses an Owner without a Stripe account", async ({
+  context,
+}) => {
   await signIn(context, "owner");
 
   const response = await context.request.get(
@@ -49,7 +51,9 @@ test("the profile starts two-step sign-in with a QR code and backup codes", asyn
   await expect(
     page.getByRole("img", { name: "QR-kód a hitelesítő alkalmazásnak" }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Tartalék kódok" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Tartalék kódok" }),
+  ).toBeVisible();
   await expect(page.getByLabel("Az alkalmazás 6 jegyű kódja")).toBeVisible();
   const a11y = await new AxeBuilder({ page }).analyze();
   expect(a11y.violations).toEqual([]);

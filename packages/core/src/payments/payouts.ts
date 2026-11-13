@@ -25,7 +25,10 @@ export type PayoutAccount =
     };
 
 /** A connected account as `getPayoutAccount` returned it, i.e. after the Owner check. */
-export type ConnectedPayoutAccount = Extract<PayoutAccount, { connected: true }>;
+export type ConnectedPayoutAccount = Extract<
+  PayoutAccount,
+  { connected: true }
+>;
 
 export type PayoutRow = {
   id: string;
@@ -60,11 +63,7 @@ const toHuf = (minor: number) => Math.round(minor / 100) || 0;
 const isHuf = (row: { currency: string }) => row.currency === "huf";
 
 const sumHuf = (amounts: { amount: number; currency: string }[]) =>
-  toHuf(
-    amounts
-      .filter(isHuf)
-      .reduce((sum, a) => sum + a.amount, 0),
-  );
+  toHuf(amounts.filter(isHuf).reduce((sum, a) => sum + a.amount, 0));
 
 const openDisputeStatuses = new Set<Stripe.Dispute.Status>([
   "needs_response",
@@ -122,7 +121,12 @@ export async function fetchPayoutOverview(
   ]);
   // Charges are forints only; a foreign-currency entry would be left out of the figures, so flag it.
   if (
-    ![...balance.available, ...balance.pending, ...payouts.data, ...disputes.data].every(isHuf)
+    ![
+      ...balance.available,
+      ...balance.pending,
+      ...payouts.data,
+      ...disputes.data,
+    ].every(isHuf)
   )
     reportError(
       new Error(`Non-HUF entry left out of the payout overview (${accountId})`),

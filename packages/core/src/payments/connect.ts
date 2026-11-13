@@ -154,7 +154,11 @@ export async function createAccountLink(
     return_url: `${payouts.href}?stripe=return`,
     collection_options: { fields: "currently_due" },
   });
-  await auditLinkCreated(venueId, actor, "venue.stripe_onboarding_link_created");
+  await auditLinkCreated(
+    venueId,
+    actor,
+    "venue.stripe_onboarding_link_created",
+  );
   return {
     url: link.url,
     expiresAt: new Date(link.expires_at * 1000).toISOString(),
@@ -192,9 +196,12 @@ export async function setPayoutSchedule(
   } catch (error) {
     // The schedule already changed in Stripe: flag the missing audit entry, not just a failed save.
     reportError(
-      new Error(`Payout schedule changed in Stripe without an audit entry (venue ${venueId})`, {
-        cause: error,
-      }),
+      new Error(
+        `Payout schedule changed in Stripe without an audit entry (venue ${venueId})`,
+        {
+          cause: error,
+        },
+      ),
     );
     throw error;
   }

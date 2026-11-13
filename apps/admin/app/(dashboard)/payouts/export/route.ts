@@ -67,9 +67,9 @@ export async function GET(request: Request) {
           : error.code === "export_currency_unsupported"
             ? t("export.otherCurrency")
             : error.code === "rate_limited" ||
-              error.code === "stripe_account_missing"
-            ? tErrors(error.code)
-            : undefined,
+                error.code === "stripe_account_missing"
+              ? tErrors(error.code)
+              : undefined,
       );
     throw error;
   }

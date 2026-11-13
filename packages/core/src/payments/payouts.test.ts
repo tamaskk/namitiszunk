@@ -33,9 +33,8 @@ const {
   getPayoutAccount,
   PAYOUT_EXPORT_MAX_ROWS,
 } = await import("./payouts");
-const { createAccountLink, createDashboardLoginLink } = await import(
-  "./connect"
-);
+const { createAccountLink, createDashboardLoginLink } =
+  await import("./connect");
 
 let replSet: MongoMemoryReplSet;
 let mongoose: Awaited<ReturnType<typeof connectDb>>;
@@ -220,7 +219,8 @@ describe("Stripe links", () => {
     for (let i = 0; i < 10; i++)
       await createDashboardLoginLink(venueId.toHexString(), owner);
 
-    const eleventh = () => createDashboardLoginLink(venueId.toHexString(), owner);
+    const eleventh = () =>
+      createDashboardLoginLink(venueId.toHexString(), owner);
 
     await expect(eleventh()).rejects.toMatchObject({
       status: 429,

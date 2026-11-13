@@ -83,7 +83,8 @@ export default async function PayoutsPage({
     );
 
   const overview = await cachedPayoutOverview(venue.id, account);
-  const day = (date: Date) => format.dateTime(date, {
+  const day = (date: Date) =>
+    format.dateTime(date, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
