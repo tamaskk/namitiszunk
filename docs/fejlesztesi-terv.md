@@ -2001,10 +2001,10 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] 1 felhasználásos kóddal két párhuzamos rendelésből pontosan egy kap kedvezményt.
-- [ ] A 15 perc után megszakított fizetés felszabadítja a felhasználást.
-- [ ] Lejárt, leállított vagy minimum alatti kódnál a pénztár fordított üzenetet ad.
-- [ ] A fix kedvezmény nem lehet nagyobb a részösszegnél (22.).
+- [x] 1 felhasználásos kóddal két párhuzamos rendelésből pontosan egy kap kedvezményt.
+- [x] A 15 perc után megszakított fizetés felszabadítja a felhasználást.
+- [x] Lejárt, leállított vagy minimum alatti kódnál a pénztár fordított üzenetet ad.
+- [x] A fix kedvezmény nem lehet nagyobb a részösszegnél (22.).
 
 **Tesztelés.** Vitest a `validatePromo`-ra és párhuzamossági teszt `MongoMemoryReplSet`-en; Playwright: kód létrehozása, használata a pénztárban.
 
