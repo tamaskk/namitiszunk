@@ -9,7 +9,7 @@ import {
   type Resource,
 } from "../auth/permissions";
 import { AppError, NotFoundError } from "../errors";
-import { releasePromo } from "../promos/promos";
+import { releasePromo, takePromoUse } from "../promos/promos";
 import { publishStatusChange } from "../realtime";
 import { reportError } from "../report-error";
 import { businessDate } from "./business-date";
@@ -201,8 +201,12 @@ export async function transitionWith(
         ).lean();
         if (!updated)
           throw new InvalidTransition(from, event, actorKindOf(actor));
-        // T-060: an abandoned payment gives its promo use back, in this transaction, after the status won.
-        if (event === "payment_timeout" && order.promoId) {
+        // T-060: a code's use is taken only by a payment, and given back when the guest cancels the paid
+        // order before acceptance (fully refunded). In this transaction, after the status won.
+        if (order.promoId && event === "payment_succeeded") {
+          await takePromoUse(order.promoId, session);
+        }
+        if (order.promoId && event === "reject" && actor.kind === "guest") {
           await releasePromo(order.promoId, session);
         }
 

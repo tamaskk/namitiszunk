@@ -132,6 +132,14 @@ orderSchema.index(
   { name: "bar_view" },
 );
 orderSchema.index({ guestTokenHash: 1 }, { unique: true });
+// Promo orders only (T-060): the Promotions module's statistics per code.
+orderSchema.index(
+  { promoId: 1 },
+  {
+    name: "promo_orders",
+    partialFilterExpression: { promoId: { $exists: true } },
+  },
+);
 orderSchema.index(
   { userId: 1, createdAt: -1 },
   { partialFilterExpression: { userId: { $type: "objectId" } } },

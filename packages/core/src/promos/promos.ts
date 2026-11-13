@@ -4,6 +4,12 @@ import { type ClientSession, Order, Promo } from "@namitiszunk/db";
 import type { PromoInput } from "@namitiszunk/validators";
 import { Types } from "mongoose";
 
+import {
+  hitRateLimit,
+  type RateLimitRule,
+  undoRateLimitHit,
+} from "../api/rate-limit";
+import { ipPrefixKey } from "../api/client-ip";
 import { audit, auditActorOf } from "../audit/audit";
 import { type Actor, requirePermission } from "../auth/permissions";
 import { AppError, ConflictError, NotFoundError } from "../errors";
@@ -14,11 +20,13 @@ import type { PromoRule } from "../pricing/calculate-order";
 // Promo codes (T-060). A shared code can be used by anyone, so maxUses is the protection: the use is
 // reserved atomically when the order is created and released when its payment is abandoned.
 
-/** Each refusal is an `apiErrors.<code>` key the checkout shows. An unknown or not yet started code is `promo_invalid`. */
+/**
+ * Each refusal is an `apiErrors.<code>` key the checkout shows. An unknown, not yet started or stopped
+ * code is `promo_invalid`, so a guest never learns that a stopped code exists.
+ */
 export const promoErrorCodes = [
   "promo_invalid",
   "promo_expired",
-  "promo_stopped",
   "promo_below_minimum",
   "promo_used_up",
 ] as const;
@@ -32,7 +40,7 @@ const normalize = (code: string) => code.trim().toUpperCase();
 /**
  * The checkout's check (T-042): the code exists at the venue, is active, inside its period, the
  * subtotal reaches its minimum and a use is left. Throws 409 with the matching code otherwise.
- * The use itself is taken only by `reservePromo` inside createOrder's transaction.
+ * The use itself is taken only when the order is paid (`takePromoUse` in `transition()`).
  */
 export async function validatePromo(
   venueId: string | Types.ObjectId,
@@ -45,10 +53,9 @@ export async function validatePromo(
       "type value maxUses usedCount minOrderHuf validFrom validTo isActive",
     )
     .lean();
-  if (!promo || (promo.validFrom && promo.validFrom > now)) {
+  if (!promo || !promo.isActive || (promo.validFrom && promo.validFrom > now)) {
     throw new ConflictError("promo_invalid");
   }
-  if (!promo.isActive) throw new ConflictError("promo_stopped");
   if (promo.validTo && promo.validTo <= now) {
     throw new ConflictError("promo_expired");
   }
@@ -65,29 +72,104 @@ export async function validatePromo(
   };
 }
 
+type Bucket = { key: string; rule: RateLimitRule };
+
 /**
- * Takes one use in the caller's transaction. Conditional on `usedCount < maxUses`, so two parallel
- * orders for the last use give one success; the other's transaction aborts with 409 promo_used_up.
+ * Counts one attempt in every bucket, all in the same wall-clock window (not the pricing `now`: the TTL
+ * index drops counters whose window has passed). Throws 429 when any bucket is full; a refused attempt
+ * is taken back everywhere, so a full device bucket never charges the guests sharing its address.
+ * Returns the undo for an attempt that should not count after all.
  */
-export async function reservePromo(
+async function countAttempt(buckets: Bucket[]): Promise<() => Promise<void>> {
+  const at = Date.now();
+  const undo = async () => {
+    await Promise.all(buckets.map((b) => undoRateLimitHit(b.key, b.rule, at)));
+  };
+  const hits = await Promise.all(
+    buckets.map((b) => hitRateLimit(b.key, b.rule, at)),
+  );
+  if (hits.some(Boolean)) {
+    await undo();
+    throw new AppError(429, "rate_limited");
+  }
+  return undo;
+}
+
+/** A device's buckets, plus its address as a loose backstop when apps/api knows it. */
+function deviceBuckets(
+  prefix: string,
+  rules: { device: RateLimitRule; ip: RateLimitRule },
+  deviceId: string | undefined,
+  clientIp: string | undefined,
+): Bucket[] {
+  // The validators refuse a code without a device id; a caller that skips them is refused here too.
+  if (!deviceId)
+    throw new AppError(400, "validation_failed", { deviceId: "required" });
+  return [
+    { key: `${prefix}|device:${deviceId}`, rule: rules.device },
+    ...(clientIp
+      ? [{ key: `${prefix}|ip:${ipPrefixKey(clientIp)}`, rule: rules.ip }]
+      : []),
+  ];
+}
+
+/**
+ * Unknown codes per 10 minutes. Per device, with a loose per-address backstop for a client that
+ * rotates its device id: a club crowd shares one wifi address. No venue-wide bucket, since anyone
+ * with many addresses could fill it and switch every code off; a code's length is the defence there.
+ */
+export const PROMO_GUESS_LIMITS = {
+  device: { limit: 10, windowSeconds: 600 },
+  ip: { limit: 50, windowSeconds: 600 },
+} as const satisfies Record<string, RateLimitRule>;
+
+/**
+ * `validatePromo` behind the guess limiter, for the quote and createOrder. Only an unknown code
+ * (`promo_invalid`) counts as a guess: a real code refused for the cart, its period or its uses is
+ * taken back, so a guest fixing the cart does not use up attempts.
+ */
+export async function checkPromo(
+  venueId: Types.ObjectId,
+  code: string,
+  subtotalHuf: number,
+  now: Date,
+  deviceId: string | undefined,
+  clientIp?: string,
+): Promise<ValidPromo> {
+  const undo = await countAttempt(
+    deviceBuckets("promo-guess", PROMO_GUESS_LIMITS, deviceId, clientIp),
+  );
+  let promo: ValidPromo;
+  try {
+    promo = await validatePromo(venueId, code, subtotalHuf, now);
+  } catch (error) {
+    if (!(error instanceof AppError && error.code === "promo_invalid")) {
+      await undo();
+    }
+    throw error;
+  }
+  await undo();
+  return promo;
+}
+
+/**
+ * Takes one use when the order's payment succeeds, in that transition's transaction. Unpaid orders
+ * hold nothing, so nobody can block a code with orders they never pay. Unconditional on purpose:
+ * guests paying at the same moment for the last use may overshoot `maxUses` by a few, because their
+ * discount is already in the price they paid; the checkout refuses the code once it is used up.
+ */
+export async function takePromoUse(
   promoId: Types.ObjectId,
   session: ClientSession,
 ): Promise<void> {
-  const reserved = await Promo.findOneAndUpdate(
-    {
-      _id: promoId,
-      isActive: true,
-      $or: [{ maxUses: null }, { $expr: { $lt: ["$usedCount", "$maxUses"] } }],
-    },
+  await Promo.updateOne(
+    { _id: promoId },
     { $inc: { usedCount: 1 } },
     { session },
-  )
-    .select("_id")
-    .lean();
-  if (!reserved) throw new ConflictError("promo_used_up");
+  );
 }
 
-/** Gives the use back when an order's payment is abandoned (payment_timeout), in that transition's transaction. */
+/** Gives the use back when the guest cancels a paid order before acceptance (fully refunded). */
 export async function releasePromo(
   promoId: Types.ObjectId,
   session: ClientSession,
@@ -133,7 +215,6 @@ export async function listPromos(
     )
     .lean();
   if (promos.length === 0) return [];
-  // shortcut: no index on Order.promoId (index changes need approval); fine at pilot volume, add { venueId, promoId } if the page slows.
   const stats = await Order.aggregate<{
     _id: Types.ObjectId;
     orders: number;

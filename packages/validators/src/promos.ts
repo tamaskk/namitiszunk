@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { PROMO_CODE_PATTERN } from "./cart-limits";
 import {
   dateTimeSchema,
   discountTypes,
@@ -11,11 +12,17 @@ import {
 // Case-insensitive here; the Promo model stores it upper-case.
 export const promoCodeSchema = z
   .string()
-  .regex(/^[A-Za-z0-9_-]{3,32}$/, { error: "validation.promoCode.invalid" });
+  .regex(PROMO_CODE_PATTERN, { error: "validation.promoCode.invalid" });
+
+// A new code needs 6 characters: there is no venue-wide guess limit, so its length is the defence
+// against a guess from many addresses (docs/SECURITY.md). The checkout still takes any valid code.
+const newPromoCodeSchema = promoCodeSchema.min(6, {
+  error: "validation.promoCode.tooShort",
+});
 
 export const promoInputSchema = z
   .object({
-    code: promoCodeSchema,
+    code: newPromoCodeSchema,
     type: z.enum(discountTypes),
     // percent: basis points; fixed: forints.
     value: hufSchema,

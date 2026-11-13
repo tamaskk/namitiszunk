@@ -57,7 +57,6 @@
     "staff_self": "Saját magadat nem tilthatod le.",
     "staff_last_owner": "Ő az utolsó aktív tulajdonos: előbb hívj meg vagy engedélyezz egy másikat.",
     "promo_expired": "Ez a promóciós kód lejárt.",
-    "promo_stopped": "Ez a promóciós kód már nem él.",
     "promo_below_minimum": "A rendelésed nem éri el a kód minimális összegét.",
     "promo_used_up": "Ezt a promóciós kódot már felhasználták.",
     "promo_code_taken": "Ez a kód itt már létezik.",
@@ -194,9 +193,11 @@
       "closed": "Most zárva vagyunk, ezért nem lehet fizetni. A kosarad megmarad.",
       "otherMethod": "Más fizetési mód",
       "promo": "Promóciós kód",
-      "promoApply": "Beváltom",
+      "promoApply": "Beváltás",
       "promoRemove": "Kód törlése",
-      "promoApplied": "A(z) {code} kód beváltva."
+      "promoApplied": "Kód beváltva: {code}.",
+      "discountCode": "Kedvezmény ({code})",
+      "promoChecking": "A kód ellenőrzése…"
     },
     "status": {
       "pageTitle": "Rendelésed",
@@ -1281,10 +1282,10 @@
     },
     "promos": {
       "loading": "Promóciós kódok betöltése…",
-      "intro": "A kód a részösszegből ad kedvezményt. A leállított kód újraindítható.",
+      "intro": "A kód a részösszegből ad kedvezményt. A leállított kód újraindítható. A kedvezmény és az átlagos kosár a kifizetett rendelésekből számol, a később visszatérítetteket is beleértve.",
       "empty": "Még nincs promóciós kód. Hozd létre az elsőt.",
       "add": "Új promóciós kód",
-      "addHint": "A vendég a pénztárnál adja meg a kódot. Csak betű, szám, - és _.",
+      "addHint": "A vendég a pénztárnál adja meg a kódot. 6–32 karakter: betű, szám, - és _. Ne legyen kitalálható, például NYAR-K7Q2.",
       "code": "Kód",
       "type": "Kedvezmény típusa",
       "typePercent": "Százalék",
@@ -1292,7 +1293,7 @@
       "valuePercent": "Kedvezmény (%)",
       "valueFixed": "Kedvezmény (Ft)",
       "maxUses": "Max. felhasználás (opcionális)",
-      "maxUsesHint": "Üresen: nincs korlát. A megosztott kódot bárki használhatja.",
+      "maxUsesHint": "Üresen: nincs korlát. A megosztott kódot bárki használhatja, ezért adj meg korlátot, például 100-at.",
       "minOrder": "Min. részösszeg Ft-ban (opcionális)",
       "validFrom": "Érvényes ettől (opcionális)",
       "validTo": "Érvényes eddig (opcionális)",
@@ -1314,7 +1315,10 @@
       "stopped": "Leállítva",
       "expired": "Lejárt",
       "stop": "Leállítás",
-      "restart": "Újraindítás"
+      "restart": "Újraindítás",
+      "colActions": "Műveletek",
+      "noEnd": "nincs vége",
+      "periodHint": "Az időpontok budapesti idő szerint értendők."
     }
   },
   "hq": {
@@ -1466,8 +1470,9 @@
       "fourDigits": "A PIN pontosan 4 számjegy."
     },
     "promoCode": {
-      "invalid": "Érvénytelen kuponkód.",
-      "taken": "Ez a kód itt már létezik."
+      "invalid": "Érvénytelen promóciós kód.",
+      "taken": "Ez a kód itt már létezik.",
+      "tooShort": "Legalább 6 karakter."
     },
     "quantity": {
       "integer": "A mennyiség egész szám legyen.",
@@ -1525,6 +1530,9 @@
     },
     "lastOrder": {
       "range": "0 és 120 perc között."
+    },
+    "deviceId": {
+      "required": "Töltsd újra az oldalt, és próbáld újra a kódot."
     }
   }
 }

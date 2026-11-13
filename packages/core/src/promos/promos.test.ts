@@ -7,6 +7,7 @@ import {
   Order,
   Payment,
   Promo,
+  RateLimit,
 } from "@namitiszunk/db";
 import {
   CURRENT_TERMS_VERSION,
@@ -17,6 +18,7 @@ import { Types } from "mongoose";
 import {
   afterAll,
   beforeAll,
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -40,11 +42,13 @@ process.env.ABLY_API_KEY = "test.key:secret";
 
 const { createOrder, quoteOrder } = await import("../payments/create-order");
 const { transition } = await import("../orders/transition");
-const { createPromo, listPromos, setPromoActive, validatePromo } =
+const { createPromo, listPromos, releasePromo, setPromoActive, validatePromo } =
   await import("./promos");
 const { Venue } = await import("@namitiszunk/db");
 
 const now = new Date("2026-11-07T22:00:00Z");
+const PHONE = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b";
+const OTHER_PHONE = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
 const venueId = new Types.ObjectId();
 const barId = new Types.ObjectId();
 const beerId = new Types.ObjectId();
@@ -127,12 +131,14 @@ function input(overrides: Partial<CreateOrderInput> = {}): CreateOrderInput {
     tip: { type: "percent", bps: 0 },
     smsRequested: false,
     acceptedTermsVersion: CURRENT_TERMS_VERSION,
+    deviceId: PHONE,
     ...overrides,
   };
 }
 
+// A new device per order, so tests beyond the rate limits never hit the per-device order limit.
 const create = (overrides: Partial<CreateOrderInput> = {}) =>
-  createOrder(input(overrides), {
+  createOrder(input({ deviceId: crypto.randomUUID(), ...overrides }), {
     guestTokenHash: new Types.ObjectId().toHexString().padEnd(64, "0"),
     onOrderCreated: async () => {},
     now,
@@ -163,7 +169,7 @@ describe("validatePromo", () => {
       "NYAR",
       "promo_invalid",
     ],
-    ["a stopped code", { isActive: false }, "NYAR", "promo_stopped"],
+    ["a stopped code", { isActive: false }, "NYAR", "promo_invalid"],
     [
       "an expired code",
       { validTo: new Date("2026-11-07T21:00:00Z") },
@@ -216,58 +222,236 @@ describe("checkout and order creation", () => {
     await expect(act).rejects.toMatchObject({ code: "promo_total_too_low" });
   });
 
-  it("stores the promo and its discount on the order and takes one use", async () => {
-    const { _id } = await promo({ maxUses: 5 });
-
-    const { orderId } = await create({ promoCode: "nyar" });
-
-    const order = await Order.findById(orderId).lean();
-    expect(order).toMatchObject({ discountHuf: 500, totalHuf: 2080 });
-    expect(String(order!.promoId)).toBe(String(_id));
-    expect(await usedCount()).toBe(1);
-  });
-
-  it("gives exactly one of two parallel orders the last use of a code", async () => {
-    await promo({ maxUses: 1 });
-
-    const results = await Promise.allSettled([
-      create({ promoCode: "NYAR" }),
-      create({ promoCode: "NYAR" }),
-    ]);
-
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-    const refused = results.find((r) => r.status === "rejected");
-    expect(refused?.reason).toMatchObject({ code: "promo_used_up" });
-    expect(await Order.countDocuments({ discountHuf: { $gt: 0 } })).toBe(1);
-    expect(await usedCount()).toBe(1);
-  });
-
-  it("releases the use when the payment times out, and only once", async () => {
-    await promo({ maxUses: 1 });
-    const { orderId } = await create({ promoCode: "NYAR" });
-    const system: Actor = { kind: "system", source: "inngest" };
-
-    await transition(orderId, "payment_timeout", system);
-    await expect(
-      transition(orderId, "payment_timeout", system),
-    ).rejects.toThrow();
-
-    expect(await usedCount()).toBe(0);
-    await expect(create({ promoCode: "NYAR" })).resolves.toMatchObject({
-      orderId: expect.any(String),
-    });
-  });
-
-  it("keeps the use when the order is paid", async () => {
-    await promo({ maxUses: 1 });
-    const { orderId } = await create({ promoCode: "NYAR" });
-
-    await transition(orderId, "payment_succeeded", {
+  const paid = (orderId: string) =>
+    transition(orderId, "payment_succeeded", {
       kind: "system",
       source: "stripe",
     });
 
+  it("stores the promo and its discount on the order, and takes the use only when it is paid", async () => {
+    const { _id } = await promo({ maxUses: 5 });
+
+    const { orderId } = await create({ promoCode: "nyar" });
+    const before = await usedCount();
+    await paid(orderId);
+
+    const order = await Order.findById(orderId).lean();
+    expect(order).toMatchObject({ discountHuf: 500, totalHuf: 2080 });
+    expect(String(order!.promoId)).toBe(String(_id));
+    expect(before).toBe(0);
     expect(await usedCount()).toBe(1);
+  });
+
+  it("lets unpaid orders hold nothing, so orders nobody pays never block a code", async () => {
+    await promo({ maxUses: 1 });
+    for (let i = 0; i < 20; i += 1) await create({ promoCode: "NYAR" });
+
+    const next = create({ promoCode: "NYAR" });
+
+    await expect(next).resolves.toMatchObject({ orderId: expect.any(String) });
+    expect(await usedCount()).toBe(0);
+  });
+
+  it("refuses the code at the checkout once paid orders used it up", async () => {
+    await promo({ maxUses: 1 });
+    await paid((await create({ promoCode: "NYAR" })).orderId);
+
+    const next = create({ promoCode: "NYAR" });
+
+    await expect(next).rejects.toMatchObject({ code: "promo_used_up" });
+  });
+
+  it("counts every paid order, even when two paid at once for the last use (accepted overshoot)", async () => {
+    await promo({ maxUses: 1 });
+    const first = await create({ promoCode: "NYAR" });
+    const second = await create({ promoCode: "NYAR" });
+
+    await Promise.all([paid(first.orderId), paid(second.orderId)]);
+
+    expect(await Order.countDocuments({ discountHuf: 500 })).toBe(2);
+    expect(await usedCount()).toBe(2);
+  });
+
+  it("takes nothing when the payment times out", async () => {
+    await promo({ maxUses: 1 });
+    const { orderId } = await create({ promoCode: "NYAR" });
+
+    await transition(orderId, "payment_timeout", {
+      kind: "system",
+      source: "inngest",
+    });
+
+    expect(await usedCount()).toBe(0);
+  });
+
+  it("gives the use back when the guest cancels the paid order before acceptance, but not on a bar rejection", async () => {
+    await Venue.updateOne({ _id: venueId }, { "orderRules.autoAccept": false });
+    await promo({ maxUses: 5 });
+    const guestTokenHash = "a".repeat(64);
+    const { orderId: cancelled } = await createOrder(
+      input({ promoCode: "NYAR" }),
+      { guestTokenHash, onOrderCreated: async () => {}, now },
+    );
+    const { orderId: rejected } = await create({ promoCode: "NYAR" });
+    await paid(cancelled);
+    await paid(rejected);
+
+    await transition(cancelled, "reject", {
+      kind: "guest",
+      guestId: guestTokenHash,
+    });
+    await transition(rejected, "reject", member("manager"), {
+      reason: "Elfogyott",
+    });
+
+    expect(await usedCount()).toBe(1);
+  });
+
+  it("never releases below zero", async () => {
+    const { _id } = await promo();
+    const session = await mongoose.startSession();
+
+    await session.withTransaction(() => releasePromo(_id, session));
+    await session.endSession();
+
+    expect(await usedCount()).toBe(0);
+  });
+
+  it("leaves every code alone for an order without a promo", async () => {
+    await promo({ maxUses: 5, usedCount: 3 });
+
+    const { orderId } = await create();
+    await paid(orderId);
+
+    expect(await usedCount()).toBe(3);
+    expect((await Order.findById(orderId).lean())?.promoId).toBeUndefined();
+  });
+
+  it("finds a code's orders for the statistics from an index", async () => {
+    const { _id } = await promo();
+
+    const plan = await Order.find({
+      venueId,
+      promoId: { $in: [_id] },
+      paidAt: { $type: "date" },
+    }).explain("queryPlanner");
+
+    expect(JSON.stringify(plan)).toContain('"indexName":"promo_orders"');
+  });
+});
+
+describe("promo rate limits", () => {
+  // The limiter counts in wall-clock windows (600 s and 900 s). Pin the clock 5 minutes into a window
+  // of both, in the future so the TTL monitor never drops a counter mid-test, and let it run on.
+  beforeEach(() => {
+    const period = 1_800_000;
+    vi.useFakeTimers({ toFake: ["Date"], shouldAdvanceTime: true });
+    vi.setSystemTime(
+      Math.ceil(Date.now() / period) * period + period + 300_000,
+    );
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const order = (
+    deviceId: string | undefined,
+    clientIp?: string,
+    overrides: Partial<CreateOrderInput> = {},
+  ) =>
+    createOrder(input({ promoCode: "nyar", deviceId, ...overrides }), {
+      guestTokenHash: new Types.ObjectId().toHexString().padEnd(64, "0"),
+      onOrderCreated: async () => {},
+      ...(clientIp ? { clientIp } : {}),
+      now,
+    });
+
+  it("answers 429 after 10 unknown codes from one device, even for a valid code", async () => {
+    await promo();
+    for (let i = 0; i < 10; i += 1) {
+      await expect(
+        quoteOrder(input({ promoCode: `WRONG${i}` }), now, "203.0.113.7"),
+      ).rejects.toMatchObject({ code: "promo_invalid" });
+    }
+
+    const guess = quoteOrder(input({ promoCode: "NYAR" }), now, "203.0.113.7");
+    const neighbour = quoteOrder(
+      input({ promoCode: "NYAR", deviceId: OTHER_PHONE }),
+      now,
+      "203.0.113.7",
+    );
+
+    await expect(guess).rejects.toMatchObject({
+      status: 429,
+      code: "rate_limited",
+    });
+    await expect(neighbour).resolves.toMatchObject({ discountHuf: 500 });
+  });
+
+  it("stops one address after 50 unknown codes, whatever device id it sends", async () => {
+    await promo();
+    for (let i = 0; i < 50; i += 1) {
+      await quoteOrder(
+        input({ promoCode: `WRONG${i}`, deviceId: crypto.randomUUID() }),
+        now,
+        "203.0.113.7",
+      ).catch(() => {});
+    }
+
+    const next = quoteOrder(
+      input({ promoCode: "NYAR", deviceId: crypto.randomUUID() }),
+      now,
+      "203.0.113.7",
+    );
+
+    await expect(next).rejects.toMatchObject({ code: "rate_limited" });
+  });
+
+  it("does not let a refused attempt count against the guests sharing the address", async () => {
+    await promo();
+    for (let i = 0; i < 15; i += 1) {
+      await quoteOrder(
+        input({ promoCode: `WRONG${i}` }),
+        now,
+        "203.0.113.7",
+      ).catch(() => {});
+    }
+
+    const counts = (await RateLimit.find().lean()).map((d) => d.count);
+
+    // 10 counted for the device and the address; the 5 refused with 429 counted nowhere.
+    expect(counts).toEqual([10, 10]);
+  });
+
+  it("does not count valid codes, or a real code refused for the cart, as guesses", async () => {
+    await promo({ code: "NAGY", minOrderHuf: 99_000 });
+    await promo();
+    for (let i = 0; i < 12; i += 1) {
+      await quoteOrder(input({ promoCode: "NYAR" }), now, "203.0.113.7");
+      await expect(
+        quoteOrder(input({ promoCode: "NAGY" }), now, "203.0.113.7"),
+      ).rejects.toMatchObject({ code: "promo_below_minimum" });
+    }
+
+    const wrong = quoteOrder(input({ promoCode: "WRONG" }), now, "203.0.113.7");
+
+    await expect(wrong).rejects.toMatchObject({ code: "promo_invalid" });
+  });
+
+  it("refuses a code without a device id, before any count", async () => {
+    await promo();
+
+    const [quote, created] = await Promise.allSettled([
+      quoteOrder(input({ promoCode: "NYAR", deviceId: undefined }), now),
+      order(undefined),
+    ]);
+
+    expect(quote).toMatchObject({
+      reason: { status: 400, fields: { deviceId: "required" } },
+    });
+    expect(created).toMatchObject({ reason: { status: 400 } });
+    expect(await RateLimit.countDocuments()).toBe(0);
+    expect(await usedCount()).toBe(0);
   });
 });
 
@@ -306,7 +490,7 @@ describe("admin", () => {
 
     await setPromoActive(owner, String(venueId), String(_id), false);
     const stopped = validatePromo(venueId, "NYAR", 2580, now);
-    await expect(stopped).rejects.toMatchObject({ code: "promo_stopped" });
+    await expect(stopped).rejects.toMatchObject({ code: "promo_invalid" });
     await setPromoActive(owner, String(venueId), String(_id), true);
 
     expect(await validatePromo(venueId, "NYAR", 2580, now)).toBeTruthy();
@@ -337,7 +521,7 @@ describe("admin", () => {
     const [row] = await listPromos(owner, String(venueId), now);
 
     expect(row).toMatchObject({
-      usedCount: 3,
+      usedCount: 2,
       paidOrders: 2,
       totalDiscountHuf: 1000,
       averageBasketHuf: 3225, // (2580 + 3870) / 2

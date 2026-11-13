@@ -1,7 +1,7 @@
 "use client";
 
 import type { AdminPromo } from "@namitiszunk/core/promos";
-import { formatDateTime, formatHuf } from "@namitiszunk/i18n";
+import { formatHuf } from "@namitiszunk/i18n";
 import {
   Badge,
   Button,
@@ -15,6 +15,7 @@ import {
   EmptyState,
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -33,14 +34,35 @@ import {
   TableRow,
 } from "@namitiszunk/ui";
 import { Plus } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { type ComponentProps, useState } from "react";
 import { useForm, useWatch, type FieldPath } from "react-hook-form";
 
 import { useMenuAction, useValidationText } from "../menu/use-menu-action";
 import { createPromoAction, setPromoActiveAction } from "./actions";
 
+// The design system's date style in every UI language ("2026. 11. 03. 22:00"), in club (Budapest) time.
+const clubDateFormat = new Intl.DateTimeFormat("hu-HU", {
+  timeZone: "Europe/Budapest",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const clubDateTime = (iso: string) => clubDateFormat.format(new Date(iso));
+
 /** The Promotions module (T-060): create a code, stop or restart it, and see its usage. */
+const FIELD_ORDER = [
+  "code",
+  "type",
+  "value",
+  "maxUses",
+  "minOrderHuf",
+  "validFrom",
+  "validTo",
+] as const satisfies readonly FieldPath<PromoValues>[];
+
 export function PromosManager({ promos }: { promos: AdminPromo[] }) {
   const t = useTranslations("admin.promos");
   const add = <PromoDialog />;
@@ -65,7 +87,7 @@ export function PromosManager({ promos }: { promos: AdminPromo[] }) {
             </TableHead>
             <TableHead>{t("colStatus")}</TableHead>
             <TableHead>
-              <span className="sr-only">{t("stop")}</span>
+              <span className="sr-only">{t("colActions")}</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -81,20 +103,20 @@ export function PromosManager({ promos }: { promos: AdminPromo[] }) {
 
 function PromoRow({ promo }: { promo: AdminPromo }) {
   const t = useTranslations("admin.promos");
-  const locale = useLocale();
   const [pending, run] = useMenuAction();
-  const date = (iso: string | null) =>
-    iso ? formatDateTime(new Date(iso), locale) : "…";
   const limits = [
     promo.minOrderHuf > 0 &&
       t("minOrderValue", { amount: formatHuf(promo.minOrderHuf) }),
     (promo.validFrom || promo.validTo) &&
-      t("period", { from: date(promo.validFrom), to: date(promo.validTo) }),
+      t("period", {
+        from: promo.validFrom ? clubDateTime(promo.validFrom) : "",
+        to: promo.validTo ? clubDateTime(promo.validTo) : t("noEnd"),
+      }),
   ].filter(Boolean);
 
   return (
     <TableRow>
-      <TableCell className="font-mono">{promo.code}</TableCell>
+      <TableCell className="font-mono text-small">{promo.code}</TableCell>
       <TableCell className="tabular-nums">
         {promo.type === "percent"
           ? t("percentValue", { percent: promo.value / 100 })
@@ -115,14 +137,14 @@ function PromoRow({ promo }: { promo: AdminPromo }) {
         {formatHuf(promo.averageBasketHuf)}
       </TableCell>
       <TableCell>
-        {/* A code state, not an order status: neutral unless the code is live (DESIGN_SYSTEM §06). */}
-        {promo.isExpired ? (
-          <Badge status="neutral">{t("expired")}</Badge>
-        ) : promo.isActive ? (
-          <Badge status="new">{t("active")}</Badge>
-        ) : (
-          <Badge status="neutral">{t("stopped")}</Badge>
-        )}
+        {/* A code state, not an order status: always the neutral Badge (DESIGN_SYSTEM §06). */}
+        <Badge status="neutral">
+          {promo.isExpired
+            ? t("expired")
+            : promo.isActive
+              ? t("active")
+              : t("stopped")}
+        </Badge>
       </TableCell>
       <TableCell>
         <Button
@@ -166,7 +188,7 @@ const emptyValues: PromoValues = {
 // A non-number is sent as is, so the shared schema names the field.
 const optionalNumber = (value: string) =>
   value.trim() === "" ? undefined : Number(value);
-// datetime-local has no zone: the browser reads it in the owner's own time zone.
+// shortcut: datetime-local has no zone, so the browser's zone is used; the hint says Budapest time, right while owners set codes from Budapest. Convert from Europe/Budapest if venues abroad come.
 const optionalIso = (value: string) =>
   value === "" ? undefined : new Date(value).toISOString();
 
@@ -195,11 +217,15 @@ function PromoDialog() {
     run(() => createPromoAction(input), {
       onDone: () => setOpen(false),
       onError: ({ fields }) => {
-        for (const [path, key] of Object.entries(fields ?? {})) {
-          form.setError(path as FieldPath<PromoValues>, {
-            message: validationText(key),
-          });
-        }
+        // In form order, focusing the first refused field, so a keyboard or screen-reader user hears why.
+        const refused = FIELD_ORDER.filter((name) => fields?.[name]);
+        refused.forEach((name, index) => {
+          form.setError(
+            name,
+            { message: validationText(fields![name]!) },
+            { shouldFocus: index === 0 },
+          );
+        });
       },
     });
   }
@@ -219,7 +245,7 @@ function PromoDialog() {
           <FormControl>
             <Input {...f} autoComplete="off" {...props} />
           </FormControl>
-          {hint && <p className="text-small text-text-muted">{hint}</p>}
+          {hint && <FormDescription>{hint}</FormDescription>}
           <FormMessage />
         </FormItem>
       )}
@@ -289,7 +315,12 @@ function PromoDialog() {
             {field("minOrderHuf", t("minOrder"), { inputMode: "numeric" })}
             <div className="grid gap-4 sm:grid-cols-2">
               {field("validFrom", t("validFrom"), { type: "datetime-local" })}
-              {field("validTo", t("validTo"), { type: "datetime-local" })}
+              {field(
+                "validTo",
+                t("validTo"),
+                { type: "datetime-local" },
+                t("periodHint"),
+              )}
             </div>
             <DialogFooter>
               <Button type="submit" loading={pending}>

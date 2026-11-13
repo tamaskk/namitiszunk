@@ -26,7 +26,7 @@ import { openingState } from "../menu/opening-hours";
 import { publicModifierGroups } from "../menu/public-menu";
 import { businessDate } from "../orders/business-date";
 import { applicationFeeOf, calculateOrder } from "../pricing/calculate-order";
-import { reservePromo, validatePromo } from "../promos/promos";
+import { checkPromo } from "../promos/promos";
 import { AppError, ConflictError, NotFoundError } from "../errors";
 import { assertVenueCanCharge } from "./connect";
 import { stripe } from "./stripe-client";
@@ -41,6 +41,8 @@ export type CreateOrderOptions = {
     orderId: string;
     venueId: string;
   }) => Promise<void>;
+  /** The caller's address, for the promo limits (T-060); apps/api always passes it. */
+  clientIp?: string;
   now?: Date;
 };
 
@@ -48,7 +50,13 @@ export type CreatedOrder = { orderId: string; clientSecret: string | null };
 
 type CartToPrice = Pick<
   CreateOrderInput,
-  "barId" | "zoneId" | "items" | "tip" | "promoCode" | "smsRequested"
+  | "barId"
+  | "zoneId"
+  | "items"
+  | "tip"
+  | "promoCode"
+  | "deviceId"
+  | "smsRequested"
 >;
 
 const PICKUP_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -107,7 +115,7 @@ function chosenOptions(
  * The server's re-check and price of a cart (T-033, T-042): bar open and not paused, venue able to charge,
  * items sellable here, options valid, rules met. Shared by the checkout quote and order creation.
  */
-async function priceCart(input: CartToPrice, now: Date) {
+async function priceCart(input: CartToPrice, now: Date, clientIp?: string) {
   const bar = await Bar.findById(input.barId)
     .select("venueId isOpen pausedUntil")
     .lean();
@@ -194,11 +202,13 @@ async function priceCart(input: CartToPrice, now: Date) {
 
   // One code per order (T-060); the discount comes off the subtotal, and the code's minimum is checked against it.
   const promo = input.promoCode
-    ? await validatePromo(
+    ? await checkPromo(
         venue._id,
         input.promoCode,
         lines.reduce((sum, l) => sum + l.lineTotalHuf, 0),
         now,
+        input.deviceId,
+        clientIp,
       )
     : null;
 
@@ -266,6 +276,7 @@ export async function createOrder(
   const { bar, venue, isVip, lines, calc, promoId } = await priceCart(
     input,
     now,
+    options.clientIp,
   );
 
   const date = businessDate(now, {
@@ -276,8 +287,6 @@ export async function createOrder(
   let orderId = "";
   try {
     await session.withTransaction(async () => {
-      // Aborts the whole order when a parallel order took the code's last use first.
-      if (promoId) await reservePromo(promoId, session);
       const [order] = await Order.create(
         [
           {
@@ -312,6 +321,7 @@ export async function createOrder(
 
   const venueId = String(venue._id);
   // Before Stripe: an order whose timeout cannot start must never get a PaymentIntent.
+  // shortcut: if this throws, the order stays awaiting payment, since no sweep moves old unpaid orders through payment_timeout; build one if Inngest sends fail in practice (docs/TASKS.md).
   await options.onOrderCreated({ orderId, venueId });
 
   const clientSecret = await openPaymentIntent({
@@ -351,8 +361,10 @@ export type OrderQuote = {
 export async function quoteOrder(
   input: CartToPrice,
   now: Date = new Date(),
+  /** The caller's address, for the promo guess limit (T-060). */
+  clientIp?: string,
 ): Promise<OrderQuote> {
-  const { venue, lines, calc } = await priceCart(input, now);
+  const { venue, lines, calc } = await priceCart(input, now, clientIp);
   return {
     lines: lines.map((line) => ({
       name: line.name,

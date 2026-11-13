@@ -57,7 +57,6 @@
     "staff_self": "You cannot disable yourself.",
     "staff_last_owner": "This is the last active owner: invite or enable another owner first.",
     "promo_expired": "This promo code has expired.",
-    "promo_stopped": "This promo code is no longer active.",
     "promo_below_minimum": "Your order is below this promo code's minimum.",
     "promo_used_up": "This promo code has been used up.",
     "promo_code_taken": "This code already exists here.",
@@ -196,7 +195,9 @@
       "promo": "Promo code",
       "promoApply": "Apply",
       "promoRemove": "Remove code",
-      "promoApplied": "Code {code} applied."
+      "promoApplied": "Code {code} applied.",
+      "discountCode": "Discount ({code})",
+      "promoChecking": "Checking the code…"
     },
     "status": {
       "pageTitle": "Your order",
@@ -1281,10 +1282,10 @@
     },
     "promos": {
       "loading": "Loading promo codes…",
-      "intro": "Codes give a discount off the subtotal. A stopped code can be restarted.",
+      "intro": "Codes give a discount off the subtotal. A stopped code can be restarted. Discount and average basket count paid orders, including ones refunded later.",
       "empty": "No promo codes yet. Create the first one.",
       "add": "New promo code",
-      "addHint": "Guests enter the code at checkout. Letters, digits, - and _ only.",
+      "addHint": "Guests enter the code at checkout. 6–32 characters: letters, digits, - and _. Make it hard to guess, for example SUMMER-K7Q2.",
       "code": "Code",
       "type": "Discount type",
       "typePercent": "Percent",
@@ -1292,7 +1293,7 @@
       "valuePercent": "Discount (%)",
       "valueFixed": "Discount (HUF)",
       "maxUses": "Max. uses (optional)",
-      "maxUsesHint": "Empty: no limit. A shared code can be used by anyone.",
+      "maxUsesHint": "Empty: no limit. A shared code can be used by anyone, so set a limit, for example 100.",
       "minOrder": "Min. subtotal in HUF (optional)",
       "validFrom": "Valid from (optional)",
       "validTo": "Valid until (optional)",
@@ -1314,7 +1315,10 @@
       "stopped": "Stopped",
       "expired": "Expired",
       "stop": "Stop",
-      "restart": "Restart"
+      "restart": "Restart",
+      "colActions": "Actions",
+      "noEnd": "no end",
+      "periodHint": "Times are Budapest time."
     }
   },
   "hq": {
@@ -1467,7 +1471,8 @@
     },
     "promoCode": {
       "invalid": "Invalid promo code.",
-      "taken": "This code already exists here."
+      "taken": "This code already exists here.",
+      "tooShort": "At least 6 characters."
     },
     "quantity": {
       "integer": "The quantity must be a whole number.",
@@ -1525,6 +1530,9 @@
     },
     "lastOrder": {
       "range": "Between 0 and 120 minutes."
+    },
+    "deviceId": {
+      "required": "Reload the page and try the code again."
     }
   }
 }

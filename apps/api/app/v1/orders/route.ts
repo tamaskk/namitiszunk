@@ -1,4 +1,5 @@
 import { createGuestToken } from "@namitiszunk/auth";
+import { clientIp } from "@namitiszunk/core/api";
 import { AppError } from "@namitiszunk/core/errors";
 import {
   type CreatedOrder,
@@ -70,6 +71,8 @@ export const POST = handler(
     const order = await createOrder(input, {
       guestTokenHash: guest.hash,
       ...(account ? { userId: account.userId } : {}),
+      // The promo limits count per client address (T-060).
+      clientIp: clientIp(request) ?? undefined,
       // Starts the 15-minute payment timeout (T-035).
       onOrderCreated: async ({ orderId, venueId }) => {
         await inngest.send(orderCreatedEvent(orderId, venueId));

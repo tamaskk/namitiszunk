@@ -402,14 +402,31 @@ test("applies a promo code through the server quote, and shows why a code is ref
       .filter({ hasText: messages.hu.apiErrors.promo_expired }),
   ).toBeVisible();
   await expect(payButton(page, colaHuf)).toBeVisible();
+  await expect(field).toBeFocused();
+  await field.fill("no spaces");
+  await field.press("Enter");
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: messages.hu.apiErrors.promo_invalid }),
+  ).toBeVisible();
   await field.fill("demo10");
   await field.press("Enter");
 
+  const remove = page.getByRole("button", { name: checkout.promoRemove });
+  await expect(remove).toBeFocused();
   await expect(
-    page.getByText(fill(checkout.promoApplied, { code: "DEMO10" })),
+    page
+      .getByRole("status")
+      .filter({ hasText: fill(checkout.promoApplied, { code: "DEMO10" }) }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(fill(checkout.discountCode, { code: "DEMO10" })),
   ).toBeVisible();
   await expect(payButton(page, colaHuf - discountHuf)).toBeVisible();
   expect(codes).toContain("demo10");
-  await page.getByRole("button", { name: checkout.promoRemove }).click();
+  expect(codes).not.toContain("no spaces");
+  await remove.click();
+  await expect(field).toBeFocused();
   await expect(payButton(page, colaHuf)).toBeVisible();
 });

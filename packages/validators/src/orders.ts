@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { MAX_QUANTITY_PER_LINE } from "./cart-limits";
 import { hufSchema, huPhoneSchema, locales, objectIdSchema } from "./shared";
+import { promoCodeSchema } from "./promos";
 import { venueSlugSchema } from "./venues";
 
 export { MAX_QUANTITY_PER_LINE };
@@ -75,12 +76,24 @@ const cartToPrice = {
     .min(1, { error: "validation.cart.empty" })
     .max(MAX_CART_LINES, { error: "validation.cart.max" }),
   tip: tipChoiceSchema,
-  promoCode: z.string().max(32).optional(),
+  promoCode: promoCodeSchema.optional(),
+  /** A random per-browser id: the promo limits count per device (T-060). Client-chosen, so never trusted beyond that. */
+  deviceId: z.uuid().optional(),
   smsRequested: z.boolean(),
 };
 
+// Shared club wifi puts many guests on one address, so a code is limited per device: no device, no code.
+const promoHasDevice = (cart: { promoCode?: string; deviceId?: string }) =>
+  !cart.promoCode || cart.deviceId !== undefined;
+const deviceRequired = {
+  path: ["deviceId"],
+  error: "validation.deviceId.required",
+};
+
 /** POST /v1/orders/quote (T-042): the checkout summary before payment. Nothing is stored. */
-export const quoteOrderInputSchema = z.object(cartToPrice);
+export const quoteOrderInputSchema = z
+  .object(cartToPrice)
+  .refine(promoHasDevice, deviceRequired);
 
 export const orderQuoteResponseSchema = z.object({
   lines: z.array(
@@ -116,7 +129,8 @@ export const createOrderInputSchema = z
   .refine((order) => !order.smsRequested || order.guestPhone !== undefined, {
     path: ["guestPhone"],
     error: "validation.phone.requiredForSms",
-  });
+  })
+  .refine(promoHasDevice, deviceRequired);
 
 export const createOrderResponseSchema = z.object({
   orderId: objectIdSchema,
