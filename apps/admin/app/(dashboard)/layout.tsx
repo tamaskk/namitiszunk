@@ -4,7 +4,9 @@ import {
   listAdminNotifications,
 } from "@namitiszunk/core/admin";
 import { can } from "@namitiszunk/core/auth";
-import { EmptyState } from "@namitiszunk/ui";
+import { Button, EmptyState } from "@namitiszunk/ui";
+import { UserRound } from "lucide-react";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
@@ -70,6 +72,18 @@ export default async function DashboardLayout({
               canChange={can(actor, "venue.pauseOrders", { venueId: venue.id })}
             />
             {notifications && <NotificationsBell items={notifications} />}
+            {actor.kind === "user" && (
+              <Button
+                asChild
+                variant="ghost"
+                className="min-w-12 px-3"
+                aria-label={t("shell.profile")}
+              >
+                <Link href="/profile">
+                  <UserRound aria-hidden />
+                </Link>
+              </Button>
+            )}
             <SignOutButton label={t("shell.signOut")} />
           </div>
         </header>

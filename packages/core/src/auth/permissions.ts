@@ -35,6 +35,8 @@ export type Actor =
       memberships: readonly VenueMembership[];
       platformRole?: PlatformRole;
       confirmedWrite?: boolean;
+      /** A TOTP or backup code was checked in this session; actions that reach bank details need it. */
+      twoFactorVerified?: boolean;
     };
 
 export type Resource = {

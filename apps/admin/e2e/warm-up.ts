@@ -16,6 +16,8 @@ const routes = [
   "/pin",
   "/vip",
   "/settings",
+  "/payouts",
+  "/payouts/export",
   "/dev/ui",
 ];
 

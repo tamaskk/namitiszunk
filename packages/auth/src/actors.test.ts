@@ -177,6 +177,7 @@ describe("HQ two-factor guard", () => {
       userId,
       memberships: [],
       platformRole: "support",
+      twoFactorVerified: true,
     });
   });
 

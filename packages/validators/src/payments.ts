@@ -5,6 +5,11 @@ import { hufSchema, objectIdSchema } from "./shared";
 /** The venue whose Stripe connected account the Owner manages (T-032). */
 export const stripeConnectInputSchema = z.object({ venueId: objectIdSchema });
 
+/** The Owner's payout frequency on the Payouts page (T-059). */
+export const payoutScheduleInputSchema = z.object({
+  interval: z.enum(["daily", "weekly"]),
+});
+
 export const connectAccountResponseSchema = z.object({
   stripeAccountId: z.string(),
 });

@@ -36,5 +36,19 @@ export const authApi = {
     );
     return res?.ok ?? false;
   },
+  /**
+   * Starts TOTP setup: the authenticator URI and the backup codes; 2FA is on only once
+   * `verifyTotp` accepts a code from the app. null when the start failed.
+   */
+  async enableTwoFactor(): Promise<{
+    totpURI: string;
+    backupCodes: string[];
+  } | null> {
+    const res = await auth("/two-factor/enable", { method: "totp" }).catch(
+      () => null,
+    );
+    if (!res?.ok) return null;
+    return (await res.json()) as { totpURI: string; backupCodes: string[] };
+  },
   signOut: () => auth("/sign-out", {}).catch(() => null),
 };

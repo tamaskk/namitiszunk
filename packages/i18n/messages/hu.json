@@ -481,7 +481,8 @@
       "forbiddenBody": "Ezt a modult a szerepköröd nem éri el. Ha szükséged van rá, szólj a klub tulajdonosának.",
       "loadFailed": "Nem sikerült betölteni az oldalt. Próbáld újra.",
       "retry": "Újra",
-      "venueFailed": "Nem sikerült helyszínt váltani. Próbáld újra."
+      "venueFailed": "Nem sikerült helyszínt váltani. Próbáld újra.",
+      "profile": "Profil"
     },
     "signIn": {
       "title": "Belépés a klubadminba",
@@ -1143,6 +1144,129 @@
       "notifications": {
         "sms": "SMS értesítés a vendégnek",
         "smsHint": "A vendég SMS-t kérhet, amikor elkészült a rendelése. 35 Ft / SMS, a klub fizeti."
+      }
+    },
+    "payouts": {
+      "intro": "A Stripe-egyenleg, az utalások és a díjak. Az adatok legfeljebb 5 percesek.",
+      "loading": "Kifizetések betöltése…",
+      "connect": {
+        "title": "Kösd be a Stripe-fiókot",
+        "body": "A vendégek fizetése a klub Stripe-fiókjára érkezik, onnan utal a Stripe a bankszámlára. A bekötés kb. 10 perc: cégadatok, bankszámla, személyazonosság.",
+        "button": "Stripe bekötése",
+        "returned": "Visszatértél a Stripe-tól. Ha valami még hiányzik, itt látod."
+      },
+      "requirements": {
+        "title": "A Stripe még adatot kér",
+        "body": "Amíg ezek hiányoznak, előfordulhat, hogy a Stripe visszatartja az utalást vagy a fizetést. Hiányzó tételek: {count}.",
+        "button": "Adatok megadása"
+      },
+      "disputes": {
+        "title": "{count, plural, one {Egy vitatott terhelés vár rád} other {# vitatott terhelés vár rád}}",
+        "body": "A vendég bankja visszakérte az összeget. Válaszolj a Stripe Express felületén a határidő előtt, különben a pénz visszamegy.",
+        "item": "{amount}, ok: {reason}, határidő: {dueBy}",
+        "noDue": "{amount}, ok: {reason}",
+        "reasons": {
+          "credit_not_processed": "nem kapott jóváírást",
+          "duplicate": "kétszer terhelték",
+          "fraudulent": "nem ő fizetett",
+          "general": "általános",
+          "product_not_received": "nem kapta meg a terméket",
+          "product_unacceptable": "nem volt megfelelő a termék",
+          "unrecognized": "nem ismeri fel a terhelést"
+        }
+      },
+      "balance": {
+        "title": "Egyenleg",
+        "available": "Utalható",
+        "pending": "Feldolgozás alatt"
+      },
+      "next": {
+        "title": "Következő utalás",
+        "arrives": "{amount}, várható érkezés: {date}",
+        "none": "Most nincs úton utalás."
+      },
+      "list": {
+        "title": "Utolsó utalások",
+        "empty": "Még nem volt utalás.",
+        "arrival": "Érkezés",
+        "amount": "Összeg",
+        "status": "Állapot"
+      },
+      "statuses": {
+        "paid": "Megérkezett",
+        "pending": "Függőben",
+        "in_transit": "Úton",
+        "canceled": "Visszavonva",
+        "failed": "Sikertelen"
+      },
+      "schedule": {
+        "label": "Utalás gyakorisága",
+        "daily": "Naponta",
+        "weekly": "Hetente (hétfőn)",
+        "other": "A Stripe-ban más van beállítva",
+        "saved": "Mentve."
+      },
+      "dashboard": "Stripe Express felület",
+      "refresh": "Frissítés",
+      "fetchedAt": "Frissítve: {time}",
+      "actionFailed": "Nem sikerült. Próbáld újra.",
+      "export": {
+        "title": "Export a könyveléshez",
+        "from": "Ettől (nap)",
+        "to": "Eddig (nap)",
+        "csv": "CSV letöltése",
+        "xlsx": "Excel letöltése",
+        "hint": "Minden Stripe-tétel díjakkal és utalásazonosítóval, naptári napok szerint (a Rendelések exportja nyitvatartási napot használ). Legfeljebb 92 nap, vendégadat nincs benne.",
+        "invalidRange": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot tölthetsz le egyszerre.",
+        "tooLarge": "Ebben az időszakban túl sok a tétel egy fájlhoz. Válassz rövidebb időszakot.",
+        "filename": "stripe-egyenleg",
+        "sheet": "Stripe-egyenleg",
+        "otherCurrency": "Ebben az időszakban nem forintos tétel is van. Ezt az exportot csak forintra készítjük, nézd meg a Stripe Express felületen."
+      },
+      "columns": {
+        "createdAt": "Időpont",
+        "type": "Típus",
+        "description": "Leírás",
+        "grossHuf": "Bruttó (Ft)",
+        "stripeFeeHuf": "Stripe-díj (Ft)",
+        "platformFeeHuf": "Platformdíj (Ft)",
+        "netHuf": "Nettó (Ft)",
+        "payoutId": "Utalás azonosító"
+      },
+      "types": {
+        "charge": "Fizetés",
+        "payment": "Fizetés",
+        "refund": "Visszatérítés",
+        "payment_refund": "Visszatérítés",
+        "payout": "Utalás",
+        "adjustment": "Korrekció",
+        "dispute": "Vitatott terhelés",
+        "stripe_fee": "Stripe-díj"
+      },
+      "rateLimited": "Túl sok kérés. Várj egy percet, és próbáld újra.",
+      "refreshed": "Frissítve.",
+      "twoFactor": {
+        "title": "Kapcsold be a kétlépcsős belépést",
+        "body": "A Stripe Express felületén a kifizetési bankszámla is módosítható, ezért ezt és a kifizetési gyakoriságot csak kétlépcsős belépéssel érheted el.",
+        "button": "Beállítás a profilban"
+      }
+    },
+    "profile": {
+      "title": "Profil",
+      "twoFactor": {
+        "title": "Kétlépcsős belépés",
+        "on": "Be van kapcsolva. Belépéskor a hitelesítő alkalmazás kódját is kérjük.",
+        "off": "Nincs bekapcsolva. Belépéskor a Google-, Apple- vagy e-mailes belépés mellé a hitelesítő alkalmazás kódját is kérjük majd.",
+        "start": "Bekapcsolás",
+        "startFailed": "Nem sikerült elindítani. Próbáld újra egy perc múlva.",
+        "scan": "Olvasd be a kódot a hitelesítő alkalmazással (Google Authenticator, 1Password vagy hasonló).",
+        "qrAlt": "QR-kód a hitelesítő alkalmazásnak",
+        "secret": "Ha nem tudod beolvasni, írd be ezt a kulcsot:",
+        "backupTitle": "Tartalék kódok",
+        "backupBody": "Mentsd el őket biztonságos helyre. Ha elveszíted a telefonod, mindegyikkel egyszer beléphetsz. Később nem mutatjuk meg őket újra.",
+        "codeLabel": "Az alkalmazás 6 jegyű kódja",
+        "submit": "Megerősítés",
+        "failed": "A kód nem jó. Írd be az alkalmazásban most látható 6 számjegyet."
       }
     }
   },

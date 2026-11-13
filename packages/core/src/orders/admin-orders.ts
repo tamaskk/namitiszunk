@@ -12,14 +12,13 @@ import {
   VenueMember,
   Zone,
 } from "@namitiszunk/db";
-import ExcelJS from "exceljs";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
-import Papa from "papaparse";
 
 import { hitRateLimit, type RateLimitRule } from "../api/rate-limit";
 import { auditActorOf } from "../audit/audit";
 import { type Actor, can, requirePermission } from "../auth/permissions";
 import { AppError, ConflictError, NotFoundError } from "../errors";
+import { type TableFile, writeTableFile } from "../export/table-file";
 import { businessDate } from "./business-date";
 
 // The Orders module (T-056): a manager's or owner's list, one order's details, and the export.
@@ -451,18 +450,7 @@ export type ExportLabels = {
 export const EXPORT_MAX_ROWS = 20_000;
 const EXPORT_RATE: RateLimitRule = { limit: 10, windowSeconds: 60 };
 
-export type OrdersExport = {
-  filename: string;
-  contentType: string;
-  body: Uint8Array<ArrayBuffer>;
-};
-
-// Written as an escape: a literal BOM is invisible in review and trips the linter.
-const BOM = String.fromCharCode(0xfeff);
-
-// A cell starting with one of these runs as a formula in Excel (CSV injection); a quote keeps it text.
-const neutralize = (value: string) =>
-  /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+export type OrdersExport = TableFile;
 
 /**
  * Paid orders of business days `from`–`to` for the books: amounts in whole forints, no guest data.
@@ -544,37 +532,12 @@ export async function exportVenueOrders(
     };
     return exportColumns.map((column) => row[column]);
   });
-  const header = exportColumns.map((column) => labels.columns[column]);
-  const filename = `${labels.filename}-${range.from}_${range.to}.${range.format}`;
-
-  if (range.format === "csv") {
-    // A BOM and semicolons: Hungarian Excel opens the file with the accents and columns right.
-    // Only the CSV needs it: Excel files store text cells as text, never as formulas.
-    const safe = rows.map((row) =>
-      row.map((cell) => (typeof cell === "string" ? neutralize(cell) : cell)),
-    );
-    const csv = `${BOM}${Papa.unparse([header, ...safe], { delimiter: ";" })}`;
-    return {
-      filename,
-      contentType: "text/csv; charset=utf-8",
-      body: new TextEncoder().encode(csv),
-    };
-  }
-
-  const book = new ExcelJS.Workbook();
-  const sheet = book.addWorksheet(labels.sheet);
-  sheet.addRow(header).font = { bold: true };
-  sheet.addRows(rows);
-  exportColumns.forEach((column, i) => {
-    const col = sheet.getColumn(i + 1);
-    col.width = Math.max(12, labels.columns[column].length + 2);
-    if (column.endsWith("Huf")) col.numFmt = "#,##0";
+  return writeTableFile({
+    header: exportColumns.map((column) => labels.columns[column]),
+    rows,
+    hufColumns: exportColumns.map((column) => column.endsWith("Huf")),
+    format: range.format,
+    filename: `${labels.filename}-${range.from}_${range.to}`,
+    sheet: labels.sheet,
   });
-  sheet.views = [{ state: "frozen", ySplit: 1 }];
-  return {
-    filename,
-    contentType:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    body: new Uint8Array(await book.xlsx.writeBuffer()),
-  };
 }

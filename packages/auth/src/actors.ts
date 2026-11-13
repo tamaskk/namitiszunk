@@ -50,6 +50,7 @@ export async function userActorFromHeaders(
     id: `user:${user.id}`,
     userId: user.id,
     memberships: [],
+    twoFactorVerified: session.twoFactorVerified === true,
   };
   if (app === "admin") {
     const members = await VenueMember.find(

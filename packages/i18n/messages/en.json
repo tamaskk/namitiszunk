@@ -481,7 +481,8 @@
       "forbiddenBody": "Your role cannot open this module. Ask the club owner if you need it.",
       "loadFailed": "Could not load this page. Try again.",
       "retry": "Try again",
-      "venueFailed": "Could not switch the venue. Try again."
+      "venueFailed": "Could not switch the venue. Try again.",
+      "profile": "Profile"
     },
     "signIn": {
       "title": "Sign in to the club admin",
@@ -1143,6 +1144,129 @@
       "notifications": {
         "sms": "SMS to the guest",
         "smsHint": "Guests can ask for a text when their order is ready. 35 HUF per SMS, paid by the club."
+      }
+    },
+    "payouts": {
+      "intro": "Your Stripe balance, payouts and fees. The figures are at most 5 minutes old.",
+      "loading": "Loading payouts…",
+      "connect": {
+        "title": "Connect your Stripe account",
+        "body": "Guests pay into the club's Stripe account, and Stripe pays out to your bank account. Connecting takes about 10 minutes: company details, bank account, identity.",
+        "button": "Connect Stripe",
+        "returned": "You are back from Stripe. Anything still missing shows here."
+      },
+      "requirements": {
+        "title": "Stripe needs more details",
+        "body": "Until these are in, Stripe may hold payouts or payments. Items missing: {count}.",
+        "button": "Add the details"
+      },
+      "disputes": {
+        "title": "{count, plural, one {One dispute needs you} other {# disputes need you}}",
+        "body": "The guest's bank asked for the money back. Respond in Stripe Express before the deadline, or the money goes back.",
+        "item": "{amount}, reason: {reason}, due: {dueBy}",
+        "noDue": "{amount}, reason: {reason}",
+        "reasons": {
+          "credit_not_processed": "credit not processed",
+          "duplicate": "charged twice",
+          "fraudulent": "did not make the payment",
+          "general": "general",
+          "product_not_received": "product not received",
+          "product_unacceptable": "product not acceptable",
+          "unrecognized": "does not recognise the charge"
+        }
+      },
+      "balance": {
+        "title": "Balance",
+        "available": "Available",
+        "pending": "Pending"
+      },
+      "next": {
+        "title": "Next payout",
+        "arrives": "{amount}, expected on {date}",
+        "none": "No payout on its way right now."
+      },
+      "list": {
+        "title": "Recent payouts",
+        "empty": "No payouts yet.",
+        "arrival": "Arrival",
+        "amount": "Amount",
+        "status": "Status"
+      },
+      "statuses": {
+        "paid": "Paid",
+        "pending": "Pending",
+        "in_transit": "In transit",
+        "canceled": "Canceled",
+        "failed": "Failed"
+      },
+      "schedule": {
+        "label": "Payout frequency",
+        "daily": "Daily",
+        "weekly": "Weekly (Mondays)",
+        "other": "Set differently in Stripe",
+        "saved": "Saved."
+      },
+      "dashboard": "Stripe Express dashboard",
+      "refresh": "Refresh",
+      "fetchedAt": "Updated: {time}",
+      "actionFailed": "That did not work. Try again.",
+      "export": {
+        "title": "Export for the accountant",
+        "from": "From (day)",
+        "to": "To (day)",
+        "csv": "Download CSV",
+        "xlsx": "Download Excel",
+        "hint": "Every Stripe transaction with fees and payout id, by calendar day (the Orders export uses business days). Up to 92 days, no guest data.",
+        "invalidRange": "The start day cannot be after the end day, and you can download up to 92 days at once.",
+        "tooLarge": "This period has too many transactions for one file. Choose a shorter period.",
+        "filename": "stripe-balance",
+        "sheet": "Stripe balance",
+        "otherCurrency": "This period has a transaction in another currency. This export covers forints only; see it in Stripe Express."
+      },
+      "columns": {
+        "createdAt": "Time",
+        "type": "Type",
+        "description": "Description",
+        "grossHuf": "Gross (HUF)",
+        "stripeFeeHuf": "Stripe fee (HUF)",
+        "platformFeeHuf": "Platform fee (HUF)",
+        "netHuf": "Net (HUF)",
+        "payoutId": "Payout id"
+      },
+      "types": {
+        "charge": "Payment",
+        "payment": "Payment",
+        "refund": "Refund",
+        "payment_refund": "Refund",
+        "payout": "Payout",
+        "adjustment": "Adjustment",
+        "dispute": "Dispute",
+        "stripe_fee": "Stripe fee"
+      },
+      "rateLimited": "Too many requests. Wait a minute and try again.",
+      "refreshed": "Updated.",
+      "twoFactor": {
+        "title": "Turn on two-step sign-in",
+        "body": "Stripe Express can change the bank account payouts go to, so it and the payout frequency need two-step sign-in.",
+        "button": "Set it up in your profile"
+      }
+    },
+    "profile": {
+      "title": "Profile",
+      "twoFactor": {
+        "title": "Two-step sign-in",
+        "on": "It is on. Sign-in also asks for the code from your authenticator app.",
+        "off": "It is off. Once on, sign-in asks for the code from your authenticator app after Google, Apple or the e-mail link.",
+        "start": "Turn on",
+        "startFailed": "Could not start. Try again in a minute.",
+        "scan": "Scan the code with your authenticator app (Google Authenticator, 1Password or similar).",
+        "qrAlt": "QR code for your authenticator app",
+        "secret": "If you cannot scan it, enter this key:",
+        "backupTitle": "Backup codes",
+        "backupBody": "Keep them somewhere safe. If you lose your phone, each one signs you in once. They are not shown again.",
+        "codeLabel": "The 6-digit code from the app",
+        "submit": "Confirm",
+        "failed": "That code is not right. Enter the 6 digits the app shows now."
       }
     }
   },
