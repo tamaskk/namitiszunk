@@ -9,6 +9,7 @@ import {
   type Resource,
 } from "../auth/permissions";
 import { AppError, NotFoundError } from "../errors";
+import { releasePromo } from "../promos/promos";
 import { publishStatusChange } from "../realtime";
 import { reportError } from "../report-error";
 import { businessDate } from "./business-date";
@@ -130,7 +131,9 @@ export async function transitionWith(
     const run = () =>
       session.withTransaction(async () => {
         const order = await Order.findById(orderId)
-          .select("venueId barId status isVip acceptedAt +guestTokenHash")
+          .select(
+            "venueId barId status isVip acceptedAt promoId +guestTokenHash",
+          )
           .session(session)
           .lean();
         const venueId = String(order?.venueId);
@@ -198,6 +201,10 @@ export async function transitionWith(
         ).lean();
         if (!updated)
           throw new InvalidTransition(from, event, actorKindOf(actor));
+        // T-060: an abandoned payment gives its promo use back, in this transaction, after the status won.
+        if (event === "payment_timeout" && order.promoId) {
+          await releasePromo(order.promoId, session);
+        }
 
         await audit(session, {
           actor: auditActorOf(actor),

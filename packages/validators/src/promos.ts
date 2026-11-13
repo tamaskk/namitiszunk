@@ -47,3 +47,9 @@ export const promoResponseSchema = z.object({
 
 export type PromoInput = z.infer<typeof promoInputSchema>;
 export type PromoResponse = z.infer<typeof promoResponseSchema>;
+
+/** Admin: stop or restart a code (T-060). */
+export const setPromoActiveInputSchema = z.object({
+  id: objectIdSchema,
+  isActive: z.boolean(),
+});

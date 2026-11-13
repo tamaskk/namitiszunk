@@ -96,6 +96,10 @@ export function CheckoutForm({
   const { lines, update } = useCart(venueId);
   const [tip, setTip] = useState<Tip>({ type: "percent", bps: 0 });
   const [customTip, setCustomTip] = useState("");
+  // T-060: the typed code, the one sent for pricing, and why the server refused the last one.
+  const [promoDraft, setPromoDraft] = useState("");
+  const [promoCode, setPromoCode] = useState<string | null>(null);
+  const [promoProblem, setPromoProblem] = useState<string | null>(null);
   const [sms, setSms] = useState(false);
   const [phone, setPhone] = useState("");
   const [adult, setAdult] = useState(false);
@@ -119,8 +123,16 @@ export function CheckoutForm({
       modifierIds: line.modifierIds,
     })),
     tip,
+    ...(promoCode ? { promoCode } : {}),
   };
   const cartKey = JSON.stringify(cart);
+  // A refused code is dropped, so the summary prices again without it and the reason shows by the field.
+  const refusePromo = (code: string) => {
+    if (!code.startsWith("promo_")) return false;
+    setPromoProblem(code);
+    setPromoCode(null);
+    return true;
+  };
 
   // The server prices every change; a short pause lets the guest finish typing a custom tip.
   useEffect(() => {
@@ -137,9 +149,9 @@ export function CheckoutForm({
         })
         .catch((error: unknown) => {
           if (!current) return;
-          setQuoteProblem({
-            code: error instanceof OrderApiError ? (error.code ?? "") : "",
-          });
+          const code = error instanceof OrderApiError ? (error.code ?? "") : "";
+          if (refusePromo(code)) return;
+          setQuoteProblem({ code });
         });
     }, 300);
     return () => {
@@ -240,6 +252,8 @@ export function CheckoutForm({
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- see above
       window.location.assign(liveUrl);
     } catch (error) {
+      // The last use of the code went to another order meanwhile: the summary prices again without it.
+      if (error instanceof OrderApiError) refusePromo(error.code ?? "");
       setPayProblem(
         (error instanceof OrderApiError && apiErrorText(error.code)) ||
           t("payFailed"),
@@ -337,6 +351,68 @@ export function CheckoutForm({
             </div>
           )}
         </section>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="checkout-promo" className="text-small font-medium">
+            {t("promo")}
+          </Label>
+          {promoCode ? (
+            <div className="flex items-center justify-between gap-4">
+              <p role="status" className="text-body">
+                {t("promoApplied", { code: promoCode.toUpperCase() })}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setPromoCode(null)}
+              >
+                {t("promoRemove")}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                id="checkout-promo"
+                value={promoDraft}
+                maxLength={32}
+                autoComplete="off"
+                autoCapitalize="characters"
+                aria-invalid={promoProblem !== null}
+                aria-describedby={
+                  promoProblem ? "checkout-promo-error" : undefined
+                }
+                className="uppercase"
+                onChange={(e) => {
+                  setPromoDraft(e.target.value);
+                  setPromoProblem(null);
+                }}
+                onKeyDown={(e) => {
+                  // Enter applies the code; it must not submit the payment form.
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  if (promoDraft.trim()) setPromoCode(promoDraft.trim());
+                }}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!promoDraft.trim()}
+                onClick={() => setPromoCode(promoDraft.trim())}
+              >
+                {t("promoApply")}
+              </Button>
+            </div>
+          )}
+          {promoProblem && (
+            <p
+              id="checkout-promo-error"
+              role="alert"
+              className="text-small text-danger"
+            >
+              {apiErrorText(promoProblem) ?? tError("promo_invalid")}
+            </p>
+          )}
+        </div>
 
         {tipPresetsBps && (
           <fieldset className="flex flex-col gap-3">

@@ -55,7 +55,13 @@
     "pin_taken": "This PIN is taken.",
     "staff_name_taken": "An active member already has this name.",
     "staff_self": "You cannot disable yourself.",
-    "staff_last_owner": "This is the last active owner: invite or enable another owner first."
+    "staff_last_owner": "This is the last active owner: invite or enable another owner first.",
+    "promo_expired": "This promo code has expired.",
+    "promo_stopped": "This promo code is no longer active.",
+    "promo_below_minimum": "Your order is below this promo code's minimum.",
+    "promo_used_up": "This promo code has been used up.",
+    "promo_code_taken": "This code already exists here.",
+    "promo_total_too_low": "With this code the total is too low to pay by card. Add more items, then try the code again."
   },
   "landing": {
     "tagline": "Order and pay on your phone",
@@ -186,7 +192,11 @@
       "payFailed": "The payment did not go through. Try again.",
       "backToCart": "Back to the cart",
       "closed": "We are closed now, so you cannot pay. Your cart stays.",
-      "otherMethod": "Another payment method"
+      "otherMethod": "Another payment method",
+      "promo": "Promo code",
+      "promoApply": "Apply",
+      "promoRemove": "Remove code",
+      "promoApplied": "Code {code} applied."
     },
     "status": {
       "pageTitle": "Your order",
@@ -1268,6 +1278,43 @@
         "submit": "Confirm",
         "failed": "That code is not right. Enter the 6 digits the app shows now."
       }
+    },
+    "promos": {
+      "loading": "Loading promo codes…",
+      "intro": "Codes give a discount off the subtotal. A stopped code can be restarted.",
+      "empty": "No promo codes yet. Create the first one.",
+      "add": "New promo code",
+      "addHint": "Guests enter the code at checkout. Letters, digits, - and _ only.",
+      "code": "Code",
+      "type": "Discount type",
+      "typePercent": "Percent",
+      "typeFixed": "Fixed amount (HUF)",
+      "valuePercent": "Discount (%)",
+      "valueFixed": "Discount (HUF)",
+      "maxUses": "Max. uses (optional)",
+      "maxUsesHint": "Empty: no limit. A shared code can be used by anyone.",
+      "minOrder": "Min. subtotal in HUF (optional)",
+      "validFrom": "Valid from (optional)",
+      "validTo": "Valid until (optional)",
+      "create": "Create",
+      "tableLabel": "Promo codes",
+      "colCode": "Code",
+      "colDiscount": "Discount",
+      "colLimits": "Limits",
+      "colUses": "Uses",
+      "colTotalDiscount": "Total discount",
+      "colAverageBasket": "Average basket",
+      "colStatus": "Status",
+      "percentValue": "{percent}%",
+      "minOrderValue": "Min. {amount}",
+      "period": "{from} – {to}",
+      "noLimits": "None",
+      "usesValue": "{used} / {max}",
+      "active": "Active",
+      "stopped": "Stopped",
+      "expired": "Expired",
+      "stop": "Stop",
+      "restart": "Restart"
     }
   },
   "hq": {
@@ -1419,7 +1466,8 @@
       "fourDigits": "The PIN is exactly 4 digits."
     },
     "promoCode": {
-      "invalid": "Invalid promo code."
+      "invalid": "Invalid promo code.",
+      "taken": "This code already exists here."
     },
     "quantity": {
       "integer": "The quantity must be a whole number.",

@@ -107,6 +107,8 @@ describe("calculateOrder", () => {
 
   it.each([
     [{ type: "percent", value: 2000 } as const, 1074],
+    [{ type: "percent", value: 1250 } as const, 671], // 12.5% of 5370 = 671.25
+    [{ type: "percent", value: 50 } as const, 27], // 0.5% of 5370 = 26.85
     [{ type: "fixed", value: 1000 } as const, 1000],
     [{ type: "fixed", value: 99_999 } as const, 5370],
   ])("applies the %o promo, capped at the subtotal", (promo, discountHuf) => {

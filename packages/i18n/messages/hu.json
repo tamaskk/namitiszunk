@@ -55,7 +55,13 @@
     "pin_taken": "Ez a PIN már foglalt.",
     "staff_name_taken": "Ezen a néven már van aktív tag.",
     "staff_self": "Saját magadat nem tilthatod le.",
-    "staff_last_owner": "Ő az utolsó aktív tulajdonos: előbb hívj meg vagy engedélyezz egy másikat."
+    "staff_last_owner": "Ő az utolsó aktív tulajdonos: előbb hívj meg vagy engedélyezz egy másikat.",
+    "promo_expired": "Ez a promóciós kód lejárt.",
+    "promo_stopped": "Ez a promóciós kód már nem él.",
+    "promo_below_minimum": "A rendelésed nem éri el a kód minimális összegét.",
+    "promo_used_up": "Ezt a promóciós kódot már felhasználták.",
+    "promo_code_taken": "Ez a kód itt már létezik.",
+    "promo_total_too_low": "Ezzel a kóddal a végösszeg túl kicsi a kártyás fizetéshez. Tegyél még valamit a kosárba, és próbáld újra a kódot."
   },
   "landing": {
     "tagline": "Rendelés és fizetés a telefonodon",
@@ -186,7 +192,11 @@
       "payFailed": "A fizetés nem sikerült. Próbáld újra.",
       "backToCart": "Vissza a kosárhoz",
       "closed": "Most zárva vagyunk, ezért nem lehet fizetni. A kosarad megmarad.",
-      "otherMethod": "Más fizetési mód"
+      "otherMethod": "Más fizetési mód",
+      "promo": "Promóciós kód",
+      "promoApply": "Beváltom",
+      "promoRemove": "Kód törlése",
+      "promoApplied": "A(z) {code} kód beváltva."
     },
     "status": {
       "pageTitle": "Rendelésed",
@@ -1268,6 +1278,43 @@
         "submit": "Megerősítés",
         "failed": "A kód nem jó. Írd be az alkalmazásban most látható 6 számjegyet."
       }
+    },
+    "promos": {
+      "loading": "Promóciós kódok betöltése…",
+      "intro": "A kód a részösszegből ad kedvezményt. A leállított kód újraindítható.",
+      "empty": "Még nincs promóciós kód. Hozd létre az elsőt.",
+      "add": "Új promóciós kód",
+      "addHint": "A vendég a pénztárnál adja meg a kódot. Csak betű, szám, - és _.",
+      "code": "Kód",
+      "type": "Kedvezmény típusa",
+      "typePercent": "Százalék",
+      "typeFixed": "Fix összeg (Ft)",
+      "valuePercent": "Kedvezmény (%)",
+      "valueFixed": "Kedvezmény (Ft)",
+      "maxUses": "Max. felhasználás (opcionális)",
+      "maxUsesHint": "Üresen: nincs korlát. A megosztott kódot bárki használhatja.",
+      "minOrder": "Min. részösszeg Ft-ban (opcionális)",
+      "validFrom": "Érvényes ettől (opcionális)",
+      "validTo": "Érvényes eddig (opcionális)",
+      "create": "Létrehozás",
+      "tableLabel": "Promóciós kódok",
+      "colCode": "Kód",
+      "colDiscount": "Kedvezmény",
+      "colLimits": "Korlátok",
+      "colUses": "Felhasználás",
+      "colTotalDiscount": "Összes kedvezmény",
+      "colAverageBasket": "Átlagos kosár",
+      "colStatus": "Állapot",
+      "percentValue": "{percent}%",
+      "minOrderValue": "Min. {amount}",
+      "period": "{from} – {to}",
+      "noLimits": "Nincs",
+      "usesValue": "{used} / {max}",
+      "active": "Aktív",
+      "stopped": "Leállítva",
+      "expired": "Lejárt",
+      "stop": "Leállítás",
+      "restart": "Újraindítás"
     }
   },
   "hq": {
@@ -1419,7 +1466,8 @@
       "fourDigits": "A PIN pontosan 4 számjegy."
     },
     "promoCode": {
-      "invalid": "Érvénytelen kuponkód."
+      "invalid": "Érvénytelen kuponkód.",
+      "taken": "Ez a kód itt már létezik."
     },
     "quantity": {
       "integer": "A mennyiség egész szám legyen.",
