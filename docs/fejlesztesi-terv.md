@@ -1970,11 +1970,13 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 3. Utalási gyakoriság: napi vagy heti (32.); „Stripe Express Dashboard” belépőlink.
 4. Export: időszakos CSV és Excel az egyenlegmozgásokról (összeg, Stripe-díj, platformdíj, nettó, utalás azonosítója).
 
+**Döntések (2026-11-13).** A levont díjak és a visszatérítések a lapon nem jelennek meg külön összesítőként: az exportban (egyenlegmozgásonként) és a Stripe Express Dashboardon látszanak. Az Express Dashboard link és a gyakoriság váltása kétlépcsős belépéssel megerősített munkamenetet kér (a Dashboardon a bankszámla is módosítható); a 2FA a `/profile` oldalon kapcsolható be (az 50. feladat hiányzó része).
+
 **Elfogadási feltételek.**
 
 - [ ] Teszt módban a lap összegei egyeznek a kapcsolt fiók Stripe Dashboardjával.
-- [ ] Vitatott terhelés esetén a lap tetején figyelmeztetés jelenik meg.
-- [ ] Manager-fiókkal a lap 403.
+- [x] Vitatott terhelés esetén a lap tetején figyelmeztetés jelenik meg.
+- [x] Manager-fiókkal a lap 403.
 
 **Tesztelés.** Vitest a Stripe-válaszok feldolgozására rögzített mintákkal; kézi teszt teszt módban, Stripe CLI-vel létrehozott utalással és vitatott terheléssel.
 
