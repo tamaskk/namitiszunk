@@ -89,4 +89,9 @@ test("filters orders without a receipt and downloads the export", async ({
   );
   expect(xlsx.status()).toBe(200);
   expect(xlsx.headers()["content-type"]).toContain("spreadsheetml");
+
+  // The button fetches the file, so a refusal can show on the page instead of being saved.
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "CSV letöltése" }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.csv$/);
 });

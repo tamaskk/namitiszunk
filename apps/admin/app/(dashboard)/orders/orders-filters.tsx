@@ -11,14 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@namitiszunk/ui";
-import {
-  adminOrdersExportQuerySchema,
-  orderStatuses,
-  paymentMethodFilters,
-} from "@namitiszunk/validators";
+import { orderStatuses, paymentMethodFilters } from "@namitiszunk/validators";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
+
+import { ExportRange } from "@/components/export-range";
 
 const ANY = "any";
 
@@ -43,10 +41,9 @@ export function OrdersFilters({
   bars: { id: string; name: string }[];
 }) {
   const t = useTranslations("admin.orders");
+  const tErrors = useTranslations("apiErrors");
   const router = useRouter();
   const [values, setValues] = useState(initial);
-  const [from, setFrom] = useState(initial.date);
-  const [to, setTo] = useState(initial.date);
   const set = <K extends keyof FilterValues>(key: K, value: FilterValues[K]) =>
     setValues((prev) => ({ ...prev, [key]: value }));
 
@@ -64,14 +61,6 @@ export function OrdersFilters({
     if (values.missingReceipt) query.set("receipt", "missing");
     router.push(`/orders?${query}`);
   }
-
-  const range = adminOrdersExportQuerySchema.safeParse({
-    from,
-    to,
-    format: "csv",
-  });
-  const exportHref = (format: "csv" | "xlsx") =>
-    `/orders/export?${new URLSearchParams({ from, to, format })}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -175,59 +164,21 @@ export function OrdersFilters({
         </div>
       </form>
 
-      <section
-        aria-labelledby="orders-export"
-        className="flex flex-col gap-4 rounded-lg border border-border p-4"
-      >
-        <h2 id="orders-export" className="text-h3">
-          {t("export.title")}
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="export-from">{t("export.from")}</Label>
-            <Input
-              id="export-from"
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="export-to">{t("export.to")}</Label>
-            <Input
-              id="export-to"
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </div>
-        </div>
-        <p
-          role={range.success ? undefined : "alert"}
-          className={
-            range.success
-              ? "text-small text-text-muted"
-              : "text-small text-danger"
-          }
-        >
-          {range.success ? t("export.hint") : t("export.invalidRange")}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {(["csv", "xlsx"] as const).map((format) =>
-            range.success ? (
-              <Button key={format} asChild variant="secondary">
-                <a href={exportHref(format)} download>
-                  {t(`export.${format}`)}
-                </a>
-              </Button>
-            ) : (
-              <Button key={format} variant="secondary" disabled>
-                {t(`export.${format}`)}
-              </Button>
-            ),
-          )}
-        </div>
-      </section>
+      <ExportRange
+        id="orders-export"
+        path="/orders/export"
+        initialDate={initial.date}
+        labels={{
+          title: t("export.title"),
+          from: t("export.from"),
+          to: t("export.to"),
+          hint: t("export.hint"),
+          invalidRange: t("export.invalidRange"),
+          csv: t("export.csv"),
+          xlsx: t("export.xlsx"),
+          failed: tErrors("internal"),
+        }}
+      />
     </div>
   );
 }

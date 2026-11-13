@@ -8,6 +8,7 @@ import {
 } from "@namitiszunk/db";
 import Stripe from "stripe";
 
+import { hitRateLimit, type RateLimitRule } from "../api/rate-limit";
 import { audit, type AuditEntry, auditActorOf } from "../audit/audit";
 import { type Actor, requirePermission } from "../auth/permissions";
 import { AppError, ConflictError, NotFoundError } from "../errors";
@@ -38,13 +39,55 @@ async function inTransaction(
   }
 }
 
-/** Owner-only (`payout.manage`); returns the venue's connected account id or throws. */
+// Owner actions that call Stripe (links, schedule): after the permission check, so nobody else uses
+// up the Owner's allowance, and low enough that one session cannot drain the platform's Stripe quota.
+const STRIPE_ACTION_RATE: RateLimitRule = { limit: 10, windowSeconds: 60 };
+
+/**
+ * Owner-only (`payout.manage`) and rate limited; returns the venue's connected account id or
+ * throws.
+ */
+/**
+ * The Express Dashboard can change the payout bank account: a session that skipped TOTP (a stolen
+ * OAuth or e-mail link session) must not reach it. In the Admin an unverified session means the
+ * member has not turned 2FA on yet, since sign-in asks for the code once it is on.
+ */
+function requireTwoFactorSession(actor: Actor): void {
+  if (actor.kind === "user" && actor.twoFactorVerified !== true)
+    throw new AppError(403, "two_factor_setup_required");
+}
+
 async function ownedAccountId(venueId: string, actor: Actor): Promise<string> {
   requirePermission(actor, "payout.manage", { venueId });
+  if (
+    await hitRateLimit(
+      `stripe-connect:${venueId}:${JSON.stringify(auditActorOf(actor))}`,
+      STRIPE_ACTION_RATE,
+    )
+  )
+    throw new AppError(429, "rate_limited");
   const venue = await Venue.findById(venueId).select("stripeAccountId").lean();
   if (!venue) throw new NotFoundError();
   if (!venue.stripeAccountId) throw new ConflictError("stripe_account_missing");
   return venue.stripeAccountId;
+}
+
+/** Links open the account's bank details, so each one is logged (never the URL itself). */
+function auditLinkCreated(
+  venueId: string,
+  actor: Actor,
+  action:
+    | "venue.stripe_onboarding_link_created"
+    | "venue.stripe_dashboard_link_created",
+): Promise<void> {
+  return inTransaction((session) =>
+    audit(session, {
+      actor: auditActorOf(actor),
+      venueId,
+      action,
+      target: { type: "venue", id: venueId },
+    }),
+  );
 }
 
 /** Creates the venue's Express account once; a repeat returns the existing id. */
@@ -111,6 +154,7 @@ export async function createAccountLink(
     return_url: `${payouts.href}?stripe=return`,
     collection_options: { fields: "currently_due" },
   });
+  await auditLinkCreated(venueId, actor, "venue.stripe_onboarding_link_created");
   return {
     url: link.url,
     expiresAt: new Date(link.expires_at * 1000).toISOString(),
@@ -124,22 +168,36 @@ export async function setPayoutSchedule(
   interval: PayoutInterval,
 ): Promise<void> {
   const accountId = await ownedAccountId(venueId, actor);
+  requireTwoFactorSession(actor);
   const schedule =
     interval === "weekly"
       ? { interval: "weekly" as const, weekly_anchor: "monday" as const }
       : { interval: "daily" as const };
+  const before = (await stripe().accounts.retrieve(accountId)).settings?.payouts
+    ?.schedule.interval;
   await stripe().accounts.update(accountId, {
     settings: { payouts: { schedule } },
   });
-  await inTransaction((session) =>
-    audit(session, {
-      actor: auditActorOf(actor),
-      venueId,
-      action: "venue.payout_schedule_set",
-      target: { type: "venue", id: venueId },
-      after: { interval },
-    }),
-  );
+  try {
+    await inTransaction((session) =>
+      audit(session, {
+        actor: auditActorOf(actor),
+        venueId,
+        action: "venue.payout_schedule_set",
+        target: { type: "venue", id: venueId },
+        before: { interval: before ?? null },
+        after: { interval },
+      }),
+    );
+  } catch (error) {
+    // The schedule already changed in Stripe: flag the missing audit entry, not just a failed save.
+    reportError(
+      new Error(`Payout schedule changed in Stripe without an audit entry (venue ${venueId})`, {
+        cause: error,
+      }),
+    );
+    throw error;
+  }
 }
 
 /** A single-use Express Dashboard sign-in link for the Owner. */
@@ -148,7 +206,9 @@ export async function createDashboardLoginLink(
   actor: Actor,
 ): Promise<{ url: string }> {
   const accountId = await ownedAccountId(venueId, actor);
+  requireTwoFactorSession(actor);
   const link = await stripe().accounts.createLoginLink(accountId);
+  await auditLinkCreated(venueId, actor, "venue.stripe_dashboard_link_created");
   return { url: link.url };
 }
 

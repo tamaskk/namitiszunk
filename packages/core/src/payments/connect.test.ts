@@ -30,6 +30,7 @@ const api = vi.hoisted(() => ({
   accounts: {
     create: vi.fn(),
     update: vi.fn(),
+    retrieve: vi.fn(),
     createLoginLink: vi.fn(),
   },
   accountLinks: { create: vi.fn() },
@@ -65,6 +66,7 @@ const owner: Actor = {
       role: "owner",
     },
   ],
+  twoFactorVerified: true,
 };
 const manager: Actor = {
   kind: "user",
@@ -238,6 +240,10 @@ describe("owner-only account actions", () => {
 
   it("sets a weekly payout schedule on the account and audits it", async () => {
     await createVenue({ stripeAccountId: accountId });
+    api.accounts.retrieve.mockResolvedValue({
+      id: accountId,
+      settings: { payouts: { schedule: { interval: "daily" } } },
+    });
     api.accounts.update.mockResolvedValue({ id: accountId });
 
     await setPayoutSchedule(venueId.toHexString(), owner, "weekly");
@@ -247,9 +253,14 @@ describe("owner-only account actions", () => {
         payouts: { schedule: { interval: "weekly", weekly_anchor: "monday" } },
       },
     });
-    expect(
-      await AuditLog.countDocuments({ action: "venue.payout_schedule_set" }),
-    ).toBe(1);
+    const entries = await AuditLog.find({
+      action: "venue.payout_schedule_set",
+    }).lean();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      before: { interval: "daily" },
+      after: { interval: "weekly" },
+    });
   });
 
   it("refuses a manager the schedule and the dashboard link", async () => {
@@ -275,6 +286,21 @@ describe("owner-only account actions", () => {
     const link = await createDashboardLoginLink(venueId.toHexString(), owner);
 
     expect(link).toEqual({ url: "https://connect.stripe.com/express/abc" });
+  });
+
+  it("refuses the schedule and the dashboard link to an Owner session without 2FA", async () => {
+    await createVenue({ stripeAccountId: accountId });
+    const unverified: Actor = { ...owner, twoFactorVerified: false };
+
+    await expect(
+      setPayoutSchedule(venueId.toHexString(), unverified, "daily"),
+    ).rejects.toMatchObject({ status: 403, code: "two_factor_setup_required" });
+    await expect(
+      createDashboardLoginLink(venueId.toHexString(), unverified),
+    ).rejects.toMatchObject({ status: 403, code: "two_factor_setup_required" });
+
+    expect(api.accounts.update).not.toHaveBeenCalled();
+    expect(api.accounts.createLoginLink).not.toHaveBeenCalled();
   });
 });
 
