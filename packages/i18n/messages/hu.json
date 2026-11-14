@@ -1279,7 +1279,8 @@
         "compareTo": "Összevetés eddig",
         "compareHint": "Hagyd üresen, ha nem kell összehasonlítás.",
         "show": "Mutasd",
-        "invalid": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot választhatsz. Az alapértelmezett időszakot mutatjuk."
+        "invalid": "A kezdő nap nem lehet a záró nap után, és legfeljebb 92 napot választhatsz. Az alapértelmezett időszakot mutatjuk.",
+        "invalidDay": "Ez a dátum nem érvényes. A mai napot mutatjuk."
       },
       "summary": {
         "title": "Összesítés",
@@ -1317,7 +1318,8 @@
         "title": "Naponként"
       },
       "products": {
-        "title": "Top termékek"
+        "title": "Top termékek",
+        "revenue": "Bevétel kedvezmény előtt"
       },
       "bars": {
         "title": "Pultonként"
@@ -1344,8 +1346,9 @@
       "compare": {
         "title": "Összehasonlítás",
         "metric": "Mutató",
-        "current": "{from} – {to}",
-        "change": "Változás"
+        "current": "Ez az időszak ({from} – {to})",
+        "change": "Változás",
+        "previous": "Összevetés ({from} – {to})"
       },
       "staff": {
         "title": "Pultosok",

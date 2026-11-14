@@ -86,8 +86,8 @@ export async function DateFilters({
   id: string;
   fields: DateField[];
   hint?: string;
-  /** The query did not parse and the defaults are shown. */
-  invalid?: boolean;
+  /** The query did not parse and the defaults are shown: one day (daily view) or a range. */
+  invalid?: "day" | "range";
 }) {
   const t = await getTranslations("admin.reports.filters");
   return (
@@ -111,7 +111,7 @@ export async function DateFilters({
       {hint && <p className="text-small text-text-muted">{hint}</p>}
       {invalid && (
         <p role="alert" className="text-small text-danger">
-          {t("invalid")}
+          {t(invalid === "day" ? "invalidDay" : "invalid")}
         </p>
       )}
       <Button type="submit" variant="secondary" className="self-start">
@@ -123,7 +123,7 @@ export async function DateFilters({
 
 function Figure({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-border bg-surface p-4">
+    <div className="flex flex-col gap-1 rounded-lg border border-border bg-surface p-6">
       <dt className="text-small text-text-muted">{label}</dt>
       <dd className="text-h3 tabular-nums">{value}</dd>
     </div>
@@ -242,7 +242,9 @@ export async function ProductsTable({ products }: { products: ProductRow[] }) {
               {t("columns.quantity")}
             </TableHead>
             <TableHead className="text-right">{t("columns.orders")}</TableHead>
-            <TableHead className="text-right">{t("columns.revenue")}</TableHead>
+            <TableHead className="text-right">
+              {t("products.revenue")}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -347,17 +349,23 @@ export async function Comparison({
   previous: { from: string; to: string; summary: ReportSummary };
 }) {
   const t = await getTranslations("admin.reports");
-  const rows = [
+  const rows: [
+    "orders" | "revenue" | "tip" | "avgBasket" | "avgPrep",
+    (s: ReportSummary) => number | null,
+    (n: number) => string,
+  ][] = [
     ["orders", (s: ReportSummary) => s.orders, String],
     ["revenue", (s: ReportSummary) => s.revenueHuf, formatHuf],
     ["tip", (s: ReportSummary) => s.tipHuf, formatHuf],
     ["avgBasket", (s: ReportSummary) => s.avgBasketHuf, formatHuf],
     [
       "avgPrep",
-      (s: ReportSummary) => s.avgPrepSeconds ?? 0,
+      (s: ReportSummary) => s.avgPrepSeconds,
       (n: number) => t("summary.minutes", { time: durationText(n) }),
     ],
-  ] as const;
+  ];
+  const cell = (n: number | null, show: (n: number) => string) =>
+    n === null ? t("summary.none") : show(n);
   return (
     <section className="flex flex-col gap-3">
       <h2 id="report-compare" className="text-h3">
@@ -367,9 +375,14 @@ export async function Comparison({
         <TableHeader>
           <TableRow>
             <TableHead>{t("compare.metric")}</TableHead>
-            {[current, previous].map((p) => (
-              <TableHead key={`${p.from}-${p.to}`} className="text-right">
-                {t("compare.current", { from: p.from, to: p.to })}
+            {(
+              [
+                ["current", current],
+                ["previous", previous],
+              ] as const
+            ).map(([key, p]) => (
+              <TableHead key={key} className="text-right">
+                {t(`compare.${key}`, { from: p.from, to: p.to })}
               </TableHead>
             ))}
             <TableHead className="text-right">{t("compare.change")}</TableHead>
@@ -377,18 +390,18 @@ export async function Comparison({
         </TableHeader>
         <TableBody>
           {rows.map(([key, pick, show]) => {
-            const change = percentChange(
-              pick(current.summary),
-              pick(previous.summary),
-            );
+            const now = pick(current.summary);
+            const before = pick(previous.summary);
+            const change =
+              now === null || before === null
+                ? null
+                : percentChange(now, before);
             return (
               <TableRow key={key}>
                 <TableCell>{t(`summary.${key}`)}</TableCell>
+                <TableCell className="text-right">{cell(now, show)}</TableCell>
                 <TableCell className="text-right">
-                  {show(pick(current.summary))}
-                </TableCell>
-                <TableCell className="text-right">
-                  {show(pick(previous.summary))}
+                  {cell(before, show)}
                 </TableCell>
                 <TableCell className="text-right">
                   {change === null ? "–" : `${change > 0 ? "+" : ""}${change}%`}

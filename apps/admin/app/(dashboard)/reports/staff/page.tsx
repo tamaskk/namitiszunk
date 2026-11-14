@@ -54,7 +54,11 @@ export default async function BartenderReportPage({
           { name: "from", label: t("filters.from"), value: from },
           { name: "to", label: t("filters.to"), value: to },
         ]}
-        invalid={(given.from ?? given.to) !== undefined && !query.success}
+        invalid={
+          (given.from ?? given.to) !== undefined && !query.success
+            ? "range"
+            : undefined
+        }
       />
       <p
         role="note"

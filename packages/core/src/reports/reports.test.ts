@@ -632,7 +632,7 @@ describe("export", () => {
     await friday(s);
 
     const file = await exportReport(
-      s.manager,
+      s.owner,
       s.venueId,
       "daily",
       { from: FRIDAY, to: "2026-11-14", format: "csv" },
@@ -658,6 +658,24 @@ describe("export", () => {
       ],
       ["2026-11-14", "1", "1200", "0", "1200", "–", "–", "–", "0", "0", "0"],
     ]);
+  });
+
+  it("gives a manager the daily export of one business day only", async () => {
+    const s = await seedVenue();
+    await friday(s);
+    const day = { from: FRIDAY, to: FRIDAY, format: "csv" as const };
+
+    const file = await exportReport(s.manager, s.venueId, "daily", day, labels);
+    const range = exportReport(
+      s.manager,
+      s.venueId,
+      "daily",
+      { ...day, to: "2026-11-14" },
+      labels,
+    );
+
+    expect(csvRows(file.body)).toHaveLength(2);
+    await expect(range).rejects.toMatchObject({ status: 403 });
   });
 
   it("writes the period breakdowns and the bartender table, and refuses them to a manager", async () => {

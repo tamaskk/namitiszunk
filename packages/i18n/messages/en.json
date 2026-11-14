@@ -1279,7 +1279,8 @@
         "compareTo": "Compare to",
         "compareHint": "Leave empty if you do not need a comparison.",
         "show": "Show",
-        "invalid": "The start day cannot be after the end day, and you can choose at most 92 days. Showing the default period."
+        "invalid": "The start day cannot be after the end day, and you can choose at most 92 days. Showing the default period.",
+        "invalidDay": "That date is not valid. Showing today."
       },
       "summary": {
         "title": "Summary",
@@ -1291,7 +1292,7 @@
         "medianPrep": "Median preparation time",
         "avgPickup": "Average pickup time",
         "refunds": "Refunds",
-        "refundsValue": "{amount} ({count} orders)",
+        "refundsValue": "{amount} ({count, plural, one {# order} other {# orders}})",
         "expired": "Expired orders",
         "minutes": "{time} min",
         "none": "no data",
@@ -1317,7 +1318,8 @@
         "title": "By day"
       },
       "products": {
-        "title": "Top products"
+        "title": "Top products",
+        "revenue": "Revenue before discounts"
       },
       "bars": {
         "title": "By bar"
@@ -1330,7 +1332,7 @@
       "heatmap": {
         "title": "Peak hours",
         "hint": "Orders by weekday (business day) and hour of payment. Darker cells have fewer orders, lighter cells more.",
-        "cell": "{day} {hour}: {count} orders",
+        "cell": "{day} {hour}: {count, plural, one {# order} other {# orders}}",
         "weekdays": {
           "mon": "Monday",
           "tue": "Tuesday",
@@ -1344,8 +1346,9 @@
       "compare": {
         "title": "Comparison",
         "metric": "Figure",
-        "current": "{from} – {to}",
-        "change": "Change"
+        "current": "This period ({from} – {to})",
+        "change": "Change",
+        "previous": "Compared with ({from} – {to})"
       },
       "staff": {
         "title": "Bartenders",

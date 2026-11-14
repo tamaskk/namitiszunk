@@ -235,7 +235,7 @@ async function summaries(
       },
     },
     { $group: { _id: "$orderId", huf: { $sum: "$amountHuf" } } },
-  ]);
+  ]).option({ maxTimeMS: 20_000 });
   const refunded = new Map(refunds.map((r) => [String(r._id), r.huf]));
 
   return new Map(
@@ -478,6 +478,7 @@ export async function bartenderStats(
 ): Promise<BartenderRow[]> {
   const orders = await Order.find(paidIn(venueId, range))
     .select("tipHuf businessDate")
+    .maxTimeMS(20_000)
     .lean();
   const orderOf = new Map(orders.map((o) => [String(o._id), o]));
   // Served by the (target.type, target.id, createdAt) index; only PIN holders' actions count.
@@ -489,6 +490,7 @@ export async function bartenderStats(
   })
     .select("actor.id action target.id createdAt")
     .sort({ createdAt: 1 })
+    .maxTimeMS(20_000)
     .lean();
 
   const preparingSince = new Map<string, number>();

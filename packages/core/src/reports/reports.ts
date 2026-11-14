@@ -2,7 +2,7 @@ import "server-only";
 
 import { hitRateLimit, type RateLimitRule } from "../api/rate-limit";
 import { auditActorOf } from "../audit/audit";
-import { type Actor, requirePermission } from "../auth/permissions";
+import { type Actor, can, requirePermission } from "../auth/permissions";
 import { AppError } from "../errors";
 import { type TableFile, writeTableFile } from "../export/table-file";
 import {
@@ -187,6 +187,13 @@ export async function exportReport(
     view === "daily" ? "report.viewDaily" : "report.viewAll",
     { venueId },
   );
+  // A Manager sees one business day at a time; a range of days is the Owner's period report (spec 61).
+  if (
+    view === "daily" &&
+    range.from !== range.to &&
+    !can(actor, "report.viewAll", { venueId })
+  )
+    throw new AppError(403, "forbidden");
   if (
     await hitRateLimit(
       `reports-export:${JSON.stringify(auditActorOf(actor))}`,

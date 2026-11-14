@@ -71,7 +71,9 @@ export default async function PeriodReportPage({
           { name: "cto", label: t("filters.compareTo"), value: cto },
         ]}
         hint={t("filters.compareHint")}
-        invalid={Object.keys(given).length > 0 && !query.success}
+        invalid={
+          Object.keys(given).length > 0 && !query.success ? "range" : undefined
+        }
       />
       {report.comparison && (
         <Comparison

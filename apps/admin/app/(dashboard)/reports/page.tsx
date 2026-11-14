@@ -45,7 +45,7 @@ export default async function DailyReportPage({
       <DateFilters
         id="report-day"
         fields={[{ name: "date", label: t("filters.date"), value: day }]}
-        invalid={!query.success}
+        invalid={query.success ? undefined : "day"}
       />
       {report.summary.orders === 0 ? (
         <NoOrders />

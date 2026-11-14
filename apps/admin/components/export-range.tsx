@@ -117,6 +117,7 @@ export function ExportRange({
             key={format}
             variant="secondary"
             disabled={!range.success || pending !== null}
+            loading={pending === format}
             onClick={() => void download(format)}
           >
             {labels[format]}
