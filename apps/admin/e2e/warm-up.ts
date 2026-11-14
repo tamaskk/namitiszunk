@@ -18,6 +18,10 @@ const routes = [
   "/settings",
   "/payouts",
   "/payouts/export",
+  "/reports",
+  "/reports/period",
+  "/reports/staff",
+  "/reports/export/daily",
   "/dev/ui",
 ];
 

@@ -7,6 +7,7 @@ import {
   Item,
   Order,
   Payment,
+  QrCode,
   Refund,
   StripeEvent,
   Venue,
@@ -465,6 +466,21 @@ describe("createOrder", () => {
 
     const order = await Order.findById(orderId).lean();
     expect(order?.acceptedTermsVersion).toBe(CURRENT_TERMS_VERSION);
+  });
+
+  it("records the scanned QR of the venue, and drops another venue's or an unknown code (T-061)", async () => {
+    const own = await QrCode.create({ venueId, barId, code: "own-qr-1" });
+    await QrCode.create({ venueId: new Types.ObjectId(), code: "other-qr" });
+
+    const mine = await create({ qrCode: "own-qr-1" });
+    const foreign = await create({ qrCode: "other-qr" });
+    const unknown = await create({ qrCode: "nope-0000" });
+
+    const qrOf = async (id: string) =>
+      (await Order.findById(id).lean())?.qrCodeId;
+    expect(String(await qrOf(mine.orderId))).toBe(String(own._id));
+    expect(await qrOf(foreign.orderId)).toBeUndefined();
+    expect(await qrOf(unknown.orderId)).toBeUndefined();
   });
 
   it("adds 35 Ft to the application fee when the guest gives a Hungarian phone for SMS", async () => {

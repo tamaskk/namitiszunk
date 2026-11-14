@@ -20,7 +20,12 @@ import {
 
 import type { Actor, VenueRole } from "../auth/permissions";
 import { getVenueStatus } from "../menu/venue-status";
-import { adminModules, canOpenModule, requireModule } from "./modules";
+import {
+  adminModules,
+  canOpenModule,
+  canOpenSubpage,
+  requireModule,
+} from "./modules";
 import {
   listAdminNotifications,
   listAdminVenues,
@@ -98,6 +103,19 @@ describe("admin modules", () => {
 
   it("keeps the orders module, with guest contact and the export, from a bartender (T-056)", () => {
     expect(open("bartender")).not.toContain("orders");
+  });
+
+  it("keeps the period and bartender reports to the Owner, the daily report open to a manager (T-061)", () => {
+    const manager = member(venueId, "manager");
+    const owner = member(venueId, "owner");
+
+    const opens = (actor: typeof owner) =>
+      ["/reports", "/reports/period", "/reports/staff/", "/orders"].map(
+        (path) => canOpenSubpage(actor, path, venueId),
+      );
+
+    expect(opens(manager)).toEqual([true, false, false, true]);
+    expect(opens(owner)).toEqual([true, true, true, true]);
   });
 
   it("refuses another venue's member and a manager on owner modules", () => {

@@ -1,4 +1,4 @@
-import { adminModules } from "@namitiszunk/core/admin";
+import { adminModules, canOpenSubpage } from "@namitiszunk/core/admin";
 import { isLocale } from "@namitiszunk/i18n";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -35,7 +35,8 @@ export async function proxy(request: NextRequest): Promise<Response> {
   if (
     typeof context === "string" ||
     context.venue === null ||
-    contextCanOpen(context, target.key)
+    (contextCanOpen(context, target.key) &&
+      canOpenSubpage(context.actor, path, context.venue.id))
   )
     return NextResponse.next();
   return forbiddenResponse(request);

@@ -14,6 +14,7 @@
     "./errors": "./src/errors.ts",
     "./orders": "./src/orders/index.ts",
     "./orders/admin": "./src/orders/admin-orders.ts",
+    "./reports": "./src/reports/index.ts",
     "./notify": "./src/notify/sms.ts",
     "./uploads": "./src/uploads/blob.ts",
     "./payments": "./src/payments/index.ts",

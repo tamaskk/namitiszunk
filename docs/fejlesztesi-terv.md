@@ -2030,10 +2030,10 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] Egy 22:00–04:00 közötti teszt este minden rendelése egy üzleti napon jelenik meg.
-- [ ] A napi riport összegei egyeznek a Rendelések modul exportjával (56.).
-- [ ] A pultos riport számai a seed adatokon kézzel ellenőrizve helyesek.
-- [ ] Manager csak a napi nézetet látja.
+- [x] Egy 22:00–04:00 közötti teszt este minden rendelése egy üzleti napon jelenik meg. (`reports.test.ts`, óraátállítás is; éles éjszakán kézi ellenőrzés: TASKS.md)
+- [x] A napi riport összegei egyeznek a Rendelések modul exportjával (56.). (`reports.test.ts`: darabszám, bevétel + borravaló, visszatérítés)
+- [x] A pultos riport számai a seed adatokon kézzel ellenőrizve helyesek. (seed: Bence 1 Kész, 400 Ft; Dóra 2 Kész, 3:00 perc; `e2e/reports.spec.ts`)
+- [x] Manager csak a napi nézetet látja. (`report.viewAll`, proxy 403, `e2e/reports.spec.ts`)
 
 **Tesztelés.** Vitest az aggregációkra rögzített adatokon (éjfél, üzleti nap, óraátállítás, visszatérítés); Playwright: szűrés, összehasonlítás, export.
 

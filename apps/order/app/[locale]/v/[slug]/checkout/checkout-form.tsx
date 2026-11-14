@@ -59,6 +59,7 @@ export function CheckoutForm({
   slug,
   bar,
   zoneId,
+  qrCode,
   initialStatus,
   renderedAt,
   menuHref,
@@ -69,6 +70,8 @@ export function CheckoutForm({
   bar: { id: string; name: string };
   slug: string;
   zoneId?: string;
+  /** The scanned QR's code from the menu URL, for the reports by QR source (T-061). */
+  qrCode?: string;
   initialStatus: VenueStatusResponse;
   renderedAt: number;
   menuHref: string;
@@ -258,6 +261,7 @@ export function CheckoutForm({
       smsRequested: sms,
       ...(sms ? { guestPhone: `+36${phoneDigits}` } : {}),
       acceptedTermsVersion: quote.termsVersion,
+      ...(qrCode ? { qrCode } : {}),
     };
     try {
       // The Payment Element checks its own fields first; it shows its message itself.

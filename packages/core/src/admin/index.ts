@@ -1,6 +1,7 @@
 export {
   adminModules,
   canOpenModule,
+  canOpenSubpage,
   requireModule,
   type AdminModuleKey,
 } from "./modules";

@@ -421,9 +421,17 @@ describe("exportVenueOrders", () => {
         labels,
       );
 
-    for (let i = 0; i < 10; i++) await run();
+    // The window follows the wall clock: start 10 s into a minute so all eleven calls share it.
+    vi.useFakeTimers({ toFake: ["Date"], shouldAdvanceTime: true });
+    vi.setSystemTime(Math.ceil(Date.now() / 60_000) * 60_000 + 10_000);
 
-    await expect(run()).rejects.toMatchObject({ status: 429 });
+    try {
+      for (let i = 0; i < 10; i++) await run();
+
+      await expect(run()).rejects.toMatchObject({ status: 429 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("refuses a bartender", async () => {
