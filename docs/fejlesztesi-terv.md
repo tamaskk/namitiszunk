@@ -2057,8 +2057,8 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] A levél számai egyeznek a Riportok modul ugyanarra a hétre szűrt adataival.
-- [ ] Kikapcsolt tag nem kap levelet; rendelés nélküli héten senki sem.
+- [x] A levél számai egyeznek a Riportok modul ugyanarra a hétre szűrt adataival.
+- [x] Kikapcsolt tag nem kap levelet; rendelés nélküli héten senki sem.
 
 **Tesztelés.** `@inngest/test` az időzítésre és a címzettekre; snapshot a renderelt levélre; küldés Resend teszt címre.
 
