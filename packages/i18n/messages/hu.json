@@ -1528,7 +1528,59 @@
     }
   },
   "hq": {
-    "title": "Központ"
+    "title": "Központ",
+    "nav": {
+      "label": "Központ menü",
+      "home": "Áttekintés",
+      "venues": "Helyszínek",
+      "orders": "Rendelések",
+      "leads": "Leadek",
+      "finance": "Pénzügy",
+      "audit": "Audit napló"
+    },
+    "shell": {
+      "signOut": "Kilépés",
+      "comingSoon": "Ez a modul hamarosan elkészül.",
+      "homeBody": "Válassz modult a menüből.",
+      "forbiddenTitle": "Nincs hozzáférésed",
+      "forbiddenBody": "A Központot csak a platform csapata használhatja. Ha klubot kezelsz, a klubadminba lépj be.",
+      "backHome": "Vissza az áttekintéshez",
+      "loading": "Betöltés…",
+      "loadFailed": "Nem sikerült betölteni. Próbáld újra.",
+      "retry": "Újra"
+    },
+    "signIn": {
+      "title": "Belépés a Központba",
+      "body": "Add meg az e-mail-címed, és küldünk egy belépési linket.",
+      "emailLabel": "E-mail-cím",
+      "sendLink": "Belépési link küldése",
+      "linkSent": "Elküldtük a linket ide: {email}. 15 percig érvényes.",
+      "otherAddress": "Másik címet adok meg",
+      "linkFailed": "Nem sikerült elküldeni a linket. Próbáld újra kicsit később.",
+      "google": "Belépés Google-lel",
+      "socialFailed": "A belépés nem indult el. Próbáld újra.",
+      "totpTitle": "Kétlépcsős azonosítás",
+      "totpBody": "Írd be a hitelesítő alkalmazásod 6 jegyű kódját.",
+      "totpLabel": "Kód",
+      "totpSubmit": "Belépés",
+      "totpFailed": "Hibás kód. Próbáld újra.",
+      "useBackup": "Tartalékkódot használok",
+      "backupLabel": "Tartalékkód",
+      "backupFailed": "Hibás vagy már felhasznált tartalékkód.",
+      "useTotp": "Inkább az alkalmazás kódját írom be",
+      "setupTitle": "Kétlépcsős belépés beállítása",
+      "setupBody": "A Központba csak hitelesítő alkalmazással lehet belépni. Állítsd be most, ez egyszeri lépés.",
+      "setupStart": "Beállítás indítása",
+      "setupStartFailed": "Nem sikerült elindítani. Próbáld újra egy perc múlva.",
+      "scan": "Olvasd be a kódot hitelesítő alkalmazással (Google Authenticator, 1Password vagy hasonló).",
+      "qrAlt": "QR-kód a hitelesítő alkalmazásnak",
+      "secret": "Ha nem tudod beolvasni, írd be ezt a kulcsot:",
+      "backupTitle": "Tartalékkódok",
+      "backupBody": "Ezek csak most jelennek meg. Mentsd el őket a jelszókezelődbe: ha a telefonod elveszik, csak ezekkel lépsz be.",
+      "setupCodeLabel": "Az alkalmazás 6 jegyű kódja",
+      "setupSubmit": "Bekapcsolás",
+      "setupFailed": "Hibás kód. Próbáld újra."
+    }
   },
   "mobile": {
     "title": "Na, mit iszunk?"

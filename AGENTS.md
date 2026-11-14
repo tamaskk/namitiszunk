@@ -61,7 +61,7 @@ Do these in order before product or code work:
 
 ## 06 Useful commands
 
-Run from the repo root. `pnpm test:e2e` runs Playwright (the admin UI showcase, and the order app guest pages against an in-memory MongoDB, both with axe-core; install the browser once with `pnpm --filter @namitiszunk/admin exec playwright install chromium`).
+Run from the repo root. `pnpm test:e2e` runs Playwright (the admin UI showcase, the order app guest pages and the HQ sign-in and 2FA against an in-memory MongoDB, all with axe-core; install the browser once with `pnpm --filter @namitiszunk/admin exec playwright install chromium`).
 
 ```
 pnpm install           install dependencies

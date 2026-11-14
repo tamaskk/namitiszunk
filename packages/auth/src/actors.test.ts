@@ -129,8 +129,55 @@ describe("session separation", () => {
 });
 
 describe("HQ two-factor guard", () => {
-  it("requires 2FA setup before anything else", async () => {
+  it("refuses a club Owner without a platform role before any 2FA step", async () => {
+    const { userId, token } = await signedInUser("hq");
+    await VenueMember.create({
+      venueId: new Types.ObjectId(),
+      userId,
+      role: "owner",
+      displayName: "Anna",
+    });
+
+    const check = userActorFromHeaders(
+      auths.hq,
+      "hq",
+      cookieHeaders("hq", token),
+    );
+
+    await expect(check).rejects.toMatchObject({
+      status: 403,
+      code: "platform_role_required",
+    });
+  });
+
+  it("does not let a club Owner set up a factor through HQ", async () => {
     const { token } = await signedInUser("hq");
+
+    const enable = auths.hq.api.enableTwoFactor({
+      headers: cookieHeaders("hq", token),
+      body: {},
+    });
+
+    await expect(enable).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it("never creates a user or mails an unknown address from HQ", async () => {
+    const { sendEmail } = await import("@namitiszunk/emails");
+    vi.mocked(sendEmail).mockClear();
+    const email = `${new Types.ObjectId().toString()}@example.com`;
+
+    await auths.hq.api.signInMagicLink({
+      headers: new Headers(),
+      body: { email },
+    });
+
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(await User.exists({ email })).toBeNull();
+  });
+
+  it("requires 2FA setup before anything else", async () => {
+    const { userId, token } = await signedInUser("hq");
+    await PlatformMember.create({ userId, role: "admin" });
 
     const result = userActorFromHeaders(
       auths.hq,
@@ -145,7 +192,10 @@ describe("HQ two-factor guard", () => {
   });
 
   it("requires a TOTP check in this session when 2FA is set up", async () => {
-    const { token } = await signedInUser("hq", { twoFactorEnabled: true });
+    const { userId, token } = await signedInUser("hq", {
+      twoFactorEnabled: true,
+    });
+    await PlatformMember.create({ userId, role: "admin" });
 
     const result = userActorFromHeaders(
       auths.hq,
@@ -181,8 +231,50 @@ describe("HQ two-factor guard", () => {
     });
   });
 
+  it("ends an HQ session 8 hours after sign-in, however active it was", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    onTestFinished(() => void vi.useRealTimers());
+    const start = new Date("2026-11-14T08:00:00Z");
+    vi.setSystemTime(start);
+    const { userId, token } = await signedInUser("hq", {
+      twoFactorEnabled: true,
+    });
+    await markTwoFactorVerified("hq", token);
+    await PlatformMember.create({ userId, role: "admin" });
+    const signedIn = () =>
+      userActorFromHeaders(auths.hq, "hq", cookieHeaders("hq", token));
+
+    vi.setSystemTime(new Date(start.getTime() + 7 * 60 * 60_000));
+    const afterSeven = await signedIn();
+    vi.setSystemTime(new Date(start.getTime() + 8 * 60 * 60_000 + 60_000));
+    const afterEight = await signedIn();
+
+    expect(afterSeven?.platformRole).toBe("admin");
+    expect(afterEight).toBeNull();
+  });
+
+  it("keeps an Admin session for its usual week", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    onTestFinished(() => void vi.useRealTimers());
+    const start = new Date("2026-11-14T08:00:00Z");
+    vi.setSystemTime(start);
+    const { token } = await signedInUser("admin");
+
+    vi.setSystemTime(new Date(start.getTime() + 9 * 60 * 60_000));
+    const actor = await userActorFromHeaders(
+      auths.admin,
+      "admin",
+      cookieHeaders("admin", token),
+    );
+
+    expect(actor?.kind).toBe("user");
+  });
+
   it("does not let a client mark its own session as 2FA-verified", async () => {
-    const { token } = await signedInUser("hq", { twoFactorEnabled: true });
+    const { userId, token } = await signedInUser("hq", {
+      twoFactorEnabled: true,
+    });
+    await PlatformMember.create({ userId, role: "admin" });
 
     const update = await auths.hq.api
       .updateSession({
@@ -346,6 +438,7 @@ describe("HQ two-factor flow", () => {
 
   it("verifies a later session only with a correct TOTP", async () => {
     const first = await signedInUser("hq");
+    await PlatformMember.create({ userId: first.userId, role: "admin" });
     const firstHeaders = cookieHeaders("hq", first.token);
     const secret = await enableTotp(firstHeaders);
     await auths.hq.api.verifyTOTP({
@@ -443,7 +536,10 @@ describe("API sessions (wave 2)", () => {
   });
 
   it("locks TOTP checks for a user after 5 attempts, whatever the IP", async () => {
-    const { token } = await signedInUser("hq", { twoFactorEnabled: true });
+    const { userId, token } = await signedInUser("hq", {
+      twoFactorEnabled: true,
+    });
+    await PlatformMember.create({ userId, role: "admin" });
     freezeAtWindowStart();
     onTestFinished(() => {
       vi.useRealTimers();
@@ -509,5 +605,20 @@ describe("API sessions (wave 2)", () => {
       undefined,
       undefined,
     ]);
+  });
+
+  it("keeps the HQ session cookie on its own host", async () => {
+    process.env.BETTER_AUTH_URL = "https://hq.namitiszunk.hu";
+    onTestFinished(() => {
+      process.env.BETTER_AUTH_URL = "http://localhost:3002";
+    });
+
+    const hq = await createAuth("hq", db().connection.db!).$context;
+    const admin = await createAuth("admin", db().connection.db!).$context;
+
+    expect(hq.authCookies.sessionToken.attributes.domain).toBeUndefined();
+    expect(admin.authCookies.sessionToken.attributes.domain).toBe(
+      ".namitiszunk.hu",
+    );
   });
 });

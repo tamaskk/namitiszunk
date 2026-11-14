@@ -1528,7 +1528,59 @@
     }
   },
   "hq": {
-    "title": "Headquarters"
+    "title": "HQ",
+    "nav": {
+      "label": "HQ menu",
+      "home": "Overview",
+      "venues": "Venues",
+      "orders": "Orders",
+      "leads": "Leads",
+      "finance": "Finance",
+      "audit": "Audit log"
+    },
+    "shell": {
+      "signOut": "Sign out",
+      "comingSoon": "This module is coming soon.",
+      "homeBody": "Pick a module from the menu.",
+      "forbiddenTitle": "No access",
+      "forbiddenBody": "Only the platform team can use HQ. If you run a club, sign in to the club admin.",
+      "backHome": "Back to the overview",
+      "loading": "Loading…",
+      "loadFailed": "Could not load. Try again.",
+      "retry": "Retry"
+    },
+    "signIn": {
+      "title": "Sign in to HQ",
+      "body": "Enter your e-mail address and we send you a sign-in link.",
+      "emailLabel": "E-mail address",
+      "sendLink": "Send sign-in link",
+      "linkSent": "We sent the link to {email}. It is valid for 15 minutes.",
+      "otherAddress": "Use another address",
+      "linkFailed": "Could not send the link. Try again a little later.",
+      "google": "Sign in with Google",
+      "socialFailed": "Sign-in did not start. Try again.",
+      "totpTitle": "Two-step verification",
+      "totpBody": "Enter the 6-digit code from your authenticator app.",
+      "totpLabel": "Code",
+      "totpSubmit": "Sign in",
+      "totpFailed": "Wrong code. Try again.",
+      "useBackup": "Use a backup code",
+      "backupLabel": "Backup code",
+      "backupFailed": "Wrong or already used backup code.",
+      "useTotp": "Enter the app's code instead",
+      "setupTitle": "Set up two-step sign-in",
+      "setupBody": "HQ needs an authenticator app to sign in. Set it up now, once.",
+      "setupStart": "Start setup",
+      "setupStartFailed": "Could not start. Try again in a minute.",
+      "scan": "Scan the code with an authenticator app (Google Authenticator, 1Password or similar).",
+      "qrAlt": "QR code for the authenticator app",
+      "secret": "If you cannot scan it, enter this key:",
+      "backupTitle": "Backup codes",
+      "backupBody": "They show only now. Save them in your password manager: if you lose your phone, they are your only way in.",
+      "setupCodeLabel": "The app's 6-digit code",
+      "setupSubmit": "Turn on",
+      "setupFailed": "Wrong code. Try again."
+    }
   },
   "mobile": {
     "title": "Na, mit iszunk?"

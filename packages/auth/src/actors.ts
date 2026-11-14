@@ -39,6 +39,19 @@ export async function userActorFromHeaders(
   if (!result || result.session.app !== app) return null;
   const { user, session } = result;
 
+  // HQ: someone without an active platform role (a club Owner) is refused before any 2FA step,
+  // so they are never walked into setting up a factor here; with no role the actor may do nothing.
+  const platformMember =
+    app === "hq"
+      ? await PlatformMember.findOne(
+          { userId: user.id, isActive: true },
+          { role: 1 },
+        ).lean()
+      : null;
+  // An error, not an actor: every HQ actor has passed 2FA, so no route can take an unchecked one.
+  if (app === "hq" && !platformMember)
+    throw new AppError(403, "platform_role_required");
+
   // HQ: 2FA for every platform role (docs/SECURITY.md §03); elsewhere only once the user turned it on.
   if (app === "hq" && !user.twoFactorEnabled)
     throw new AppError(403, "two_factor_setup_required");
@@ -63,13 +76,7 @@ export async function userActorFromHeaders(
       role: m.role,
     }));
   }
-  if (app === "hq") {
-    const member = await PlatformMember.findOne(
-      { userId: user.id, isActive: true },
-      { role: 1 },
-    ).lean();
-    if (member) actor.platformRole = member.role;
-  }
+  if (platformMember) actor.platformRole = platformMember.role;
   return actor;
 }
 
