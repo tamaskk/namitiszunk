@@ -13,7 +13,8 @@
     "verify-restore": "node scripts/verify-restore.ts",
     "check-transaction": "node scripts/check-transaction.ts",
     "seed": "node --env-file-if-exists=../../apps/api/.env.local --import ./scripts/ts-resolve.ts scripts/seed.ts",
-    "seed:e2e": "node --import ./scripts/ts-resolve.ts scripts/seed.ts --e2e"
+    "seed:e2e": "node --import ./scripts/ts-resolve.ts scripts/seed.ts --e2e",
+    "hq:create-admin": "node --env-file-if-exists=../../apps/hq/.env.local --import ./scripts/ts-resolve.ts scripts/create-hq-admin.ts"
   },
   "devDependencies": {
     "@namitiszunk/config": "workspace:*",
