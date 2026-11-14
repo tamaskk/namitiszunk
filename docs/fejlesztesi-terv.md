@@ -2166,9 +2166,9 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] 2FA nélkül egyetlen HQ-oldal sem érhető el.
-- [ ] Klubtag (például Tulaj) fiókja a HQ-ban 403-at kap.
-- [ ] A munkamenet 8 óra után újra belépést kér.
+- [x] 2FA nélkül egyetlen HQ-oldal sem érhető el.
+- [x] Klubtag (például Tulaj) fiókja a HQ-ban 403-at kap.
+- [x] A munkamenet 8 óra után újra belépést kér.
 - [ ] Minden HQ-írás megjelenik az auditnaplóban (71.).
 
 **Tesztelés.** Playwright: belépés TOTP-vel (teszt titokkal generált kóddal), tartalékkód, tiltott fiók, lejárat; Vitest a jogosultság-ellenőrzésre.
