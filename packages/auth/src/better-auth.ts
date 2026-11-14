@@ -7,7 +7,7 @@ import {
   rateLimitLockedFor,
 } from "@namitiszunk/core/api";
 import { reportError } from "@namitiszunk/core/errors";
-import { connectDb, Types } from "@namitiszunk/db";
+import { connectDb, PlatformMember, Types } from "@namitiszunk/db";
 import { sendEmail } from "@namitiszunk/emails";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
@@ -36,6 +36,7 @@ const unverifiedSessionPaths = [
 // TOTP guesses per user on top of the IP limit, then a lockout (6 digits fall to a distributed guesser otherwise).
 const totpUserRateLimit = { limit: 5, windowSeconds: 5 * 60 };
 const totpLockSeconds = 15 * 60;
+export const HQ_SESSION_SECONDS = 8 * 60 * 60;
 // E-mail links per address, so one inbox cannot be flooded from many IPs.
 const magicLinkEmailRateLimit = { limit: 5, windowSeconds: 15 * 60 };
 
@@ -47,9 +48,11 @@ function clientIp(headers: Headers | undefined): string {
   );
 }
 
-function socialProviders(): BetterAuthOptions["socialProviders"] {
+function socialProviders(app: AuthApp): BetterAuthOptions["socialProviders"] {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
   const { APPLE_CLIENT_ID, APPLE_CLIENT_SECRET } = process.env;
+  // HQ accounts come only from the create-hq-admin script: HQ never creates a user.
+  const disableSignUp = app === "hq";
   // Unset locally until the OAuth clients exist (T-005, T-007); the env check requires them in production.
   return {
     ...(GOOGLE_CLIENT_ID &&
@@ -57,11 +60,16 @@ function socialProviders(): BetterAuthOptions["socialProviders"] {
         google: {
           clientId: GOOGLE_CLIENT_ID,
           clientSecret: GOOGLE_CLIENT_SECRET,
+          disableSignUp,
         },
       }),
     ...(APPLE_CLIENT_ID &&
       APPLE_CLIENT_SECRET && {
-        apple: { clientId: APPLE_CLIENT_ID, clientSecret: APPLE_CLIENT_SECRET },
+        apple: {
+          clientId: APPLE_CLIENT_ID,
+          clientSecret: APPLE_CLIENT_SECRET,
+          disableSignUp,
+        },
       }),
   };
 }
@@ -99,12 +107,19 @@ export function createAuth(app: AuthApp, db: Db) {
     disabledPaths: ["/list-sessions"],
     advanced: {
       cookiePrefix: `nmi-${app}`,
-      ...(cookieDomain && {
+      // The HQ cookie stays host-only: no other subdomain needs the most powerful session.
+      ...(cookieDomain &&
+        app !== "hq" && {
         crossSubDomainCookies: { enabled: true, domain: cookieDomain },
       }),
     },
-    socialProviders: socialProviders(),
+    socialProviders: socialProviders(app),
     session: {
+      // HQ reaches every venue's data and money: 8 hours from sign-in, never extended (T-066).
+      ...(app === "hq" && {
+        expiresIn: HQ_SESSION_SECONDS,
+        disableSessionRefresh: true,
+      }),
       additionalFields: {
         // Which app created the session: an admin session token is refused by HQ even under the HQ cookie name.
         app: { type: "string", input: false, required: false },
@@ -179,6 +194,16 @@ export function createAuth(app: AuthApp, db: Db) {
           !unverifiedSessionPaths.includes(ctx.path)
         )
           throw new APIError("FORBIDDEN", { code: "two_factor_required" });
+        // Only platform members set up a factor in HQ: a club Owner enabling it here would force TOTP on their Admin too.
+        if (
+          app === "hq" &&
+          ctx.path.startsWith("/two-factor/") &&
+          !(await PlatformMember.exists({
+            userId: session.user.id,
+            isActive: true,
+          }))
+        )
+          throw new APIError("FORBIDDEN", { code: "platform_role_required" });
 
         if (ctx.path.startsWith("/two-factor/verify-")) {
           const bucket = `auth:${app}:totp:${session.user.id}`;
@@ -217,7 +242,14 @@ export function createAuth(app: AuthApp, db: Db) {
       magicLink({
         expiresIn: 15 * 60,
         storeToken: "hashed",
+        disableSignUp: app === "hq",
         sendMagicLink: async ({ email, url }, ctx) => {
+          // HQ mails only existing users; the answer stays the same, so it reveals no address.
+          if (
+            app === "hq" &&
+            !(await ctx?.context.internalAdapter.findUserByEmail(email))
+          )
+            return;
           const accept = ctx?.headers?.get("accept-language") ?? "";
           await sendEmail("signIn", email, {
             url,
