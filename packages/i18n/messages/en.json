@@ -1476,6 +1476,55 @@
       "colActions": "Actions",
       "noEnd": "no end",
       "periodHint": "Times are Budapest time."
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "today": "Business day: {date}",
+      "openBarView": "Bar view",
+      "bars": {
+        "title": "Bars",
+        "active": "Active: {count}",
+        "activeOf": "Active: {count} / {max}",
+        "atCapacity": "At capacity",
+        "closed": "Closed",
+        "pausedUntil": "Paused until {time}",
+        "pause": "Pause:",
+        "pauseFor": "{minutes} min",
+        "resume": "Resume",
+        "empty": "No bars yet.",
+        "pauseGroup": "Pause {bar}",
+        "resumeBar": "{bar}: resume"
+      },
+      "trend": {
+        "title": "Waiting time, last 3 hours",
+        "time": "Time",
+        "orders": "Orders",
+        "wait": "Average wait",
+        "none": "–",
+        "empty": "No orders in the last 3 hours."
+      },
+      "products": {
+        "title": "Top 5 products",
+        "empty": "Nothing sold yet today.",
+        "soldOut": "Sold out",
+        "setSoldOut": "Mark sold out",
+        "setAvailable": "Available again",
+        "quantity": "{count} pcs"
+      },
+      "soldOut": {
+        "title": "Sold-out items",
+        "empty": "No sold-out items."
+      },
+      "warnings": {
+        "title": "Warnings",
+        "pausedSince": "Ordering has been paused at every bar since {time}.",
+        "expired": "Expired orders today: {count}.",
+        "missingReceipts": "Orders without a receipt mark: {count}.",
+        "showOrders": "Open",
+        "none": "No warnings."
+      },
+      "loading": "Loading the dashboard…",
+      "failed": "Could not save. Try again."
     }
   },
   "hq": {

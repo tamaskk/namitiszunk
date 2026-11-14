@@ -5,13 +5,13 @@ import { adminApi } from "@/lib/admin-api";
 export type TabletLive = { connected(): boolean; close(): void };
 
 /**
- * Ably for one tablet channel (a bar's or the venue's VIP channel): every message means "reload the
+ * Ably for a tablet's channel (a bar's or the venue's VIP channel), or every bar's for the Dashboard: every message means "reload the
  * list", so the screen never patches state from a message it might have missed. The modular build
  * carries only WebSocket and fetch; a failed chunk load (offline) leaves the polling.
  */
 export function connectTabletLive(
   venueId: string,
-  channel: string,
+  channels: string | readonly string[],
   handlers: {
     onMessage(): void;
     onConnected(): void;
@@ -33,13 +33,15 @@ export function connectTabletLive(
             );
           },
         });
-        ably.channels
-          .get(channel)
-          .subscribe(() => handlers.onMessage())
-          // Closing the page rejects a pending attach: only a failure while open is worth a report.
-          .catch((error: unknown) => {
-            if (!closed) handlers.onError(error);
-          });
+        for (const channel of [channels].flat()) {
+          ably.channels
+            .get(channel)
+            .subscribe(() => handlers.onMessage())
+            // Closing the page rejects a pending attach: only a failure while open is worth a report.
+            .catch((error: unknown) => {
+              if (!closed) handlers.onError(error);
+            });
+        }
         ably.connection.on("connected", handlers.onConnected);
       },
       () => {
