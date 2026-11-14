@@ -98,3 +98,26 @@ export async function signIn(
     },
   ]);
 }
+
+/** A copy of the Demo Klub's latest paid order as a fresh New one (T-063); returns its id. */
+export function insertNewOrder(): string {
+  return run(
+    `const venueId = new mongodb.ObjectId(args[0]);
+    const source = await db.collection("orders").findOne(
+      { venueId, paidAt: { $type: "date" } }, { sort: { businessDate: -1, shortNumber: -1 } });
+    const { acceptedAt, readyAt, pickedUpAt, receiptEnteredBy, ...order } = source;
+    const _id = new mongodb.ObjectId();
+    await db.collection("orders").insertOne({ ...order, _id, status: "new",
+      shortNumber: source.shortNumber + 900, guestTokenHash: _id.toHexString(),
+      paidAt: new Date(), createdAt: new Date(), updatedAt: new Date() });
+    return _id.toHexString();`,
+    [seedId("venue:demo")],
+  ) as string;
+}
+
+export function deleteOrder(id: string) {
+  run(
+    `await db.collection("orders").deleteOne({ _id: new mongodb.ObjectId(args[0]) });`,
+    [id],
+  );
+}

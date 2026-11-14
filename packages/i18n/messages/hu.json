@@ -1476,6 +1476,55 @@
       "colActions": "Műveletek",
       "noEnd": "nincs vége",
       "periodHint": "Az időpontok budapesti idő szerint értendők."
+    },
+    "dashboard": {
+      "title": "Irányítópult",
+      "today": "Üzleti nap: {date}",
+      "openBarView": "Pult nézet",
+      "bars": {
+        "title": "Pultok",
+        "active": "Aktív: {count}",
+        "activeOf": "Aktív: {count} / {max}",
+        "atCapacity": "Elérte a kapacitást",
+        "closed": "Zárva",
+        "pausedUntil": "Szünet {time}-ig",
+        "pause": "Szünet:",
+        "pauseFor": "{minutes} perc",
+        "resume": "Folytatás",
+        "empty": "Még nincs pult.",
+        "pauseGroup": "{bar} szüneteltetése",
+        "resumeBar": "{bar}: folytatás"
+      },
+      "trend": {
+        "title": "Várakozási idő, utolsó 3 óra",
+        "time": "Időpont",
+        "orders": "Rendelések",
+        "wait": "Átlagos várakozás",
+        "none": "–",
+        "empty": "Az utolsó 3 órában nem volt rendelés."
+      },
+      "products": {
+        "title": "Top 5 termék",
+        "empty": "Ma még nem adtak el terméket.",
+        "soldOut": "Elfogyott",
+        "setSoldOut": "Elfogyottra állítom",
+        "setAvailable": "Újra kapható",
+        "quantity": "{count} db"
+      },
+      "soldOut": {
+        "title": "Elfogyott termékek",
+        "empty": "Nincs elfogyott termék."
+      },
+      "warnings": {
+        "title": "Figyelmeztetések",
+        "pausedSince": "A rendelés {time} óta szünetel minden pultnál.",
+        "expired": "Lejárt rendelések ma: {count}.",
+        "missingReceipts": "Nyugta nélküli elfogadott rendelések: {count}.",
+        "showOrders": "Megnyitás",
+        "none": "Nincs figyelmeztetés."
+      },
+      "loading": "Irányítópult betöltése…",
+      "failed": "Nem sikerült menteni. Próbáld újra."
     }
   },
   "hq": {
