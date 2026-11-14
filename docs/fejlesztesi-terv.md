@@ -2083,9 +2083,9 @@ A doksi listáján túl: nincs internet (sáv és automatikus újrapróbálás);
 
 **Elfogadási feltételek.**
 
-- [ ] Egy új rendelés 5 mp-en belül megjelenik az Irányítópult számaiban.
-- [ ] A számok egyeznek a napi riporttal (61.) ugyanarra az üzleti napra.
-- [ ] Telefonon (375 px) minden kártya és gyorsművelet elérhető.
+- [x] Egy új rendelés 5 mp-en belül megjelenik az Irányítópult számaiban.
+- [x] A számok egyeznek a napi riporttal (61.) ugyanarra az üzleti napra.
+- [x] Telefonon (375 px) minden kártya és gyorsművelet elérhető.
 
 **Tesztelés.** Vitest a várakozási trendre; Playwright mobil nézetben, párhuzamos teszt rendelésekkel.
 
