@@ -16,8 +16,16 @@ function csvFile(
   return { name, mimeType: "text/csv", buffer: Buffer.from(text, encoding) };
 }
 
+// Before hydration the input has no change handler, and a file set then is never read. The handler
+// empties the input, so set the file until it does.
 async function upload(page: Page, file: ReturnType<typeof csvFile>) {
-  await page.getByLabel("CSV fájl").setInputFiles(file);
+  const input = page.getByLabel("CSV fájl");
+  await expect(async () => {
+    await input.setInputFiles(file);
+    await expect
+      .poll(() => input.evaluate((el: HTMLInputElement) => el.files?.length))
+      .toBe(0);
+  }).toPass({ timeout: 45_000 });
 }
 
 test.describe.configure({ mode: "serial" });

@@ -32,4 +32,7 @@ export const reportRangeQuerySchema = z
     { path: ["cto"], error: "validation.exportRange" },
   );
 
+/** The signed-in Owner's or Manager's own weekly report e-mail (T-062). */
+export const setWeeklyReportInputSchema = z.object({ on: z.boolean() });
+
 export type ReportRangeQuery = z.infer<typeof reportRangeQuerySchema>;

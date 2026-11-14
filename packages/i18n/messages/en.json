@@ -1408,6 +1408,15 @@
           "bar": "Bar",
           "qr": "QR source"
         }
+      },
+      "weekly": {
+        "title": "Weekly report by e-mail",
+        "label": "Send me the weekly report",
+        "hint": "Every Monday at 9 to your own e-mail address: last week's figures compared with the week before. No mail after a week without orders.",
+        "saving": "Saving…",
+        "savedOn": "On. You get it next Monday.",
+        "savedOff": "Off. No more weekly reports.",
+        "failed": "Could not save. Try again."
       }
     },
     "profile": {
@@ -1554,10 +1563,21 @@
       "button": "Continue setup"
     },
     "weeklyReport": {
-      "subject": "Weekly report: {venueName}",
+      "subject": "Weekly report: {venueName}, {from}–{to}",
       "heading": "Last week at {venueName}",
+      "period": "{from} – {to}, business days",
       "orders": "Orders",
-      "revenue": "Revenue",
+      "revenue": "Revenue without tips",
+      "avgBasket": "Average basket",
+      "avgPrep": "Average preparation time",
+      "tip": "Tips",
+      "refunds": "Refunds",
+      "refundsValue": "{amount} ({count, plural, one {# order} other {# orders}})",
+      "previous": "Week before: {value}",
+      "minutes": "{minutes} min {seconds} s",
+      "none": "no data",
+      "products": "Top products",
+      "productsNote": "Product revenue is before discounts.",
       "button": "Open the report"
     },
     "untrustedText": "Written by the sender, not by us. Links in it are not from us."

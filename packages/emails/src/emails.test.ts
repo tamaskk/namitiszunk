@@ -70,9 +70,38 @@ const fixtures: { [N in EmailTemplate]: Omit<EmailData[N], "locale"> } = {
   },
   weeklyReport: {
     venueName: "Pilot Club",
-    orderCount: 312,
-    revenueHuf: 1245600,
-    url: "https://admin.namitiszunk.hu/reports",
+    from: "2026-11-09",
+    to: "2026-11-15",
+    current: {
+      orders: 312,
+      revenueHuf: 1245600,
+      tipHuf: 48200,
+      avgBasketHuf: 3992,
+      avgPrepSeconds: 262,
+      refundedOrders: 1,
+      refundedHuf: 2400,
+    },
+    previous: {
+      orders: 280,
+      revenueHuf: 1100000,
+      tipHuf: 40100,
+      avgBasketHuf: 3929,
+      avgPrepSeconds: null,
+      refundedOrders: 0,
+      refundedHuf: 0,
+    },
+    change: {
+      orders: 11,
+      revenueHuf: 13,
+      avgBasketHuf: 2,
+      avgPrepSeconds: null,
+      tipHuf: -5,
+    },
+    products: [
+      { name: "Sör", nameEn: "Beer", quantity: 140, revenueHuf: 168000 },
+      { name: "Mojito", quantity: 60, revenueHuf: 150000 },
+    ],
+    url: "https://admin.namitiszunk.hu/reports/period?from=2026-11-09&to=2026-11-15",
   },
 };
 

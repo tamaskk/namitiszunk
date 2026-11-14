@@ -5,6 +5,7 @@ import {
   runRetention,
   runSmsLogRetention,
 } from "@namitiszunk/core/retention";
+import { weeklyReportMail } from "@namitiszunk/core/reports";
 import * as Sentry from "@sentry/nextjs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,6 +18,7 @@ import {
   pickupReminder,
   problemReportEmail,
   rejectRefund,
+  reportsWeekly,
   retentionDaily,
   stripeReconcile,
 } from "./functions";
@@ -47,6 +49,32 @@ vi.mock("@namitiszunk/core/orders", () => ({
     { ...problemMail, to: "bar@pilot.example" },
     { ...problemMail, to: "ops@namitiszunk.hu" },
   ]),
+}));
+vi.mock("@namitiszunk/core/reports", () => ({
+  weeklyReportVenues: vi.fn(async () => ["venue-a", "venue-b", "venue-c"]),
+  // venue-c starts its business day at 10:00, after the job's 09:00.
+  weeklyReportClosesAt: vi.fn(async (venueId: string) =>
+    venueId === "venue-c" ? "2026-11-16T09:00:00.000Z" : null,
+  ),
+  weeklyReportRecipients: vi.fn(async (venueId: string) =>
+    venueId === "venue-a"
+      ? ["u1", "u2", "u3"]
+      : venueId === "venue-c"
+        ? ["u4"]
+        : [],
+  ),
+  // u3 switched the mail off after the list was made.
+  weeklyReportMail: vi.fn(
+    async (venueId: string, _now: Date, userId: string) =>
+      userId === "u3"
+        ? null
+        : {
+            template: "weeklyReport",
+            to: `${userId}@pilot.example`,
+            data: {},
+            idempotencyKey: `weekly-report:${venueId}:2026-11-09:${userId}`,
+          },
+  ),
 }));
 vi.mock("@namitiszunk/core/jobs", () => ({
   cancelUnpaidOrder: vi.fn(async () => "cancelled"),
@@ -353,6 +381,90 @@ describe("stripe/reconcile", () => {
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
     deps.listStripeCharges = null;
+  });
+});
+
+describe("reportsWeekly", () => {
+  it("mails each recipient in their own step with one clock, skipping one who switched it off", async () => {
+    const sendMail = vi
+      .spyOn(deps.weekly, "sendMail")
+      .mockResolvedValue({ id: "email_1" });
+    const t = new InngestTestEngine({
+      function: reportsWeekly,
+      steps: slept("wait-venue-c"),
+    });
+
+    const { result, ctx } = await t.execute();
+
+    expect(result).toEqual({ venues: 3, sent: 3, failed: 0 });
+    expect(sendMail.mock.calls.map(([mail]) => mail.to)).toEqual([
+      "u1@pilot.example",
+      "u2@pilot.example",
+      "u4@pilot.example",
+    ]);
+    expect(ctx.step.sleepUntil).toHaveBeenCalledTimes(1);
+    expect(ctx.step.sleepUntil).toHaveBeenCalledWith(
+      "wait-venue-c",
+      "2026-11-16T09:00:00.000Z",
+    );
+    const clocks = vi
+      .mocked(weeklyReportMail)
+      .mock.calls.map(([, now]) => now.toISOString());
+    expect(new Set(clocks).size).toBe(1);
+  });
+
+  it("reports a mail that failed for good and still mails the other venues", async () => {
+    const sendMail = vi
+      .spyOn(deps.weekly, "sendMail")
+      .mockResolvedValue({ id: "email_1" });
+    // @inngest/test models no retries, so the step throws here as it does once Inngest gave up on it.
+    const t = new InngestTestEngine({
+      function: reportsWeekly,
+      steps: slept("wait-venue-c"),
+      transformCtx: (ctx) => ({
+        ...ctx,
+        step: {
+          ...ctx.step,
+          run: ((id: string, fn: () => unknown) =>
+            id === "send-venue-a-u2"
+              ? Promise.reject(new Error("invalid_to"))
+              : ctx.step.run(id, fn)) as typeof ctx.step.run,
+        },
+      }),
+    });
+
+    const { result } = await t.execute();
+
+    expect(result).toEqual({ venues: 3, sent: 2, failed: 1 });
+    expect(sendMail.mock.calls.map(([mail]) => mail.to)).toEqual([
+      "u1@pilot.example",
+      "u4@pilot.example",
+    ]);
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        tags: { inngest_function: "reports-weekly" },
+      }),
+    );
+  });
+
+  it("runs on Mondays at 9 in Budapest", () => {
+    expect(reportsWeekly.opts.triggers).toEqual([
+      { cron: "TZ=Europe/Budapest 0 9 * * 1" },
+    ]);
+  });
+
+  it("links the Owner's period report with the comparison and a Manager's daily report", () => {
+    const period = deps.weekly.links.period(
+      { from: "2026-11-09", to: "2026-11-15" },
+      { from: "2026-11-02", to: "2026-11-08" },
+    );
+    const daily = deps.weekly.links.daily("2026-11-15");
+
+    expect(period).toBe(
+      "https://admin.namitiszunk.hu/reports/period?from=2026-11-09&to=2026-11-15&cfrom=2026-11-02&cto=2026-11-08",
+    );
+    expect(daily).toBe("https://admin.namitiszunk.hu/reports?date=2026-11-15");
   });
 });
 

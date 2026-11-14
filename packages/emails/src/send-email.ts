@@ -22,16 +22,23 @@ export async function sendEmail<N extends EmailTemplate>(
   template: N,
   to: string | string[],
   data: EmailData[N],
+  // Resend sends one mail per key within 24 hours, so a retried or re-run job never mails twice.
+  options: { idempotencyKey?: string } = {},
 ): Promise<{ id: string }> {
   const { subject, html, text, replyTo } = await renderEmail(template, data);
-  const { data: sent, error } = await resend().emails.send({
-    from,
-    to,
-    subject,
-    html,
-    text,
-    ...(replyTo && { replyTo }),
-  });
+  const { data: sent, error } = await resend().emails.send(
+    {
+      from,
+      to,
+      subject,
+      html,
+      text,
+      ...(replyTo && { replyTo }),
+    },
+    options.idempotencyKey
+      ? { idempotencyKey: options.idempotencyKey }
+      : undefined,
+  );
   if (error || !sent) {
     // The Resend error carries no secrets; the recipient address stays out of the message.
     throw new Error(

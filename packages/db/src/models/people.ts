@@ -43,6 +43,8 @@ const venueMemberSchema = new Schema(
     // A 4-6 digit PIN hash is brute-forceable offline; load it only with .select("+pinHash").
     pinHash: { type: String, select: false },
     isActive: { type: Boolean, default: true },
+    // The weekly report e-mail (T-062), set by the member themself; unset means on for an Owner, off for a Manager.
+    weeklyReport: Boolean,
   },
   { timestamps: true },
 );

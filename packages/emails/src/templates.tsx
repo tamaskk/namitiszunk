@@ -78,13 +78,40 @@ export interface EmailData {
     platformEmail: string;
   }>;
   onboardingReminder: WithLocale<{ venueName: string; url: string }>;
+  /** T-062: last week's figures from the Reports aggregations, and the week before for the change. */
   weeklyReport: WithLocale<{
     venueName: string;
-    orderCount: number;
-    revenueHuf: number;
+    /** Business days, "YYYY-MM-DD", Monday to Sunday. */
+    from: string;
+    to: string;
+    current: WeeklyFigures;
+    previous: WeeklyFigures;
+    /** Whole percent from the week before, computed in core like the Reports comparison; null without a base. */
+    change: Record<
+      "orders" | "revenueHuf" | "avgBasketHuf" | "avgPrepSeconds" | "tipHuf",
+      number | null
+    >;
+    products: {
+      name: string;
+      nameEn?: string;
+      quantity: number;
+      revenueHuf: number;
+    }[];
     url: string;
   }>;
 }
+
+// Mirrors WeeklyFigures in packages/core/src/reports/weekly.ts; emails stays free of core, and the
+// compiler checks the two match where the job passes the mail on (apps/api/src/inngest/deps.ts).
+type WeeklyFigures = {
+  orders: number;
+  revenueHuf: number;
+  tipHuf: number;
+  avgBasketHuf: number;
+  avgPrepSeconds: number | null;
+  refundedOrders: number;
+  refundedHuf: number;
+};
 
 interface Template<D> {
   subject: (t: T, data: D) => string;
@@ -131,6 +158,41 @@ function UntrustedField({
     </Section>
   );
 }
+
+// Business days are calendar dates; UTC keeps them from shifting a day.
+const dateText = (
+  date: string,
+  locale: Locale,
+  options: Intl.DateTimeFormatOptions,
+) =>
+  new Intl.DateTimeFormat(locale === "hu" ? "hu-HU" : "en-GB", {
+    ...options,
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
+// DESIGN_SYSTEM §01: Hungarian dates are numeric ("2026. 11. 09."); English keeps the month name.
+const shortDate = (date: string, locale: Locale) =>
+  dateText(
+    date,
+    locale,
+    locale === "hu"
+      ? { month: "2-digit", day: "2-digit" }
+      : { month: "short", day: "numeric" },
+  );
+const longDate = (date: string, locale: Locale) =>
+  dateText(
+    date,
+    locale,
+    locale === "hu"
+      ? { year: "numeric", month: "2-digit", day: "2-digit" }
+      : { dateStyle: "medium" },
+  );
+
+// The muted look without its block margin, which an inline span would ignore anyway.
+const previousLine = {
+  color: styles.muted.color,
+  fontSize: styles.muted.fontSize,
+  lineHeight: styles.muted.lineHeight,
+};
 
 const venueReplyTo = (data: { venueEmail: string }) => data.venueEmail;
 const platformReplyTo = (data: { platformEmail: string }) => data.platformEmail;
@@ -304,18 +366,90 @@ export const templates: { [N in keyof EmailData]: Template<EmailData[N]> } = {
       </>
     ),
   },
-  // Placeholder until T-062 defines the report contents.
   weeklyReport: {
-    subject: (t, d) => t("weeklyReport.subject", { venueName: d.venueName }),
+    subject: (t, d) =>
+      t("weeklyReport.subject", {
+        venueName: d.venueName,
+        from: shortDate(d.from, d.locale),
+        to: shortDate(d.to, d.locale),
+      }),
     heading: (t, d) => t("weeklyReport.heading", { venueName: d.venueName }),
-    Body: ({ t, data }) => (
-      <>
-        <Field label={t("weeklyReport.orders")}>{data.orderCount}</Field>
-        <Field label={t("weeklyReport.revenue")}>
-          {formatHuf(data.revenueHuf)}
-        </Field>
-        <EmailButton href={data.url}>{t("weeklyReport.button")}</EmailButton>
-      </>
-    ),
+    Body: ({ t, data }) => {
+      const minutes = (s: number | null) => {
+        if (s === null) return t("weeklyReport.none");
+        const whole = Math.round(s);
+        return t("weeklyReport.minutes", {
+          minutes: Math.floor(whole / 60),
+          seconds: whole % 60,
+        });
+      };
+      const huf = (n: number | null) => formatHuf(n ?? 0);
+      const rows = [
+        ["orders", "orders", String],
+        ["revenue", "revenueHuf", huf],
+        ["avgBasket", "avgBasketHuf", huf],
+        ["avgPrep", "avgPrepSeconds", minutes],
+        ["tip", "tipHuf", huf],
+      ] as const satisfies readonly [
+        string,
+        keyof typeof data.change,
+        (n: number | null) => string,
+      ][];
+      return (
+        <>
+          <Text style={styles.muted}>
+            {t("weeklyReport.period", {
+              from: longDate(data.from, data.locale),
+              to: longDate(data.to, data.locale),
+            })}
+          </Text>
+          {rows.map(([key, field, show]) => {
+            const change = data.change[field];
+            return (
+              <Field key={key} label={t(`weeklyReport.${key}`)}>
+                <span style={styles.amount}>{show(data.current[field])}</span>
+                {change !== null && (
+                  <span style={{ ...styles.amount, fontWeight: 600 }}>
+                    {" "}
+                    {change > 0 ? "+" : change < 0 ? "−" : ""}
+                    {Math.abs(change)}%
+                  </span>
+                )}
+                {"\n"}
+                <span style={previousLine}>
+                  {t("weeklyReport.previous", {
+                    value: show(data.previous[field]),
+                  })}
+                </span>
+              </Field>
+            );
+          })}
+          <Field label={t("weeklyReport.refunds")}>
+            <span style={styles.amount}>
+              {t("weeklyReport.refundsValue", {
+                amount: formatHuf(data.current.refundedHuf),
+                count: data.current.refundedOrders,
+              })}
+            </span>
+          </Field>
+          {data.products.length > 0 && (
+            <Section style={{ margin: "0 0 16px" }}>
+              <Text style={styles.label}>{t("weeklyReport.products")}</Text>
+              {data.products.map((product, rank) => (
+                <Text key={rank} style={{ ...styles.text, margin: "0 0 8px" }}>
+                  {product.quantity} ×{" "}
+                  {(data.locale === "en" && product.nameEn) || product.name}{" "}
+                  <span style={styles.amount}>
+                    {formatHuf(product.revenueHuf)}
+                  </span>
+                </Text>
+              ))}
+              <Text style={styles.muted}>{t("weeklyReport.productsNote")}</Text>
+            </Section>
+          )}
+          <EmailButton href={data.url}>{t("weeklyReport.button")}</EmailButton>
+        </>
+      );
+    },
   },
 };

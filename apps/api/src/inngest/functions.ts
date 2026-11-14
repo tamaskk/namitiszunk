@@ -13,6 +13,12 @@ import {
 import { AppError } from "@namitiszunk/core/errors";
 import { problemReportMails } from "@namitiszunk/core/orders";
 import {
+  weeklyReportClosesAt,
+  weeklyReportMail,
+  weeklyReportRecipients,
+  weeklyReportVenues,
+} from "@namitiszunk/core/reports";
+import {
   runAccountRetention,
   runRetention,
   runSmsLogRetention,
@@ -210,11 +216,62 @@ export const retentionDaily = inngest.createFunction(
 export const reportsWeekly = inngest.createFunction(
   {
     id: "reports-weekly",
-    triggers: [{ cron: "TZ=Europe/Budapest 0 8 * * 1" }],
+    triggers: [{ cron: "TZ=Europe/Budapest 0 9 * * 1" }],
     onFailure: reportFailure,
   },
-  // shortcut: the weekly report e-mail is T-062; register its sender here.
-  async () => ({ skipped: "weekly report not built (T-062)" }),
+  async ({ step }) => {
+    // One clock for every step: a retry later in the week still reports the same week.
+    const { now, venueIds } = await step.run("list-venues", async () => {
+      await connectJobsDb();
+      return {
+        now: new Date().toISOString(),
+        venueIds: await weeklyReportVenues(),
+      };
+    });
+    let sent = 0;
+    let failed = 0;
+    for (const venueId of venueIds) {
+      // A venue whose business day starts after 09:00 has Sunday's night still open: wait for it.
+      const closesAt = await step.run(`closes-${venueId}`, async () => {
+        await connectJobsDb();
+        return weeklyReportClosesAt(venueId, new Date(now));
+      });
+      if (closesAt) await step.sleepUntil(`wait-${venueId}`, closesAt);
+      // Only user ids leave the steps: the run history keeps no address and no figures.
+      const userIds = await step.run(`recipients-${venueId}`, async () => {
+        await connectJobsDb();
+        return weeklyReportRecipients(venueId, new Date(now));
+      });
+      for (const userId of userIds) {
+        try {
+          const delivered = await step.run(
+            `send-${venueId}-${userId}`,
+            async () => {
+              await connectJobsDb();
+              const mail = await weeklyReportMail(
+                venueId,
+                new Date(now),
+                userId,
+                deps.weekly.links,
+              );
+              if (!mail) return false;
+              await deps.weekly.sendMail(mail);
+              return true;
+            },
+          );
+          if (delivered) sent += 1;
+        } catch (error) {
+          // An address Resend refuses for good must not cost every later venue its report.
+          Sentry.captureException(error, {
+            tags: { inngest_function: "reports-weekly" },
+            extra: { venueId },
+          });
+          failed += 1;
+        }
+      }
+    }
+    return { venues: venueIds.length, sent, failed };
+  },
 );
 
 // A guest's problem report (T-046) to the venue and the platform; one step per mail, so a retry never
