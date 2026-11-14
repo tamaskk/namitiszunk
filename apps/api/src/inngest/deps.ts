@@ -7,6 +7,10 @@ import {
   refundOrderInFull,
 } from "@namitiszunk/core/payments";
 import type { ProblemReportMail } from "@namitiszunk/core/orders";
+import type {
+  WeeklyReportLinks,
+  WeeklyReportMail,
+} from "@namitiszunk/core/reports";
 import { sendEmail } from "@namitiszunk/emails";
 
 /** Integrations other wave-2 tasks own; each shortcut says what replaces it. */
@@ -30,6 +34,25 @@ export const deps = {
       adminOrder: (orderId: string) =>
         `https://admin.namitiszunk.hu/orders/${orderId}`,
     },
+  },
+  weekly: {
+    sendMail: (mail: WeeklyReportMail) =>
+      sendEmail(mail.template, mail.to, mail.data, {
+        idempotencyKey: mail.idempotencyKey,
+      }),
+    links: {
+      // The Owner's period report of the week, compared with the week before (T-061).
+      period: (week, before) =>
+        `https://admin.namitiszunk.hu/reports/period?${new URLSearchParams({
+          from: week.from,
+          to: week.to,
+          cfrom: before.from,
+          cto: before.to,
+        })}`,
+      // A Manager sees one business day at a time.
+      daily: (date) =>
+        `https://admin.namitiszunk.hu/reports?${new URLSearchParams({ date })}`,
+    } satisfies WeeklyReportLinks,
   },
   notify: {
     // shortcut: no push service before T-090 (Expo Push), so every guest falls back to the live page and SMS.

@@ -1,5 +1,5 @@
 import { can } from "@namitiszunk/core/auth";
-import { getDailyReport } from "@namitiszunk/core/reports";
+import { getDailyReport, getWeeklyReport } from "@namitiszunk/core/reports";
 import { reportDayQuerySchema } from "@namitiszunk/validators";
 import { getTranslations } from "next-intl/server";
 
@@ -14,6 +14,7 @@ import {
   ReportsHeader,
   SummaryFigures,
 } from "./report-parts";
+import { WeeklyReportSwitch } from "./weekly-report-switch";
 
 export const instant = false;
 
@@ -29,11 +30,14 @@ export default async function DailyReportPage({
   const query = reportDayQuerySchema.safeParse({
     date: typeof raw.date === "string" && raw.date ? raw.date : undefined,
   });
-  const report = await getDailyReport(
-    actor,
-    venue.id,
-    query.success ? query.data.date : undefined,
-  );
+  const [report, weekly] = await Promise.all([
+    getDailyReport(
+      actor,
+      venue.id,
+      query.success ? query.data.date : undefined,
+    ),
+    getWeeklyReport(actor, venue.id),
+  ]);
   const day = report.businessDate;
 
   return (
@@ -62,6 +66,7 @@ export default async function DailyReportPage({
         </>
       )}
       <ReportExport view="daily" from={day} to={day} />
+      {weekly !== null && <WeeklyReportSwitch on={weekly} />}
     </div>
   );
 }

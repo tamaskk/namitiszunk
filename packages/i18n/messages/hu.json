@@ -1408,6 +1408,15 @@
           "bar": "Pult",
           "qr": "QR-forrás"
         }
+      },
+      "weekly": {
+        "title": "Heti riport e-mailben",
+        "label": "Küldd el nekem a heti riportot",
+        "hint": "Hétfőnként 9-kor a saját e-mail címedre: az előző hét számai, összevetve az azelőttivel. Rendelés nélküli héten nem küldünk.",
+        "saving": "Mentés…",
+        "savedOn": "Bekapcsolva. A következő hétfőn megkapod.",
+        "savedOff": "Kikapcsolva. Nem küldünk több heti riportot.",
+        "failed": "Nem sikerült menteni. Próbáld újra."
       }
     },
     "profile": {
@@ -1554,10 +1563,21 @@
       "button": "Beállítás folytatása"
     },
     "weeklyReport": {
-      "subject": "Heti riport: {venueName}",
+      "subject": "Heti riport: {venueName}, {from}–{to}",
       "heading": "Az elmúlt hét: {venueName}",
+      "period": "{from} – {to}, üzleti napok",
       "orders": "Rendelések",
-      "revenue": "Bevétel",
+      "revenue": "Bevétel borravaló nélkül",
+      "avgBasket": "Átlagos kosár",
+      "avgPrep": "Átlagos elkészítési idő",
+      "tip": "Borravaló",
+      "refunds": "Visszatérítések",
+      "refundsValue": "{amount} ({count} rendelés)",
+      "previous": "Előző hét: {value}",
+      "minutes": "{minutes} perc {seconds} mp",
+      "none": "nincs adat",
+      "products": "Legnépszerűbb termékek",
+      "productsNote": "A termékek bevétele a kedvezmények előtti összeg.",
       "button": "Riport megnyitása"
     },
     "untrustedText": "A feladó írta, nem mi. A benne lévő linkeket nem mi küldtük."
