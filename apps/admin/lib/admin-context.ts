@@ -16,6 +16,7 @@ import type { Actor } from "@namitiszunk/core/auth";
 import { AppError } from "@namitiszunk/core/errors";
 import { cookies, headers } from "next/headers";
 import { forbidden, redirect } from "next/navigation";
+import { connection } from "next/server";
 import { cache } from "react";
 
 import { ensureDb } from "./db";
@@ -93,6 +94,8 @@ export function contextCanOpen(
 
 /** getAdminContext for pages, layouts and actions, once per request; no session sends to sign-in. */
 export const getAdminContext = cache(async (): Promise<AdminContext> => {
+  // The session expiry check reads the clock: request time only, never a (runtime) prerender.
+  await connection();
   const context = await loadAdminContext(
     await headers(),
     (await cookies()).get(VENUE_COOKIE)?.value,

@@ -24,6 +24,7 @@
     "./menu": "./src/menu/index.ts",
     "./cart": "./src/cart/validate-cart.ts",
     "./bars": "./src/bars/bars.ts",
+    "./promos": "./src/promos/promos.ts",
     "./bar-view": "./src/bar-view/bar-view.ts",
     "./bar-view/summary": "./src/bar-view/summary.ts",
     "./staff": "./src/staff/staff.ts",

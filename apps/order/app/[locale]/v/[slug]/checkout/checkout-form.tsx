@@ -17,6 +17,7 @@ import type {
 } from "@namitiszunk/validators";
 import {
   HU_PHONE_PATTERN,
+  PROMO_CODE_PATTERN,
   SITE_URL,
 } from "@namitiszunk/validators/cart-limits";
 import { useLocale, useTranslations } from "next-intl";
@@ -33,6 +34,7 @@ import {
 import { useCart } from "@/components/cart/use-cart";
 import { HoursNote } from "@/components/states/hours-note";
 import { checkoutKeyFor, forgetCheckoutKey } from "@/lib/checkout-key";
+import { deviceId } from "@/lib/device-id";
 import { rememberOpenOrder } from "@/lib/open-orders";
 import { orderApi, OrderApiError } from "@/lib/order-api";
 import { useVenueStatus } from "@/lib/use-venue-status";
@@ -96,6 +98,18 @@ export function CheckoutForm({
   const { lines, update } = useCart(venueId);
   const [tip, setTip] = useState<Tip>({ type: "percent", bps: 0 });
   const [customTip, setCustomTip] = useState("");
+  // T-060: the typed code, the one sent for pricing, and why the server refused the last one.
+  const [promoDraft, setPromoDraft] = useState("");
+  const [promoCode, setPromoCode] = useState<string | null>(null);
+  const [promoProblem, setPromoProblem] = useState<string | null>(null);
+  // The code the server last priced, so a later tip change does not announce "applied" again.
+  const [confirmedCode, setConfirmedCode] = useState<string | null>(null);
+  // Read once when a code is applied, not on every render (it may write localStorage the first time).
+  const [promoDevice, setPromoDevice] = useState<string | null>(null);
+  const promoInput = useRef<HTMLInputElement>(null);
+  const promoRemove = useRef<HTMLButtonElement>(null);
+  // Which control gets focus once the field has switched between "type a code" and "applied".
+  const promoFocus = useRef<"input" | "remove" | null>(null);
   const [sms, setSms] = useState(false);
   const [phone, setPhone] = useState("");
   const [adult, setAdult] = useState(false);
@@ -119,8 +133,37 @@ export function CheckoutForm({
       modifierIds: line.modifierIds,
     })),
     tip,
+    // The API limits codes per device, so a code always travels with this browser's id.
+    ...(promoCode && promoDevice ? { promoCode, deviceId: promoDevice } : {}),
   };
   const cartKey = JSON.stringify(cart);
+  // A refused code is dropped, so the summary prices again without it and the reason shows by the field.
+  const refusePromo = (code: string) => {
+    if (!code.startsWith("promo_")) return false;
+    setPromoProblem(code);
+    setPromoCode(null);
+    promoFocus.current = "input";
+    return true;
+  };
+  function applyPromo() {
+    const code = promoDraft.trim();
+    if (!code) return;
+    // The API refuses any other shape with a 400; the guest gets the same message as for an unknown code.
+    if (!PROMO_CODE_PATTERN.test(code)) return setPromoProblem("promo_invalid");
+    setPromoProblem(null);
+    setPromoDevice((id) => id ?? deviceId());
+    setPromoCode(code);
+    promoFocus.current = "remove";
+  }
+  function removePromo() {
+    setPromoCode(null);
+    promoFocus.current = "input";
+  }
+  useEffect(() => {
+    if (promoFocus.current === "remove") promoRemove.current?.focus();
+    if (promoFocus.current === "input") promoInput.current?.focus();
+    promoFocus.current = null;
+  }, [promoCode]);
 
   // The server prices every change; a short pause lets the guest finish typing a custom tip.
   useEffect(() => {
@@ -133,13 +176,16 @@ export function CheckoutForm({
           if (!current) return;
           setQuote(next);
           setQuotedKey(cartKey);
+          setConfirmedCode(
+            (JSON.parse(cartKey) as typeof cart).promoCode ?? null,
+          );
           setQuoteProblem(null);
         })
         .catch((error: unknown) => {
           if (!current) return;
-          setQuoteProblem({
-            code: error instanceof OrderApiError ? (error.code ?? "") : "",
-          });
+          const code = error instanceof OrderApiError ? (error.code ?? "") : "";
+          if (refusePromo(code)) return;
+          setQuoteProblem({ code });
         });
     }, 300);
     return () => {
@@ -185,6 +231,8 @@ export function CheckoutForm({
   const pausedOrClosed = ["bar_paused", "orders_paused", "bar_closed"];
   const blocked = !open || pausedOrClosed.includes(quoteProblem?.code ?? "");
   const quoteCurrent = quote !== null && quotedKey === cartKey;
+  // A quote priced with the code means it applied (also at 0 Ft): a refused code throws instead.
+  const promoConfirmed = promoCode !== null && confirmedCode === promoCode;
 
   async function pay(event: FormEvent) {
     event.preventDefault();
@@ -240,6 +288,11 @@ export function CheckoutForm({
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- see above
       window.location.assign(liveUrl);
     } catch (error) {
+      // The code was used up or stopped meanwhile: the field says why (once), and the summary prices
+      // again without it.
+      if (error instanceof OrderApiError && refusePromo(error.code ?? "")) {
+        return setPaying(false);
+      }
       setPayProblem(
         (error instanceof OrderApiError && apiErrorText(error.code)) ||
           t("payFailed"),
@@ -294,7 +347,14 @@ export function CheckoutForm({
               ))}
               <Row label={t("subtotal")} huf={quote.subtotalHuf} />
               {quote.discountHuf > 0 && (
-                <Row label={t("discount")} huf={-quote.discountHuf} />
+                <Row
+                  label={
+                    promoCode
+                      ? t("discountCode", { code: promoCode.toUpperCase() })
+                      : t("discount")
+                  }
+                  huf={-quote.discountHuf}
+                />
               )}
               {quote.serviceFeeHuf > 0 && (
                 <Row label={t("serviceFee")} huf={quote.serviceFeeHuf} />
@@ -337,6 +397,86 @@ export function CheckoutForm({
             </div>
           )}
         </section>
+
+        <div className="flex flex-col gap-2">
+          {/* While a code is applied there is no field, so the label names the group instead. */}
+          <Label
+            id="checkout-promo-label"
+            htmlFor={promoCode ? undefined : "checkout-promo"}
+            className="text-small font-medium"
+          >
+            {t("promo")}
+          </Label>
+          {promoCode ? (
+            <div
+              role="group"
+              aria-labelledby="checkout-promo-label"
+              className="flex items-center justify-between gap-4"
+            >
+              <p className="font-mono text-body">{promoCode.toUpperCase()}</p>
+              <Button
+                ref={promoRemove}
+                type="button"
+                variant="ghost"
+                onClick={removePromo}
+              >
+                {t("promoRemove")}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                ref={promoInput}
+                id="checkout-promo"
+                value={promoDraft}
+                maxLength={32}
+                autoComplete="off"
+                autoCapitalize="characters"
+                aria-invalid={promoProblem !== null}
+                aria-describedby={
+                  promoProblem ? "checkout-promo-error" : undefined
+                }
+                className="uppercase"
+                onChange={(e) => {
+                  setPromoDraft(e.target.value);
+                  setPromoProblem(null);
+                }}
+                onKeyDown={(e) => {
+                  // Enter applies the code; it must not submit the payment form.
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  applyPromo();
+                }}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!promoDraft.trim()}
+                onClick={applyPromo}
+              >
+                {t("promoApply")}
+              </Button>
+            </div>
+          )}
+          {/* Always mounted, so screen readers announce the change; "applied" only once the server priced it. */}
+          <p role="status" className="text-small text-text-muted">
+            {/* A failed quote shows its own message above, so the code is neither applied nor checking. */}
+            {promoCode &&
+              !quoteProblem &&
+              (promoConfirmed
+                ? t("promoApplied", { code: promoCode.toUpperCase() })
+                : t("promoChecking"))}
+          </p>
+          {promoProblem && (
+            <p
+              id="checkout-promo-error"
+              role="alert"
+              className="text-small text-danger"
+            >
+              {apiErrorText(promoProblem) ?? tError("promo_invalid")}
+            </p>
+          )}
+        </div>
 
         {tipPresetsBps && (
           <fieldset className="flex flex-col gap-3">

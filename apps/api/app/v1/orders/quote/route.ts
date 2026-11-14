@@ -1,3 +1,4 @@
+import { clientIp } from "@namitiszunk/core/api";
 import { quoteOrder } from "@namitiszunk/core/payments";
 import { quoteOrderInputSchema } from "@namitiszunk/validators";
 
@@ -13,5 +14,6 @@ export const POST = handler(
     rateLimit: { limit: 60, windowSeconds: 60 },
     ipRateLimit: { limit: 600, windowSeconds: 60 },
   },
-  async ({ input }) => quoteOrder(input),
+  async ({ input, request }) =>
+    quoteOrder(input, new Date(), clientIp(request) ?? undefined),
 );

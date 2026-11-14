@@ -72,7 +72,11 @@ describe("POST /v1/orders/quote", () => {
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ data: quote });
-    expect(core.quoteOrder).toHaveBeenCalledWith(cart);
+    expect(core.quoteOrder).toHaveBeenCalledWith(
+      cart,
+      expect.any(Date),
+      "203.0.113.7",
+    );
   });
 
   it("refuses a cart without items", async () => {

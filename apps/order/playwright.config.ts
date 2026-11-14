@@ -4,6 +4,10 @@ import { defineConfig, devices } from "@playwright/test";
 const port = 3101;
 
 export default defineConfig({
+  // One dev server and one seeded venue shared by every spec, and specs change it (pause, payouts).
+  workers: 1,
+  // The dev server compiles a server action on its first call, which can outlast the 5 s default.
+  expect: { timeout: 15_000 },
   testDir: "./e2e",
   // Compiles the dev server's routes before the first test (CI flakes on first-request compiles).
   globalSetup: "./e2e/warm-up.ts",
